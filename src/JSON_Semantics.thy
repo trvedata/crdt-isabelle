@@ -15,10 +15,12 @@ section\<open>Local peer state and related\<close>
 
 subsection\<open>Identifiers\<close>
 
+type_synonym lamport = "nat \<times> nat"
+
 datatype ident
   = Root
   | Head
-  | Id   "nat" "nat"
+  | Id   "lamport"
   | Key  "string"
 
 subsection\<open>State keys\<close>
@@ -56,16 +58,36 @@ end
 subsection\<open>Document state\<close>
 
 datatype document_state
-  = MapV  "state_key \<rightharpoonup> ((nat \<times> nat) set \<times> document_state)"
-  | ListV "(state_key \<times> (nat \<times> nat) set \<times> document_state) list"
-  | RegV  "(nat \<times> nat) \<rightharpoonup> val"
+  = MapV  "state_key \<rightharpoonup> (lamport set \<times> document_state)"
+  | ListV "(state_key \<times> lamport set \<times> document_state) list"
+  | RegV  "lamport \<rightharpoonup> val"
+
+subsection\<open>Operations\<close>
+
+datatype mutation
+  = Assign "val"
+  | Insert "val"
+  | Delete
+
+record operation =
+  operation_id     :: "lamport"
+  dependencies     :: "lamport set"
+  operation_cursor :: "cursor"
+  mutation         :: "mutation"
+
+definition apply_operation :: "cursor \<Rightarrow> operation \<Rightarrow> document_state \<Rightarrow> document_state option" where
+  "apply_operation c opn \<sigma> \<equiv> undefined"
 
 subsection\<open>Local peer state\<close>
 
 record 'a local_peer_state =
-  peer_id        :: "nat"
-  current_state  :: "document_state"
-  var_cursor_map :: "'a \<rightharpoonup> cursor"
+  peer_id             :: "nat"
+  current_state       :: "document_state"
+  var_cursor_map      :: "'a \<rightharpoonup> cursor"
+  operation_queue     :: "operation set"
+  sent_operations     :: "operation set"
+  received_operations :: "operation set"
+  operations          :: "lamport set"
 
 definition defined :: "'a \<Rightarrow> 'a local_peer_state \<Rightarrow> bool" where
   "defined x \<sigma> \<equiv> x \<in> dom (var_cursor_map \<sigma>)"
@@ -73,15 +95,30 @@ definition defined :: "'a \<Rightarrow> 'a local_peer_state \<Rightarrow> bool" 
 definition assign_var :: "'a local_peer_state \<Rightarrow> 'a \<Rightarrow> cursor \<Rightarrow> 'a local_peer_state" where
   "assign_var \<sigma> x c \<equiv> \<sigma>\<lparr> var_cursor_map := (var_cursor_map \<sigma>)(x \<mapsto> c) \<rparr>"
 
+definition make_operation :: "'a local_peer_state \<Rightarrow> cursor \<Rightarrow> mutation \<Rightarrow> 'a local_peer_state option" where
+  "make_operation \<sigma> c mut \<equiv>
+     let s       = {c. \<exists>p. (c, p) \<in> operations \<sigma>};
+         counter = if s = {} then 0 else Suc (Max s);
+         opn     = \<lparr> operation_id = (counter, peer_id \<sigma>), dependencies = operations \<sigma>,
+                     operation_cursor = c, mutation = mut \<rparr>
+     in
+       do { new_doc \<leftarrow> apply_operation c opn (current_state \<sigma>)
+          ; Some (\<sigma>\<lparr> current_state := new_doc, operations := {operation_id opn} \<union> operations \<sigma>, operation_queue := {opn} \<union> operation_queue \<sigma> \<rparr>)
+          }"
+
 lemma defined_assign_var [simp]:
   shows "defined x (assign_var \<sigma> x c)"
 unfolding defined_def assign_var_def by auto
 
 definition initial_local_peer_state :: "'a local_peer_state" where
   "initial_local_peer_state \<equiv>
-     \<lparr> peer_id       = 0
-     , current_state = MapV Map.empty
-     , var_cursor_map = Map.empty
+     \<lparr> peer_id             = 0
+     , current_state       = MapV Map.empty
+     , var_cursor_map      = Map.empty
+     , operation_queue     = {}
+     , sent_operations     = {}
+     , received_operations = {}
+     , operations          = {}
      \<rparr>"
 
 section\<open>Operational semantics\<close>
@@ -132,10 +169,14 @@ done
 
 inductive expr_semantics :: "'a local_peer_state \<Rightarrow> 'a expr \<Rightarrow> cursor \<Rightarrow> bool" ("_/ \<turnstile>/ _/ \<longmapsto>e/ _" [65,65,65]65)
       and cmd_semantics :: "'a local_peer_state \<Rightarrow> 'a cmd \<Rightarrow> 'a local_peer_state \<Rightarrow> bool" ("_/ \<turnstile>/ _/ \<longmapsto>c/ _" [65,65,65]65) where
+  (* expression semantics, TODO: keys and values *)
   expr_semantics_Doc [intro!]: "\<A> \<turnstile> doc \<longmapsto>e cursor\<lparr> [] \<cdot> Root \<rparr>" |
   expr_semantics_Var [intro!]: "\<lbrakk> var_cursor_map \<A> x = Some c \<rbrakk> \<Longrightarrow> \<A> \<turnstile> x\<acute> \<longmapsto>e c" |
   expr_semantics_Lookup [intro!]: "\<lbrakk> \<A> \<turnstile> e \<longmapsto>e cursor\<lparr> ks \<cdot> kn \<rparr> \<rbrakk> \<Longrightarrow> \<A> \<turnstile> e\<lbrakk> key \<rbrakk> \<longmapsto>e cursor\<lparr> ks #> MapType kn \<cdot> Key key \<rparr>" |
   expr_semantics_Iter [intro!]: "\<lbrakk> \<A> \<turnstile> e \<longmapsto>e cursor\<lparr> ks \<cdot> kn \<rparr> \<rbrakk> \<Longrightarrow> \<A> \<turnstile> e\<cdot>iter \<longmapsto>e cursor\<lparr> ks #> ListType kn \<cdot> Head \<rparr>" |
-  expr_semantics_Next [intro!]: "\<lbrakk> \<A> \<turnstile> e \<longmapsto>e c; cursor_next (document_state \<A>) c = Some c' \<rbrakk> \<Longrightarrow> \<A> \<turnstile> e\<cdot>next \<longmapsto>e c'"
+  expr_semantics_Next [intro!]: "\<lbrakk> \<A> \<turnstile> e \<longmapsto>e c; cursor_next (document_state \<A>) c = Some c' \<rbrakk> \<Longrightarrow> \<A> \<turnstile> e\<cdot>next \<longmapsto>e c'" |
+  (* command semantics *)
+  cmd_semantics_Let [intro!]: "\<lbrakk> \<A> \<turnstile> e \<longmapsto>e c; \<A>' = assign_var \<A> x c \<rbrakk> \<Longrightarrow> \<A> \<turnstile> (let x\<acute> \<Leftarrow> e) \<longmapsto>c \<A>'" |
+  cmd_semantics_Assign [intro!]: "\<A> \<turnstile> e \<Leftarrow> v \<longmapsto>c \<A>'"
 
 end
