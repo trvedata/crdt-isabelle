@@ -22,6 +22,8 @@ using assms unfolding split_at_def by(auto simp add: id_take_nth_drop)
 
 section\<open>JSON documents\<close>
 
+type_synonym lamport = "nat \<times> nat"
+
 datatype primitive
   = Int    "int"
   | String "string"
@@ -30,11 +32,51 @@ datatype primitive
 
 datatype json_document
   = Map_Node  "(string, json_document) alist"
-  | List_Node "json_document list"
-  | Leaf      "primitive"
+  | List_Node "(json_document \<times> lamport) list"
+  | Leaf      "(lamport, primitive) alist"
+
+lemmas size_alist_def [simp]
+
+function (sequential) size_json_document :: "json_document \<Rightarrow> nat" where
+  "size_json_document (Leaf ls) = Suc (size_list (\<lambda>x. 1) (DAList.impl_of ls))" |
+  "size_json_document (List_Node xs) = Suc (size_list (\<lambda>(j, l). size_json_document j) xs)" |
+  "size_json_document (Map_Node ms) = Suc (size_list (\<lambda>(k, j). size_json_document j) (DAList.impl_of ms))"
+by pat_completeness auto
+
+termination size_json_document
+  sorry
+
+function (sequential) valid_json_document_aux :: "json_document \<Rightarrow> lamport set \<Rightarrow> (bool \<times> lamport set)"  where
+  "valid_json_document_aux (Map_Node ms)  seen_so_far =
+     (let impl = DAList.impl_of ms in
+       (foldr (\<lambda>(k, j) (acc, seen_so_far).
+          let (acc', seen_so_far) = valid_json_document_aux j seen_so_far in
+            (acc \<and> acc', seen_so_far)
+       ) impl (True, seen_so_far)))" |
+  "valid_json_document_aux (List_Node ms) seen_so_far =
+     (foldr (\<lambda>(j, l) (acc, seen_so_far).
+       if l \<in> seen_so_far then
+         (False, seen_so_far)
+       else
+         let (acc', seen_so_far) = valid_json_document_aux j (seen_so_far \<union> {l}) in
+           (acc \<and> acc', seen_so_far)
+     ) ms (True, seen_so_far))" |
+  "valid_json_document_aux (Leaf ls)      seen_so_far =
+     (foldr (\<lambda>l (acc, seen_so_far).
+        if l \<in> seen_so_far then
+          (False, seen_so_far)
+        else
+          (acc, seen_so_far \<union> {l})) (map fst (DAList.impl_of ls)) (True, seen_so_far))"
+by pat_completeness auto
+
+termination valid_json_document_aux
+  sorry
+
+definition valid_json_document :: "json_document \<Rightarrow> bool" where
+  "valid_json_document j \<equiv> fst (valid_json_document_aux j {})"
 
 datatype json_cursor_element
-  = ListC "nat"
+  = ListC "lamport"
   | MapC  "string"
 
 datatype json_cursor

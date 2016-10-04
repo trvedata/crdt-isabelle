@@ -4,6 +4,7 @@ imports
   Main
   JSON_Document
   Editing_Language
+  "~~/src/HOL/Library/Product_Lexorder"
 begin
 
 record 'a node_state =
@@ -20,6 +21,12 @@ definition initial_node_state :: "'a node_state" where
      , vars         = DAList.empty
      , highest_seen = 0
      \<rparr>"
+
+definition generate_operation_id :: "'a node_state \<Rightarrow> nat \<Rightarrow> (lamport \<times> 'a node_state)" where
+  "generate_operation_id \<A> ident \<equiv>
+     let c = Suc (highest_seen \<A>);
+         a = \<A>\<lparr> highest_seen := c \<rparr>
+     in ((c, ident), a)"
 
 lemma initial_node_state_valid [simp]:
   shows "valid_node_state initial_node_state"
