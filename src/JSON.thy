@@ -78,10 +78,10 @@ syntax
 
 translations
   "let x\<acute> \<Leftarrow> e"  \<rightleftharpoons> "CONST Let x e"
-  "e \<Leftarrow> v"      \<rightleftharpoons> "CONST Assign e v"
-  "e\<cdot>insert\<lparr>v\<rparr>" \<rightleftharpoons> "CONST Insert e v"
-  "e\<cdot>delete"    \<rightleftharpoons> "CONST Delete e"
-  "yield"      \<rightleftharpoons> "CONST Yield"
+  "e \<Leftarrow> v"       \<rightleftharpoons> "CONST Assign e v"
+  "e\<cdot>insert\<lparr>v\<rparr>"   \<rightleftharpoons> "CONST Insert e v"
+  "e\<cdot>delete"     \<rightleftharpoons> "CONST Delete e"
+  "yield"        \<rightleftharpoons> "CONST Yield"
 
 text\<open>The example from the paper...\<close>
 

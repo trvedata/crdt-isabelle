@@ -123,6 +123,8 @@ definition initial_local_peer_state :: "'a local_peer_state" where
 
 section\<open>Operational semantics\<close>
 
+text\<open>Finds the first element in the list of tuples given as first argument whose second element
+     is not an empty set.  Extracts the identifier from the first element of that tuple.\<close>
 fun first_present :: "(state_key \<times> 'b set \<times> 'c) list \<Rightarrow> ident option" where
   "first_present []     = None" |
   "first_present (x#xs) =
