@@ -20,9 +20,34 @@ lemma split_at_correct [simp]:
   shows   "xs = ps @ [e] @ ss"
 using assms unfolding split_at_def by(auto simp add: id_take_nth_drop)
 
+fun index_of' :: "'a list \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> nat \<Rightarrow> ('a \<times> nat) option" where
+  "index_of' [] p cnt = None" |
+  "index_of' (x#xs) p cnt =
+     (if p x then
+        Some (x, cnt)
+      else index_of' xs p (Suc cnt))"
+
+definition index_of :: "'a list \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> ('a \<times> nat) option" where
+  "index_of xs p \<equiv> index_of' xs p 0"
+
+fun modify_element :: "('a \<times> 'b) list \<Rightarrow> ('b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'a option) \<Rightarrow> ('a \<times> 'b) list option" where
+  "modify_element [] p f = Some []" |
+  "modify_element ((v, k)#xs) p f =
+     (if p k then
+        do { x \<leftarrow> f v
+           ; t \<leftarrow> modify_element xs p f
+           ; Some ((x, k)#t)
+           }
+      else
+        do { t \<leftarrow> modify_element xs p f
+           ; Some ((v, k)#t)
+           })"
+
 section\<open>JSON documents\<close>
 
-type_synonym lamport = "nat \<times> nat"
+datatype lamport
+  = Head
+  | OperationID "nat \<times> nat"
 
 datatype primitive
   = Int    "int"
@@ -89,10 +114,9 @@ function (sequential) fetch :: "json_document \<Rightarrow> json_cursor \<righth
         ; fetch n (Cursor cs)
         }" |
   "fetch (List_Node l) (Cursor (ListC i#cs)) =
-     (if i < length l then
-        fetch (l ! i) (Cursor cs)
-      else
-        None)" |
+     (case index_of l (\<lambda>(d, l). l = i) of
+        Some ((doc, _), _) \<Rightarrow> fetch doc (Cursor cs)
+      | _ \<Rightarrow> None)" |
   "fetch _             _                     = None"
 by pat_completeness auto
 
@@ -100,6 +124,13 @@ termination fetch
   apply(relation "measures [\<lambda>(doc, c). case c of Cursor cs \<Rightarrow> size cs, \<lambda>(doc, c). size doc]")
   apply auto
 done
+
+(*      (if k < length m then
+        let (lt, e, gt) = split_at m k in
+        do { t \<leftarrow> edit e (Cursor cs) f v
+           ; Some (List_Node (lt @ [t] @ gt))
+           }
+      else None) *)
 
 function (sequential) edit :: "json_document \<Rightarrow> json_cursor \<Rightarrow> (json_document \<rightharpoonup> json_document) \<Rightarrow> json_document \<rightharpoonup> json_document" where
   "edit j             (Cursor [])           f v  = f j" |
@@ -117,12 +148,9 @@ function (sequential) edit :: "json_document \<Rightarrow> json_cursor \<Rightar
            ; Some (Map_Node (DAList.update k t m))
            })" |
   "edit (List_Node m) (Cursor (ListC k#cs)) f v =
-     (if k < length m then
-        let (lt, e, gt) = split_at m k in
-        do { t \<leftarrow> edit e (Cursor cs) f v
-           ; Some (List_Node (lt @ [t] @ gt))
-           }
-      else None)" |
+     do { m \<leftarrow> modify_element m (\<lambda>l. k = l) (\<lambda>j. edit j (Cursor cs) f v)
+        ; Some (List_Node m)
+        }" |
   "edit _             _                     _ _ = None"
 by pat_completeness auto
 
@@ -131,7 +159,7 @@ termination edit
   apply auto
 done
 
-function (sequential) insert :: "json_document \<Rightarrow> json_cursor \<Rightarrow> json_document \<rightharpoonup> json_document" where
+function (sequential) insert :: "json_document \<Rightarrow> json_cursor \<Rightarrow> (json_document \<times> lamport) \<rightharpoonup> json_document" where
   "insert _              (Cursor [])                 v = None" |
   "insert (Map_Node  ms) (Cursor (MapC k#cs))        v =
      (let current_node =
@@ -142,20 +170,18 @@ function (sequential) insert :: "json_document \<Rightarrow> json_cursor \<Right
         do { t \<leftarrow> insert current_node (Cursor cs) v
            ; Some (Map_Node (DAList.update k t ms))
            })" |
+  "insert (List_Node xs) (Cursor [ListC Head]) v =
+     Some (List_Node (v#xs))" |
   "insert (List_Node xs) (Cursor [ListC k]) v =
-     (if k < length xs then
-        let (lt, e, gt) = split_at xs k in
-          Some (List_Node (lt @ [v, e] @ gt))
-      else if k = length xs then
-        Some (List_Node (xs #> v))
-      else None)" |
+     (case index_of xs (\<lambda>(d, l). l = k) of
+        Some ((doc, l), idx) \<Rightarrow>
+          let (lt, e, gt) = split_at xs idx in
+            Some (List_Node (lt @ [e, v] @ gt))
+      | _ \<Rightarrow> None)" |
   "insert (List_Node xs) (Cursor (ListC k#cs))        v =
-     (if k < length xs then
-        let (lt, e, gt) = split_at xs k in
-        do { t \<leftarrow> insert e (Cursor cs) v
-           ; Some (List_Node (lt @ [t] @ gt))
-           }
-      else None)" |
+     do { m \<leftarrow> modify_element xs (\<lambda>l. k = l) (\<lambda>j. insert j (Cursor cs) v)
+        ; Some (List_Node m)
+        }" |
   "insert _              _                  _ = None"
 by pat_completeness auto
 
@@ -164,6 +190,7 @@ termination insert
   apply auto
 done
 
+(*
 function (sequential) extend_map_branch :: "json_document \<Rightarrow> json_cursor \<Rightarrow> string \<Rightarrow> json_document \<rightharpoonup> json_document" where
   "extend_map_branch (Map_Node m) (Cursor [])          key v = Some (Map_Node (DAList.update key v m))" |
   "extend_map_branch (Map_Node m) (Cursor (MapC k#cs)) key v =
@@ -213,21 +240,22 @@ termination extend_list_branch
   apply(relation "measures [\<lambda>(doc, c, m). case c of Cursor cs \<Rightarrow> size cs, \<lambda>(doc, c, m). size doc]")
   apply auto
 done
+*)
 
 definition grow_map_entry :: "json_cursor \<Rightarrow> string \<Rightarrow> json_cursor" where
   "grow_map_entry c k \<equiv>
      case c of
        Cursor cs \<Rightarrow> Cursor (cs #> MapC k)"
 
-definition grow_list_entry :: "json_cursor \<Rightarrow> nat \<Rightarrow> json_cursor" where
-  "grow_list_entry c i \<equiv>
+definition grow_list_entry :: "json_cursor \<Rightarrow> lamport \<Rightarrow> json_cursor" where
+  "grow_list_entry c l \<equiv>
      case c of
-       Cursor cs \<Rightarrow> Cursor (cs #> ListC i)"
+       Cursor cs \<Rightarrow> Cursor (cs #> ListC l)"
 
 inductive compatible_json_cursor :: "json_document \<Rightarrow> json_cursor \<Rightarrow> bool" ("_/ \<bowtie>/ _" [65,65]65) where
   compatible_json_cursor_Nil [intro!]: "j \<bowtie> (Cursor [])" |
   compatible_json_cursor_MapC [intro!]: "\<lbrakk> DAList.lookup m k = Some n; n \<bowtie> Cursor cs \<rbrakk> \<Longrightarrow> Map_Node m \<bowtie> (Cursor (MapC k#cs))" |
-  compatible_json_cursor_ListC [intro!]: "\<lbrakk> i < length l; l ! i = n; n \<bowtie> Cursor cs \<rbrakk> \<Longrightarrow> List_Node l \<bowtie> (Cursor (ListC i#cs))"
+  compatible_json_cursor_ListC [intro!]: "\<lbrakk> index_of l (\<lambda>(doc, l). l = i) = Some ((doc, _), idx); doc \<bowtie> Cursor cs \<rbrakk> \<Longrightarrow> List_Node l \<bowtie> (Cursor (ListC i#cs))"
 
 function (sequential) json_document_cursor_compatible :: "json_document \<Rightarrow> json_cursor \<Rightarrow> bool" where
   "json_document_cursor_compatible j             (Cursor [])           = True" |
@@ -236,9 +264,9 @@ function (sequential) json_document_cursor_compatible :: "json_document \<Righta
         Some n \<Rightarrow> json_document_cursor_compatible n (Cursor cs)
       | _ \<Rightarrow> False)" |
   "json_document_cursor_compatible (List_Node l) (Cursor (ListC i#cs)) =
-     (if i < length l then
-        json_document_cursor_compatible (List.nth l i) (Cursor cs)
-      else False)" |
+     (case index_of l (\<lambda>(doc, l). l = i) of
+        Some ((doc, _), idx) \<Rightarrow> json_document_cursor_compatible doc (Cursor cs)
+      | _ \<Rightarrow> False)" |
   "json_document_cursor_compatible _             _                     = False"
 by pat_completeness auto
 
@@ -269,15 +297,19 @@ next
 next
   fix l i cs
   assume IH: "json_document_cursor_compatible (List_Node l) (Cursor (ListC i # cs))" and
-    *: "(i < length l \<Longrightarrow> json_document_cursor_compatible (l ! i) (Cursor cs) \<Longrightarrow> l ! i \<bowtie> Cursor cs)"
-  hence "i < length l"
-    by (meson json_document_cursor_compatible.simps)
-  hence "json_document_cursor_compatible (List.nth l i) (Cursor cs)"
+    *: "(\<And>x2 x y xa ya. index_of l (\<lambda>(doc, l). l = i) = Some x2 \<Longrightarrow> (x, y) = x2 \<Longrightarrow> (xa, ya) = x \<Longrightarrow> json_document_cursor_compatible xa (Cursor cs) \<Longrightarrow> xa \<bowtie> Cursor cs)"
+  from this obtain doc a idx where **: "index_of l (\<lambda>(doc, l). l = i) = Some ((doc, a), idx)"
+    apply simp
+    apply(case_tac "index_of l (\<lambda>(doc, l). l = i)"; simp)
+    apply(case_tac "a"; simp)
+    apply(case_tac "aa"; simp)
+    done
+  hence "json_document_cursor_compatible doc (Cursor cs)"
     using IH by simp
-  hence "l ! i \<bowtie> Cursor cs"
-    using * `i < length l` by simp
+  hence "doc \<bowtie> Cursor cs"
+    using * ** by simp
   thus "List_Node l \<bowtie> Cursor (ListC i # cs)"
-    using `i < length l` by auto
+    using ** by auto
 qed auto
 
 lemma json_document_cursor_compatible_complete:

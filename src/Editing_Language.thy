@@ -70,7 +70,6 @@ datatype 'a cmd
   | Insert "'a expr" "val"
   | Delete "'a expr"
   | Yield
-  | Sequence "'a cmd" "'a cmd" (infixr "\<triangleright>" 35)
 
 syntax
   cmd_let_syntax      :: "'a \<Rightarrow> 'a expr \<Rightarrow> 'a cmd"    ("let/ _\<acute>/ \<Leftarrow>/ _" [45,45]45)
@@ -78,7 +77,6 @@ syntax
   cmd_insert_syntax   :: "'a expr \<Rightarrow> val \<Rightarrow> 'a cmd"   ("_\<cdot>insert\<lparr>_\<rparr>" [65,65]65)
   cmd_delete_syntax   :: "'a expr \<Rightarrow> 'a cmd"          ("_\<cdot>delete" [65]65)
   cmd_yield_syntax    :: "'a cmd"                     ("yield" 65)
-  cmd_sequence_syntax :: "'a cmd \<Rightarrow> 'a cmd \<Rightarrow> 'a cmd"
 
 translations
   "let x\<acute> \<Leftarrow> e"  \<rightleftharpoons> "CONST Let x e"
@@ -87,14 +85,17 @@ translations
   "e\<cdot>delete"     \<rightleftharpoons> "CONST Delete e"
   "yield"        \<rightleftharpoons> "CONST Yield"
 
+type_synonym 'a program = "'a cmd list"
+
 text\<open>The example from the paper...\<close>
 
 value
-  "doc \<Leftarrow> \<lbrace>\<hyphen>\<rbrace> \<triangleright>
-   let list\<acute> \<Leftarrow> doc\<lbrakk> ''shopping'' \<rbrakk>\<cdot>iter \<triangleright>
-   list\<acute>\<cdot>insert\<lparr> \<up>s ''eggs'' \<rparr> \<triangleright>
-   let eggs\<acute> \<Leftarrow> list\<acute>\<cdot>next \<triangleright>
-   eggs\<acute>\<cdot>insert\<lparr> \<up>s ''milk'' \<rparr> \<triangleright>
-   list\<acute>\<cdot>insert\<lparr> \<up>s ''cheese'' \<rparr>"
+  "[doc \<Leftarrow> \<lbrace>\<hyphen>\<rbrace>
+   , let list\<acute> \<Leftarrow> doc\<lbrakk> ''shopping'' \<rbrakk>\<cdot>iter
+   , list\<acute>\<cdot>insert\<lparr> \<up>s ''eggs'' \<rparr>
+   , let eggs\<acute> \<Leftarrow> list\<acute>\<cdot>next
+   , eggs\<acute>\<cdot>insert\<lparr> \<up>s ''milk'' \<rparr>
+   , list\<acute>\<cdot>insert\<lparr> \<up>s ''cheese'' \<rparr>
+   ] :: 'a program"
 
 end
