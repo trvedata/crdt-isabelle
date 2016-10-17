@@ -247,4 +247,23 @@ inductive concurrent_node_semantics :: "'a node_state list \<Rightarrow> 'a node
   "\<lbrakk> i < length \<A>s; (lt, \<A>, gt) = split_at \<A>s i; Some (c, \<A>') = next_command \<A>; \<A>'\<langle>i\<rangle> \<turnstile> c \<longlonglongrightarrow>c \<A>''; \<A>s' = lt @ [\<A>''] @ gt \<rbrakk> \<Longrightarrow> \<A>s \<leadsto> \<A>s'" |
   "\<lbrakk> \<A>s \<leadsto> \<A>s'; \<A>s' \<leadsto> \<A>s'' \<rbrakk> \<Longrightarrow> \<A>s \<leadsto> \<A>s''"
 
+inductive valid_expr :: "'a node_state \<Rightarrow> 'a expr \<Rightarrow> bool" where
+  "valid_expr \<A> (doc)" |
+  "\<lbrakk> Some c = DAList.lookup (vars \<A>) x \<rbrakk> \<Longrightarrow> valid_expr \<A> (x\<acute>)" |
+  "\<lbrakk> valid_expr \<A> e \<rbrakk> \<Longrightarrow> valid_expr \<A> (e\<lbrakk> key \<rbrakk>)" |
+  "\<lbrakk> valid_expr \<A> e \<rbrakk> \<Longrightarrow> valid_expr \<A> (e\<cdot>iter)" |
+  "\<lbrakk> valid_expr \<A> e; e' = (e\<cdot>next); \<A> \<turnstile> e' \<longlonglongrightarrow>e c \<rbrakk> \<Longrightarrow> valid_expr \<A> e'"
+
+inductive valid_cmd :: "'a node_state \<Rightarrow> nat \<Rightarrow> 'a cmd \<Rightarrow> bool" where
+  "\<lbrakk> \<A> \<turnstile> e \<longlonglongrightarrow>e c \<rbrakk> \<Longrightarrow> valid_cmd \<A> m (let x\<acute> \<Leftarrow> e)" |
+  "\<lbrakk> \<A> \<turnstile> e \<longlonglongrightarrow>e c \<rbrakk> \<Longrightarrow> valid_cmd \<A> m (e \<Leftarrow> v)" |
+  "\<lbrakk> e' = (e\<cdot>insert\<lparr> v \<rparr>); \<A>\<langle>m\<rangle> \<turnstile> e' \<longlonglongrightarrow>c \<A>' \<rbrakk> \<Longrightarrow> valid_cmd \<A> m e'" |
+  "\<lbrakk> e' = (e\<cdot>delete); \<A>\<langle>m\<rangle> \<turnstile> e' \<longlonglongrightarrow>c \<A>' \<rbrakk> \<Longrightarrow> valid_cmd \<A> m e'" |
+  "valid_cmd \<A> m (yield)"
+
+inductive valid_execution :: "'a node_state list \<Rightarrow> bool" where
+  "valid_execution []" |
+  "\<lbrakk> valid_execution \<A>s \<rbrakk> \<Longrightarrow> valid_execution (load [] # \<A>s)" |
+  "\<lbrakk> valid_execution \<A>s; i < length \<A>s; (lt, \<A>, gt) = split_at \<A>s i; valid_cmd \<A> i c; \<A>\<langle>i\<rangle> \<turnstile> c \<longlonglongrightarrow>c \<A>'; \<A>s' = lt @ [\<A>'] @ gt \<rbrakk> \<Longrightarrow> valid_execution \<A>s'"
+
 end
