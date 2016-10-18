@@ -7,28 +7,40 @@ imports
   "~~/src/HOL/Library/Product_Lexorder"
 begin
 
+datatype mutation
+  = Insert "val"
+  (*| Delete*)
+  | Assign "val"
+
+record operation =
+  operation_id     :: "lamport"
+  operation_deps   :: "lamport set"
+  operation_cursor :: "json_cursor"
+  operation_mut    :: "mutation"
+
+definition mk_operation :: "lamport \<Rightarrow> lamport set \<Rightarrow> json_cursor \<Rightarrow> mutation \<Rightarrow> operation" where
+  "mk_operation i d c m \<equiv> \<lparr> operation_id = i, operation_deps = d, operation_cursor = c, operation_mut = m \<rparr>"
+
 record 'a node_state =
-  document     :: json_document
-  vars         :: "('a, json_cursor) alist"
-  highest_seen :: "nat"
-  program      :: "'a program"
+  document       :: json_document
+  vars           :: "('a, json_cursor) alist"
+  highest_seen   :: "nat"
+  send_buffer    :: "operation set"
+  receive_buffer :: "operation set"
+  applied_opers  :: "lamport set"
 
 definition valid_node_state :: "'a node_state \<Rightarrow> bool" where
   "valid_node_state \<sigma> \<equiv> \<forall>v c. DAList.lookup (vars \<sigma>) v = Some c \<longrightarrow> document \<sigma> \<bowtie> c"
 
-definition load :: "'a program \<Rightarrow> 'a node_state" where
-  "load \<pi> \<equiv>
-     \<lparr> document     = Map_Node DAList.empty
-     , vars         = DAList.empty
-     , highest_seen = 0
-     , program      = \<pi>
+definition initial_state :: "'a node_state" where
+  "initial_state \<equiv>
+     \<lparr> document       = Map_Node DAList.empty
+     , vars           = DAList.empty
+     , highest_seen   = 0
+     , send_buffer    = {}
+     , receive_buffer = {}
+     , applied_opers  = {}
      \<rparr>"
-
-definition next_command :: "'a node_state \<Rightarrow> ('a cmd \<times> 'a node_state) option" where
-  "next_command n \<equiv>
-     case (program n) of
-       []   \<Rightarrow> None
-     | x#xs \<Rightarrow> Some (x, n\<lparr> program := xs \<rparr>)"
 
 definition generate_operation_id :: "'a node_state \<Rightarrow> nat \<Rightarrow> (lamport \<times> 'a node_state)" where
   "generate_operation_id \<A> ident \<equiv>
@@ -37,8 +49,8 @@ definition generate_operation_id :: "'a node_state \<Rightarrow> nat \<Rightarro
      in (OperationID (c, ident), a)"
 
 lemma initial_node_state_valid [simp]:
-  shows "valid_node_state (load \<pi>)"
-by (auto simp add: valid_node_state_def load_def)
+  shows "valid_node_state initial_state"
+by (auto simp add: initial_state_def valid_node_state_def)
 
 fun next_list_element :: "('a \<times> lamport) list \<Rightarrow> lamport \<Rightarrow> lamport option" where
   "next_list_element []       l = None" |
@@ -233,37 +245,161 @@ definition assign :: "json_document \<Rightarrow> json_cursor \<Rightarrow> (val
   "assign j c v \<equiv>                                      
      edit j c (\<lambda>_. Some (json_document_of_val (fst v) (snd v))) (json_document_of_val (fst v) (snd v))"
 
-inductive cmd_operation_semantics :: "'a node_state \<Rightarrow> nat \<Rightarrow> 'a cmd \<Rightarrow> 'a node_state \<Rightarrow> bool" ("_\<langle>_\<rangle>/ \<turnstile>/ _/ \<longlonglongrightarrow>c/ _" [65,65,65,65]65) where
-  "\<lbrakk> \<A> \<turnstile> e \<longlonglongrightarrow>e c; \<A>' = \<A>\<lparr> vars := DAList.update x c (vars \<A>) \<rparr> \<rbrakk> \<Longrightarrow> \<A>\<langle>m\<rangle> \<turnstile> (let x\<acute> \<Leftarrow> e) \<longlonglongrightarrow>c \<A>'" |
-  "\<lbrakk> \<A> \<turnstile> e \<longlonglongrightarrow>e c; (lamport, \<A>') = generate_operation_id \<A> m; Some d = assign (document \<A>') c (v, lamport); \<A>'' = \<A>'\<lparr> document := d \<rparr> \<rbrakk> \<Longrightarrow> \<A>\<langle>m\<rangle> \<turnstile> e \<Leftarrow> v \<longlonglongrightarrow>c \<A>''" |
-  "\<lbrakk> \<A> \<turnstile> e \<longlonglongrightarrow>e c; (lamport, \<A>') = generate_operation_id \<A> m; Some d = insert (document \<A>') c ((json_document_of_val v lamport), lamport); \<A>'' = \<A>'\<lparr> document := d \<rparr> \<rbrakk> \<Longrightarrow> \<A>\<langle>m\<rangle> \<turnstile> e\<cdot>insert\<lparr> v \<rparr> \<longlonglongrightarrow>c \<A>''"
+definition interpret_operation :: "'a node_state \<Rightarrow> operation \<rightharpoonup> 'a node_state" where
+  "interpret_operation n oper \<equiv>                         
+     case operation_mut oper of
+       Assign v \<Rightarrow>
+         do { let lamport = operation_id oper
+            ; d \<leftarrow> assign (document n) (operation_cursor oper) (v, lamport)
+            ; Some (n\<lparr> applied_opers := applied_opers n \<union> {lamport}, document := d\<rparr>)
+            }
+     | Insert v \<Rightarrow>
+         do { let lamport = operation_id oper
+            ; d \<leftarrow> insert (document n) (operation_cursor oper) (json_document_of_val v lamport, lamport)
+            ; Some (n\<lparr> applied_opers := applied_opers n \<union> {lamport}, document := d\<rparr>)
+            }"
 
-(*
-  "\<lbrakk> \<A> \<turnstile> e \<longlonglongrightarrow>e c \<rbrakk> \<Longrightarrow> \<A> \<turnstile> e\<cdot>delete \<longlonglongrightarrow>c undefined" |
-  "\<A> \<turnstile> yield \<longlonglongrightarrow>c undefined"
-*)
-
-inductive concurrent_node_semantics :: "'a node_state list \<Rightarrow> 'a node_state list \<Rightarrow> bool" ("_/ \<leadsto>/ _" [65]65) where
-  "\<lbrakk> i < length \<A>s; (lt, \<A>, gt) = split_at \<A>s i; Some (c, \<A>') = next_command \<A>; \<A>'\<langle>i\<rangle> \<turnstile> c \<longlonglongrightarrow>c \<A>''; \<A>s' = lt @ [\<A>''] @ gt \<rbrakk> \<Longrightarrow> \<A>s \<leadsto> \<A>s'" |
-  "\<lbrakk> \<A>s \<leadsto> \<A>s'; \<A>s' \<leadsto> \<A>s'' \<rbrakk> \<Longrightarrow> \<A>s \<leadsto> \<A>s''"
-
-inductive valid_expr :: "'a node_state \<Rightarrow> 'a expr \<Rightarrow> bool" where
-  "valid_expr \<A> (doc)" |
-  "\<lbrakk> Some c = DAList.lookup (vars \<A>) x \<rbrakk> \<Longrightarrow> valid_expr \<A> (x\<acute>)" |
-  "\<lbrakk> valid_expr \<A> e \<rbrakk> \<Longrightarrow> valid_expr \<A> (e\<lbrakk> key \<rbrakk>)" |
-  "\<lbrakk> valid_expr \<A> e \<rbrakk> \<Longrightarrow> valid_expr \<A> (e\<cdot>iter)" |
-  "\<lbrakk> valid_expr \<A> e; e' = (e\<cdot>next); \<A> \<turnstile> e' \<longlonglongrightarrow>e c \<rbrakk> \<Longrightarrow> valid_expr \<A> e'"
-
-inductive valid_cmd :: "'a node_state \<Rightarrow> nat \<Rightarrow> 'a cmd \<Rightarrow> bool" where
-  "\<lbrakk> \<A> \<turnstile> e \<longlonglongrightarrow>e c \<rbrakk> \<Longrightarrow> valid_cmd \<A> m (let x\<acute> \<Leftarrow> e)" |
-  "\<lbrakk> \<A> \<turnstile> e \<longlonglongrightarrow>e c \<rbrakk> \<Longrightarrow> valid_cmd \<A> m (e \<Leftarrow> v)" |
-  "\<lbrakk> e' = (e\<cdot>insert\<lparr> v \<rparr>); \<A>\<langle>m\<rangle> \<turnstile> e' \<longlonglongrightarrow>c \<A>' \<rbrakk> \<Longrightarrow> valid_cmd \<A> m e'" |
-  "\<lbrakk> e' = (e\<cdot>delete); \<A>\<langle>m\<rangle> \<turnstile> e' \<longlonglongrightarrow>c \<A>' \<rbrakk> \<Longrightarrow> valid_cmd \<A> m e'" |
-  "valid_cmd \<A> m (yield)"
+inductive cmd_operation_semantics :: "'a node_state list \<Rightarrow> nat \<Rightarrow> 'a cmd \<Rightarrow> 'a node_state list \<Rightarrow> bool" ("_\<langle>_\<rangle>/ \<turnstile>/ _/ \<longlonglongrightarrow>c/ _" [65,65,65,65]65) where
+  "\<lbrakk> m < length \<A>s; (lt, \<A>, gt) = split_at \<A>s m; \<A> \<turnstile> e \<longlonglongrightarrow>e c; \<A>' = \<A>\<lparr> vars := DAList.update x c (vars \<A>) \<rparr>; \<A>s' = lt @ [\<A>'] @ gt \<rbrakk> \<Longrightarrow> \<A>s\<langle>m\<rangle> \<turnstile> (let x\<acute> \<Leftarrow> e) \<longlonglongrightarrow>c \<A>s'" |
+  "\<lbrakk> m < length \<A>s; (lt, \<A>, gt) = split_at \<A>s m; \<A> \<turnstile> e \<longlonglongrightarrow>e c; (lamport, \<A>') = generate_operation_id \<A> m; oper = mk_operation lamport (applied_opers \<A>') c (Assign v);
+      Some \<A>'' = interpret_operation \<A>' oper; \<A>''' = \<A>''\<lparr> send_buffer := send_buffer \<A>'' \<union> {oper} \<rparr>; \<A>s' = lt @ [\<A>'''] @ gt \<rbrakk> \<Longrightarrow> \<A>s\<langle>m\<rangle> \<turnstile> e \<Leftarrow> v \<longlonglongrightarrow>c \<A>s'" |
+  "\<lbrakk> m < length \<A>s; (lt, \<A>, gt) = split_at \<A>s m; \<A> \<turnstile> e \<longlonglongrightarrow>e c; (lamport, \<A>') = generate_operation_id \<A> m; oper = mk_operation lamport (applied_opers \<A>') c (Insert v);
+      Some \<A>'' = interpret_operation \<A>' oper; \<A>''' = \<A>''\<lparr> send_buffer := send_buffer \<A>'' \<union> {oper} \<rparr>; \<A>s' = lt @ [\<A>'''] @ gt \<rbrakk> \<Longrightarrow> \<A>s\<langle>m\<rangle> \<turnstile> e\<cdot>insert\<lparr> v \<rparr> \<longlonglongrightarrow>c \<A>s'" |
+  "\<lbrakk> m < length \<A>s \<rbrakk> \<Longrightarrow> \<A>s\<langle>m\<rangle> \<turnstile> yield \<longlonglongrightarrow>c \<A>s" |
+  "\<lbrakk> m < length \<A>s; n < length \<A>s; (lt, \<A>, gt) = split_at \<A>s i; focus = \<A>s!n; \<A>' = \<A>\<lparr> receive_buffer := receive_buffer \<A> \<union> send_buffer focus \<rparr>;
+      \<A>s' = lt @ [\<A>'] @ gt \<rbrakk> \<Longrightarrow> \<A>s\<langle>m\<rangle> \<turnstile> yield \<longlonglongrightarrow>c \<A>s'" |
+  "\<lbrakk> m < length \<A>s; (lt, \<A>, gt) = split_at \<A>s m; receive_buffer \<A> \<noteq> {}; oper = (SOME x. x \<in> receive_buffer \<A>);
+      operation_id oper \<notin> applied_opers \<A>; operation_deps oper \<subseteq> applied_opers \<A>; Some \<A>' = interpret_operation \<A> oper;
+      \<A>s' = lt @ [\<A>'] @ gt \<rbrakk> \<Longrightarrow> \<A>s\<langle>m\<rangle> \<turnstile> yield \<longlonglongrightarrow>c \<A>s'" |
+  "\<lbrakk> \<A>s\<langle>m\<rangle> \<turnstile> yield \<longlonglongrightarrow>c \<A>s'; \<A>s'\<langle>m\<rangle> \<turnstile> yield \<longlonglongrightarrow>c \<A>s'' \<rbrakk> \<Longrightarrow> \<A>s\<langle>m\<rangle> \<turnstile> yield \<longlonglongrightarrow>c \<A>s''"
 
 inductive valid_execution :: "'a node_state list \<Rightarrow> bool" where
-  "valid_execution []" |
-  "\<lbrakk> valid_execution \<A>s \<rbrakk> \<Longrightarrow> valid_execution (load [] # \<A>s)" |
-  "\<lbrakk> valid_execution \<A>s; i < length \<A>s; (lt, \<A>, gt) = split_at \<A>s i; valid_cmd \<A> i c; \<A>\<langle>i\<rangle> \<turnstile> c \<longlonglongrightarrow>c \<A>'; \<A>s' = lt @ [\<A>'] @ gt \<rbrakk> \<Longrightarrow> valid_execution \<A>s'"
+  "valid_execution []" |                             
+  "\<lbrakk> valid_execution \<A>s \<rbrakk> \<Longrightarrow> valid_execution (initial_state # \<A>s)" |
+  "\<lbrakk> valid_execution \<A>s; \<A>s\<langle>i\<rangle> \<turnstile> c \<longlonglongrightarrow>c \<A>s' \<rbrakk> \<Longrightarrow> valid_execution \<A>s'"
+
+lemma backchain_empty_applied_orders:
+  assumes "\<A>s\<langle>i\<rangle> \<turnstile> c \<longlonglongrightarrow>c \<A>s'" "\<A>s!i = m" "applied_opers m = {}"
+  shows   "m \<in> set \<A>s"
+using assms
+  apply(induction)
+  apply(simp add: split_at_def)
+  apply(erule conjE)+
+  apply clarify
+  apply simp
+  apply(simp add: split_at_def)
+  apply(erule conjE)+
+  apply clarify
+  apply simp
+  apply(simp add: split_at_def)
+  apply(erule conjE)+
+  apply clarify
+  apply simp
+  apply clarify
+  apply simp
+  apply(simp add: split_at_def)
+  apply(erule conjE)+
+  apply clarify
+  apply simp
+  apply(simp add: split_at_def)
+  apply(erule conjE)+
+  apply clarify
+  apply simp
+  apply(simp add: split_at_def)
+done
+
+lemma valid_execution_applied_opers_empty_document:
+  assumes "valid_execution \<A>s" "m \<in> set \<A>s" "applied_opers m = {}"
+  shows   "document m = Map_Node DAList.empty"
+using assms proof(induction)
+  assume "m \<in> set []"
+  thus "document m = Map_Node DAList.empty"
+    by auto
+next
+  fix \<A>s :: "'a node_state list"
+  assume "valid_execution \<A>s" and IH: "(m \<in> set \<A>s \<Longrightarrow> applied_opers m = {} \<Longrightarrow> document m = Map_Node DAList.empty)"
+    "m \<in> set (initial_state # \<A>s)" "applied_opers m = {}"
+  hence "m = initial_state \<or> m \<in> set \<A>s"
+    by auto
+  thus "document m = Map_Node DAList.empty"
+  proof
+    assume "m = initial_state"
+    thus "document m = Map_Node DAList.empty"
+      by(auto simp add: initial_state_def)
+  next
+    assume "m \<in> set \<A>s"
+    thus "document m = Map_Node DAList.empty"
+      using `valid_execution \<A>s` `applied_opers m = {}` IH by simp
+  qed
+next
+  fix \<A>s \<A>s' :: "'a node_state list" and i :: "nat" and c :: "'a cmd"
+  assume "\<A>s\<langle>i\<rangle> \<turnstile> c \<longlonglongrightarrow>c \<A>s'" "valid_execution \<A>s" "(m \<in> set \<A>s \<Longrightarrow> applied_opers m = {} \<Longrightarrow> document m = Map_Node DAList.empty)"
+    and "m \<in> set \<A>s'" "applied_opers m = {}"
+  hence "document m = Map_Node DAList.empty"
+    apply(induction rule: cmd_operation_semantics.induct)
+    apply(simp only: split_at_def prod.inject)
+    apply(erule conjE)+
+    apply(case_tac "m = \<A>s ! ma")
+    apply clarify
+
+lemma
+  assumes "valid_execution \<A>s" "m \<in> set \<A>s" "n \<in> set \<A>s" "applied_opers m = applied_opers n"
+  shows   "document m = document n"
+using assms proof(induction)
+  assume "m \<in> set []"
+  hence "m \<in> {}"
+    by auto
+  thus "document m = document n"
+    by auto
+next
+  fix \<A>s :: "'a node_state list"
+  assume "valid_execution \<A>s" and IH: "(m \<in> set \<A>s \<Longrightarrow> n \<in> set \<A>s \<Longrightarrow> applied_opers m = applied_opers n \<Longrightarrow> document m = document n)"
+    and "m \<in> set (initial_state # \<A>s)" "n \<in> set (initial_state # \<A>s)" "applied_opers m = applied_opers n"
+  hence "m = initial_state \<or> m \<in> set \<A>s" "n = initial_state \<or> n \<in> set \<A>s"
+    by auto
+  show "document m = document n"
+  proof(rule disjE[OF `m = initial_state \<or> m \<in> set \<A>s`])
+    assume "m = initial_state"
+    show "document m = document n"
+    proof(rule disjE[OF `n = initial_state \<or> n \<in> set \<A>s`])
+      assume "n = initial_state"
+      thus "document m = document n"
+        using `m = initial_state` by(auto simp add: initial_state_def)
+    next
+      assume "n \<in> set \<A>s"
+      have "applied_opers n = {}"
+        using `applied_opers m = applied_opers n` `m = initial_state` by(auto simp add: initial_state_def)
+      hence "document n = Map_Node DAList.empty"
+        using valid_execution_applied_opers_empty_document `n \<in> set \<A>s` `valid_execution \<A>s` by auto
+      thus "document m = document n"
+        using `m = initial_state` by(auto simp add: initial_state_def)
+    qed
+  next
+    assume "m \<in> set \<A>s"
+    show "document m = document n"
+    proof(rule disjE[OF `n = initial_state \<or> n \<in> set \<A>s`])
+      assume "n = initial_state"
+      have "applied_opers m = {}"
+        using `applied_opers m = applied_opers n` `n = initial_state` by(auto simp add: initial_state_def)
+      hence "document m = Map_Node DAList.empty"
+        using valid_execution_applied_opers_empty_document `m \<in> set \<A>s` `valid_execution \<A>s` by auto
+      thus "document m = document n"
+        using `n = initial_state` by(auto simp add: initial_state_def)
+    next
+      assume "n \<in> set \<A>s"
+      thus "document m = document n"
+        using `m \<in> set \<A>s` `valid_execution \<A>s` IH `applied_opers m = applied_opers n` by simp
+    qed
+  qed
+next
+  fix \<A>s \<A>s' :: "'a node_state list" and i :: "nat" and c :: "'a cmd"
+  assume "valid_execution \<A>s" and IH: "(m \<in> set \<A>s \<Longrightarrow> n \<in> set \<A>s \<Longrightarrow> applied_opers m = applied_opers n \<Longrightarrow> document m = document n)"
+    and "\<A>s\<langle>i\<rangle> \<turnstile> c \<longlonglongrightarrow>c \<A>s'" "m \<in> set \<A>s'" "n \<in> set \<A>s'" "applied_opers m = applied_opers n"
+  from `\<A>s\<langle>i\<rangle> \<turnstile> c \<longlonglongrightarrow>c \<A>s'` `m \<in> set \<A>s'` `n \<in> set \<A>s'` show "document m = document n"
+  proof(induction)
+    fix m :: "nat" and \<A>s \<A>s' lt gt :: "'a node_state list" and \<A> \<A>' :: "'a node_state"
+      and e :: "'a expr" and c :: "json_cursor" and v :: "'a"
+    assume "m < length \<A>s" "(lt, \<A>, gt) = split_at \<A>s m" "\<A> \<turnstile> e \<longlonglongrightarrow>e c" "\<A>' = \<A>\<lparr>vars := DAList.update v c (vars \<A>)\<rparr>"
+      and "\<A>s' = lt @ [\<A>'] @ gt"
 
 end

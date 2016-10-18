@@ -90,7 +90,7 @@ type_synonym 'a program = "'a cmd list"
 text\<open>The example from the paper...\<close>
 
 value
-  "[doc \<Leftarrow> \<lbrace>\<hyphen>\<rbrace>
+  "[ doc \<Leftarrow> \<lbrace>\<hyphen>\<rbrace>
    , let list\<acute> \<Leftarrow> doc\<lbrakk> ''shopping'' \<rbrakk>\<cdot>iter
    , list\<acute>\<cdot>insert\<lparr> \<up>s ''eggs'' \<rparr>
    , let eggs\<acute> \<Leftarrow> list\<acute>\<cdot>next
