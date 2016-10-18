@@ -5,6 +5,7 @@ imports
   "~~/src/HOL/Library/DAList"
   "~~/src/HOL/Library/Monad_Syntax"
   "~~/src/HOL/Library/Multiset"
+  "~~/src/HOL/Library/Product_Lexorder"
 begin
 
 section\<open>Utilities\<close>
@@ -159,6 +160,14 @@ termination edit
   apply auto
 done
 
+fun (sequential) insert_after :: "(json_document \<times> lamport) list \<Rightarrow> (json_document \<times> lamport) \<Rightarrow> (json_document \<times> lamport) list" where
+  "insert_after [] y = [y]" |
+  "insert_after ((v1, OperationID k1) # xs) (v2, OperationID k2) = (
+    if k1 < k2
+      then (v2, OperationID k2) # (v1, OperationID k1) # xs
+      else (v1, OperationID k1) # (insert_after xs (v2, OperationID k2))
+  )"
+
 function (sequential) insert :: "json_document \<Rightarrow> json_cursor \<Rightarrow> (json_document \<times> lamport) \<rightharpoonup> json_document" where
   "insert _              (Cursor [])                 v = None" |
   "insert (Map_Node  ms) (Cursor (MapC k#cs))        v =
@@ -170,14 +179,13 @@ function (sequential) insert :: "json_document \<Rightarrow> json_cursor \<Right
         do { t \<leftarrow> insert current_node (Cursor cs) v
            ; Some (Map_Node (DAList.update k t ms))
            })" |
-  "insert (List_Node xs) (Cursor [ListC Head]) v =
-     Some (List_Node (v#xs))" |
-  "insert (List_Node xs) (Cursor [ListC k]) v =
-     (case index_of xs (\<lambda>(d, l). l = k) of
-        Some ((doc, l), idx) \<Rightarrow>
-          let (lt, e, gt) = split_at xs idx in
-            Some (List_Node (lt @ [e, v] @ gt))
-      | _ \<Rightarrow> None)" |
+  "insert (List_Node xs) (Cursor [ListC Head])       v = Some (List_Node (insert_after xs v))" |
+  "insert (List_Node []) _                           _ = None" |
+  "insert (List_Node ((v1, k1) # xs)) (Cursor [ListC k2]) v =
+     (if k1 = k2 then Some (List_Node ((v1, k1) # (insert_after xs v)))
+      else (case insert (List_Node xs) (Cursor [ListC k2]) v of
+              Some (List_Node xs') \<Rightarrow> Some (List_Node ((v1, k1) # xs))
+            | _ \<Rightarrow> None))" |
   "insert (List_Node xs) (Cursor (ListC k#cs))        v =
      do { m \<leftarrow> modify_element xs (\<lambda>l. k = l) (\<lambda>j. insert j (Cursor cs) v)
         ; Some (List_Node m)
