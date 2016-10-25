@@ -18,8 +18,10 @@ record operation =
   operation_cursor :: "json_cursor"
   operation_mut    :: "mutation"
 
-definition mk_operation :: "lamport \<Rightarrow> lamport set \<Rightarrow> json_cursor \<Rightarrow> mutation \<Rightarrow> operation" where
-  "mk_operation i d c m \<equiv> \<lparr> operation_id = i, operation_deps = d, operation_cursor = c, operation_mut = m \<rparr>"
+definition mk_operation :: "lamport \<Rightarrow> operation list \<Rightarrow> json_cursor \<Rightarrow> mutation \<Rightarrow> operation" where
+  "mk_operation i d c m \<equiv>
+     let os = set (map operation_id d) in
+       \<lparr> operation_id = i, operation_deps = os, operation_cursor = c, operation_mut = m \<rparr>"
 
 record 'a node_state =
   document       :: json_document
@@ -27,7 +29,7 @@ record 'a node_state =
   highest_seen   :: "nat"
   send_buffer    :: "operation set"
   receive_buffer :: "operation set"
-  applied_opers  :: "lamport set"
+  applied_opers  :: "operation list"
 
 definition valid_node_state :: "'a node_state \<Rightarrow> bool" where
   "valid_node_state \<sigma> \<equiv> \<forall>v c. DAList.lookup (vars \<sigma>) v = Some c \<longrightarrow> document \<sigma> \<bowtie> c"
@@ -39,7 +41,7 @@ definition initial_state :: "'a node_state" where
      , highest_seen   = 0
      , send_buffer    = {}
      , receive_buffer = {}
-     , applied_opers  = {}
+     , applied_opers  = []
      \<rparr>"
 
 definition generate_operation_id :: "'a node_state \<Rightarrow> nat \<Rightarrow> (lamport \<times> 'a node_state)" where
@@ -251,12 +253,12 @@ definition interpret_operation :: "'a node_state \<Rightarrow> operation \<right
        Assign v \<Rightarrow>
          do { let lamport = operation_id oper
             ; d \<leftarrow> assign (document n) (operation_cursor oper) (v, lamport)
-            ; Some (n\<lparr> applied_opers := applied_opers n \<union> {lamport}, document := d\<rparr>)
+            ; Some (n\<lparr> applied_opers := applied_opers n #> oper, document := d\<rparr>)
             }
      | Insert v \<Rightarrow>
          do { let lamport = operation_id oper
             ; d \<leftarrow> insert (document n) (operation_cursor oper) (json_document_of_val v lamport, lamport)
-            ; Some (n\<lparr> applied_opers := applied_opers n \<union> {lamport}, document := d\<rparr>)
+            ; Some (n\<lparr> applied_opers := applied_opers n #> oper, document := d\<rparr>)
             }"
 
 inductive cmd_operation_semantics :: "'a node_state list \<Rightarrow> nat \<Rightarrow> 'a cmd \<Rightarrow> 'a node_state list \<Rightarrow> bool" ("_\<langle>_\<rangle>/ \<turnstile>/ _/ \<longlonglongrightarrow>c/ _" [65,65,65,65]65) where
@@ -269,14 +271,63 @@ inductive cmd_operation_semantics :: "'a node_state list \<Rightarrow> nat \<Rig
   "\<lbrakk> m < length \<A>s; n < length \<A>s; (lt, \<A>, gt) = split_at \<A>s i; focus = \<A>s!n; \<A>' = \<A>\<lparr> receive_buffer := receive_buffer \<A> \<union> send_buffer focus \<rparr>;
       \<A>s' = lt @ [\<A>'] @ gt \<rbrakk> \<Longrightarrow> \<A>s\<langle>m\<rangle> \<turnstile> yield \<longlonglongrightarrow>c \<A>s'" |
   "\<lbrakk> m < length \<A>s; (lt, \<A>, gt) = split_at \<A>s m; receive_buffer \<A> \<noteq> {}; oper = (SOME x. x \<in> receive_buffer \<A>);
-      operation_id oper \<notin> applied_opers \<A>; operation_deps oper \<subseteq> applied_opers \<A>; Some \<A>' = interpret_operation \<A> oper;
+    oper \<notin> set (applied_opers \<A>); operation_deps oper \<subseteq> set (map operation_id (applied_opers \<A>)); Some \<A>' = interpret_operation \<A> oper;
       \<A>s' = lt @ [\<A>'] @ gt \<rbrakk> \<Longrightarrow> \<A>s\<langle>m\<rangle> \<turnstile> yield \<longlonglongrightarrow>c \<A>s'" |
   "\<lbrakk> \<A>s\<langle>m\<rangle> \<turnstile> yield \<longlonglongrightarrow>c \<A>s'; \<A>s'\<langle>m\<rangle> \<turnstile> yield \<longlonglongrightarrow>c \<A>s'' \<rbrakk> \<Longrightarrow> \<A>s\<langle>m\<rangle> \<turnstile> yield \<longlonglongrightarrow>c \<A>s''"
+
+inductive cmd_operation_semantics_rtc :: "'a node_state list \<Rightarrow> 'a node_state list \<Rightarrow> bool" ("_/ \<longlonglongrightarrow>c^\<star>/ _" [65,65]65) where
+  "\<A>s \<longlonglongrightarrow>c^\<star> \<A>s" |
+  "\<lbrakk> \<A>s\<langle>m\<rangle> \<turnstile> c \<longlonglongrightarrow>c \<A>s'; \<A>s' \<longlonglongrightarrow>c^\<star> \<A>s'' \<rbrakk> \<Longrightarrow> \<A>s \<longlonglongrightarrow>c^\<star> \<A>s''"
+
+definition network_liveness :: "'a node_state list \<Rightarrow> bool" where
+  "network_liveness \<A>s \<equiv> \<forall>i\<in>set \<A>s. \<forall>j\<in>set \<A>s. j \<noteq> i \<longrightarrow> (\<exists>s \<in> send_buffer j. \<exists>\<A>s'. \<A>s \<longlonglongrightarrow>c^\<star> \<A>s' \<and> s \<in> receive_buffer i)"
 
 inductive valid_execution :: "'a node_state list \<Rightarrow> bool" where
   "valid_execution []" |                             
   "\<lbrakk> valid_execution \<A>s \<rbrakk> \<Longrightarrow> valid_execution (initial_state # \<A>s)" |
   "\<lbrakk> valid_execution \<A>s; \<A>s\<langle>i\<rangle> \<turnstile> c \<longlonglongrightarrow>c \<A>s' \<rbrakk> \<Longrightarrow> valid_execution \<A>s'"
+
+inductive permutation :: "'a list \<Rightarrow> 'a list \<Rightarrow> bool" where
+  "permutation [] []" |
+  "permutation xs ys \<Longrightarrow> permutation (z#xs) (z#ys)" |
+  "\<lbrakk> permutation xs ys; permutation ys zs \<rbrakk> \<Longrightarrow> permutation xs zs" |
+  "permutation (x#y#xs) (y#x#xs)"
+
+definition valid_permutation :: "operation list \<Rightarrow> operation list \<Rightarrow> bool" where
+  "valid_permutation H1 H2 \<equiv> permutation H1 H2 \<and> (\<forall>i<length H1. operation_deps (H1 ! i) \<subseteq> { operation_id (H1 ! j) | j. j < i })"
+
+fun interpret_operations :: "'a node_state \<Rightarrow> operation list \<rightharpoonup> 'a node_state" where
+  "interpret_operations \<A> []           = Some \<A>" |
+  "interpret_operations \<A> (oper#opers) =
+     do { \<A>' \<leftarrow> interpret_operation \<A> oper
+        ; interpret_operations \<A>' opers
+        }"
+
+lemma interpret_operations_append:
+  "interpret_operations \<A> (opers1 @ opers2) = interpret_operations \<A> opers1 \<bind> (\<lambda>\<A>'. interpret_operations \<A>' opers2)"
+by(induction opers1 arbitrary: \<A>, simp_all)
+
+lemma
+  assumes "operation_id oper1 \<notin> operation_deps oper2" "operation_id oper2 \<notin> operation_deps oper1"
+  shows   "interpret_operations \<A> ([oper1, oper2]) = interpret_operations \<A> ([oper2, oper1])"
+using assms
+  apply(simp)
+  apply(cases oper1; cases oper2; simp)
+  apply(unfold interpret_operation_def; case_tac "operation_muta"; simp)
+  apply(case_tac "JSON_Document.insert (document \<A>) operation_cursora (json_document_of_val x1 operation_ida, operation_ida)"; simp)
+  apply(case_tac "operation_muta"; simp)
+  apply(case_tac "JSON_Document.insert (document \<A>) operation_cursora (json_document_of_val x1a operation_ida, operation_ida)"; simp)
+  apply(case_tac "JSON_Document.insert a operation_cursor (json_document_of_val x1 operation_id, operation_id)"; simp)
+
+lemma
+  assumes "valid_permutation (H1 #> oper) H2" "valid_permutation H1 H3"
+  shows   "\<exists>ns1 ns2. interpret_operations \<A> H2 = Some ns1 \<and> interpret_operations \<A> (H3 #> oper) = Some ns2 \<and> document ns1 = document ns2"
+sorry
+
+lemma
+  assumes "valid_execution \<A>s" "m \<in> set \<A>s" "n \<in> set \<A>s" "oper \<in> send_buffer m" "operation_id oper \<notin> applied_opers n" "operation_deps oper \<subseteq> applied_opers n"
+  shows   "\<exists>n'. Some n' = interpret_operation n oper"
+sorry
 
 lemma backchain_empty_applied_orders:
   assumes "\<A>s\<langle>i\<rangle> \<turnstile> c \<longlonglongrightarrow>c \<A>s'" "\<A>s!i = m" "applied_opers m = {}"
