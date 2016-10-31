@@ -7,22 +7,6 @@ imports
   "~~/src/HOL/Library/Product_Lexorder"
 begin
 
-datatype mutation
-  = Insert "val"
-  (*| Delete*)
-  | Assign "val"
-
-record operation =
-  operation_id     :: "lamport"
-  operation_deps   :: "lamport set"
-  operation_cursor :: "json_cursor"
-  operation_mut    :: "mutation"
-
-definition mk_operation :: "lamport \<Rightarrow> operation list \<Rightarrow> json_cursor \<Rightarrow> mutation \<Rightarrow> operation" where
-  "mk_operation i d c m \<equiv>
-     let os = set (map operation_id d) in
-       \<lparr> operation_id = i, operation_deps = os, operation_cursor = c, operation_mut = m \<rparr>"
-
 record 'a node_state =
   document       :: json_document
   vars           :: "('a, json_cursor) alist"
@@ -48,7 +32,7 @@ definition generate_operation_id :: "'a node_state \<Rightarrow> nat \<Rightarro
   "generate_operation_id \<A> ident \<equiv>
      let c = Suc (highest_seen \<A>);
          a = \<A>\<lparr> highest_seen := c \<rparr>
-     in (OperationID (c, ident), a)"
+     in ((c, ident), a)"
 
 lemma initial_node_state_valid [simp]:
   shows "valid_node_state initial_state"
@@ -307,17 +291,80 @@ lemma interpret_operations_append:
   "interpret_operations \<A> (opers1 @ opers2) = interpret_operations \<A> opers1 \<bind> (\<lambda>\<A>'. interpret_operations \<A>' opers2)"
 by(induction opers1 arbitrary: \<A>, simp_all)
 
+definition valid_operation_deps :: "'a node_state \<Rightarrow> lamport set \<Rightarrow> bool" where
+  "valid_operation_deps \<A> oper_deps \<equiv>
+     let os = set (map operation_id (applied_opers \<A>)) in
+       oper_deps \<subseteq> os"
+
+lemma insert_cannot_fail:
+  assumes "JSON_Document.insert (document \<A>) operation_cursora (json_document_of_val x1 operation_ida, operation_ida) = Some a"
+          "JSON_Document.insert (document \<A>) operation_cursoraa (json_document_of_val x1a operation_idaa, operation_idaa) = Some aa"
+  shows   "\<exists>aaa. JSON_Document.insert a operation_cursoraa (json_document_of_val x1a operation_idaa, operation_idaa) = Some aaa"
+sorry
+
+lemma insert_insert_Some_equal:
+  assumes "JSON_Document.insert v operation_cursora (json_document_of_val x1 operation_ida, operation_ida) = Some a"
+          "JSON_Document.insert aa operation_cursora (json_document_of_val x1 operation_ida, operation_ida) = Some ac"
+          "JSON_Document.insert v operation_cursoraa (json_document_of_val x1a operation_idaa, operation_idaa) = Some aa"
+          "JSON_Document.insert a operation_cursoraa (json_document_of_val x1a operation_idaa, operation_idaa) = Some ab"
+  shows "ab = ac"
+sorry
+
+lemma insert_assign_Some_equal:
+  assumes "JSON_Document.insert v operation_cursora (json_document_of_val x1 operation_ida, operation_ida) = Some a"
+          "JSON_Document.insert ab operation_cursora (json_document_of_val x1 operation_ida, operation_ida) = Some ac"
+          "assign a operation_cursoraa (x2, operation_idaa) = Some aa"
+          "assign v operation_cursoraa (x2, operation_idaa) = Some ab"
+  shows "aa = ac"
+sorry
+
+lemma assign_assign_Some_equal:
+  assumes "assign doc1 cursor1 oper1 = Some doc2"
+          "assign doc2 cursor2 oper2 = Some doc4"
+          "assign doc1 cursor2 oper2 = Some doc3"
+          "assign doc3 cursor1 oper1 = Some doc5"
+  shows "doc4 = doc5"
+using assms unfolding assign_def
+  apply(induction rule: edit.induct, clarsimp)
+
 lemma
-  assumes "operation_id oper1 \<notin> operation_deps oper2" "operation_id oper2 \<notin> operation_deps oper1"
-  shows   "interpret_operations \<A> ([oper1, oper2]) = interpret_operations \<A> ([oper2, oper1])"
+  assumes "operation_id oper1 \<notin> operation_deps oper2"
+          "operation_id oper2 \<notin> operation_deps oper1"
+          "valid_operation_deps \<A> (operation_deps oper1)"
+          "valid_operation_deps \<A> (operation_deps oper2)"
+          "interpret_operations \<A> ([oper1, oper2]) = Some doc1"
+          "interpret_operations \<A> ([oper2, oper1]) = Some doc2"
+  shows   "document doc1 = document doc2"
 using assms
-  apply(simp)
-  apply(cases oper1; cases oper2; simp)
-  apply(unfold interpret_operation_def; case_tac "operation_muta"; simp)
-  apply(case_tac "JSON_Document.insert (document \<A>) operation_cursora (json_document_of_val x1 operation_ida, operation_ida)"; simp)
-  apply(case_tac "operation_muta"; simp)
-  apply(case_tac "JSON_Document.insert (document \<A>) operation_cursora (json_document_of_val x1a operation_ida, operation_ida)"; simp)
-  apply(case_tac "JSON_Document.insert a operation_cursor (json_document_of_val x1 operation_id, operation_id)"; simp)
+  apply(cases oper1; cases oper2; clarsimp simp add: interpret_operation_def valid_operation_deps_def)
+  apply(case_tac "operation_mut"; case_tac "operation_muta"; clarsimp)
+  apply(case_tac "JSON_Document.insert (document \<A>) operation_cursor (json_document_of_val x1 operation_ida, operation_ida)"; simp)
+  apply(case_tac "JSON_Document.insert (document \<A>) operation_cursora (json_document_of_val x1a operation_idaa, operation_idaa)"; simp)
+  apply(case_tac "JSON_Document.insert a operation_cursora (json_document_of_val x1a operation_idaa, operation_idaa)"; simp)
+  apply(case_tac "JSON_Document.insert aa operation_cursor (json_document_of_val x1 operation_ida, operation_ida)"; simp)
+  apply(cases \<A>; clarsimp)
+  apply(drule insert_insert_Some_equal, assumption+)
+  apply(case_tac "JSON_Document.insert (document \<A>) operation_cursor (json_document_of_val x1 operation_ida, operation_ida)"; simp)
+  apply(case_tac "assign a operation_cursora (x2, operation_idaa)"; simp)
+  apply(case_tac "assign (document \<A>) operation_cursora (x2, operation_idaa)"; simp)
+  apply(case_tac "JSON_Document.insert ab operation_cursor (json_document_of_val x1 operation_ida, operation_ida)"; simp)
+  apply(cases \<A>; clarsimp)
+  apply(drule insert_assign_Some_equal, assumption+)
+  apply(case_tac "assign (document \<A>) operation_cursor (x2, operation_ida)"; simp)
+  apply(case_tac "JSON_Document.insert a operation_cursora (json_document_of_val x1 operation_idaa, operation_idaa)"; simp)
+  apply(case_tac "JSON_Document.insert (document \<A>) operation_cursora (json_document_of_val x1 operation_idaa, operation_idaa)"; simp)
+  apply(case_tac "assign ab operation_cursor (x2, operation_ida)"; simp)
+  apply(cases \<A>; clarsimp)
+  apply(drule insert_assign_Some_equal) back
+  apply(assumption)+
+  apply simp
+  apply(case_tac "assign (document \<A>) operation_cursor (x2, operation_ida)"; simp)
+  apply(case_tac "assign a operation_cursora (x2a, operation_idaa)"; simp)
+  apply(case_tac "assign (document \<A>) operation_cursora (x2a, operation_idaa)"; simp)
+  apply(case_tac "assign ab operation_cursor (x2, operation_ida)"; simp)
+  apply(cases \<A>; clarsimp)
+  apply(drule assign_assign_Some_equal, assumption+)
+done
 
 lemma
   assumes "valid_permutation (H1 #> oper) H2" "valid_permutation H1 H3"

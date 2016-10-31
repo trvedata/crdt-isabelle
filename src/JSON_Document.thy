@@ -2,6 +2,7 @@ theory
   JSON_Document
 imports
   Main
+  "Editing_Language"
   "~~/src/HOL/Library/DAList"
   "~~/src/HOL/Library/Monad_Syntax"
   "~~/src/HOL/Library/Multiset"
@@ -46,9 +47,7 @@ fun modify_element :: "('a \<times> 'b) list \<Rightarrow> ('b \<Rightarrow> boo
 
 section\<open>JSON documents\<close>
 
-datatype lamport
-  = Head
-  | OperationID "nat \<times> nat"
+type_synonym lamport = "nat \<times> nat"
 
 datatype primitive
   = Int    "int"
@@ -56,8 +55,13 @@ datatype primitive
   | Bool   "bool"
   | Null
 
+datatype map_type_tag
+  = Reg  "string"
+  | Map  "string"
+  | List "string"
+
 datatype json_document
-  = Map_Node  "(string, json_document) alist"
+  = Map_Node  "(map_type_tag, json_document) alist"
   | List_Node "(json_document \<times> lamport) list"
   | Leaf      "(lamport, primitive) alist"
 
@@ -103,35 +107,61 @@ definition valid_json_document :: "json_document \<Rightarrow> bool" where
 
 datatype json_cursor_element
   = ListC "lamport"
-  | MapC  "string"
+  | MapC  "map_type_tag"
+
+datatype json_cursor_head
+  = Root
+  | Head
+  | List_Element "lamport"
+  | Map_Key      "string"
 
 datatype json_cursor
-  = Cursor "json_cursor_element list"
+  = Cursor "json_cursor_element list" "json_cursor_head"
 
+datatype mutation
+  = Insert "val" "lamport option"
+  (*| Delete*)
+  | Assign "val"
+
+record operation =
+  operation_id     :: "lamport"
+  operation_deps   :: "lamport set"
+  operation_cursor :: "json_cursor"
+  operation_mut    :: "mutation"
+
+definition mk_operation :: "lamport \<Rightarrow> operation list \<Rightarrow> json_cursor \<Rightarrow> mutation \<Rightarrow> operation" where
+  "mk_operation i d c m \<equiv>
+     let os = set (map operation_id d) in
+       \<lparr> operation_id = i, operation_deps = os, operation_cursor = c, operation_mut = m \<rparr>"
+
+definition default_for_type_tag :: "map_type_tag \<Rightarrow> json_document" where
+  "default_for_type_tag t \<equiv>
+     case t of
+       Map  _ \<Rightarrow> Map_Node DAList.empty
+     | Reg  _ \<Rightarrow> Leaf DAList.empty
+     | List _ \<Rightarrow> List_Node []"
+
+(*
 function (sequential) fetch :: "json_document \<Rightarrow> json_cursor \<rightharpoonup> json_document" where
-  "fetch j             (Cursor [])           = Some j" |
-  "fetch (Map_Node m)  (Cursor (MapC  k#cs)) =
-     do { n \<leftarrow> DAList.lookup m k
-        ; fetch n (Cursor cs)
-        }" |
-  "fetch (List_Node l) (Cursor (ListC i#cs)) =
+  "fetch j             (Cursor [] Root)           = Some j" |
+  "fetch j             (Cursor [] _)              = None" |
+  "fetch (Map_Node m)  (Cursor (MapC k#cs) h) =
+     (case DAList.lookup m k of
+        Some n \<Rightarrow> fetch n (Cursor cs h)
+      | None   \<Rightarrow> fetch (default_for_type_tag k) (Cursor cs h))" |
+  "fetch (Map_Node m)  (Cursor [] (Map_Key k)) = DAList.lookup m (Map k)" |
+  "fetch (List_Node l) (Cursor (ListC i#cs) h) =
      (case index_of l (\<lambda>(d, l). l = i) of
-        Some ((doc, _), _) \<Rightarrow> fetch doc (Cursor cs)
+        Some ((d, _), _) \<Rightarrow> fetch d (Cursor cs h)
       | _ \<Rightarrow> None)" |
   "fetch _             _                     = None"
 by pat_completeness auto
 
 termination fetch
-  apply(relation "measures [\<lambda>(doc, c). case c of Cursor cs \<Rightarrow> size cs, \<lambda>(doc, c). size doc]")
+  apply(relation "measures [\<lambda>(d, c). case c of Cursor cs \<Rightarrow> size cs, \<lambda>(d, c). size d]")
   apply auto
 done
-
-(*      (if k < length m then
-        let (lt, e, gt) = split_at m k in
-        do { t \<leftarrow> edit e (Cursor cs) f v
-           ; Some (List_Node (lt @ [t] @ gt))
-           }
-      else None) *)
+*)
 
 function (sequential) edit :: "json_document \<Rightarrow> json_cursor \<Rightarrow> (json_document \<rightharpoonup> json_document) \<Rightarrow> json_document \<rightharpoonup> json_document" where
   "edit j             (Cursor [])           f v  = f j" |
@@ -162,35 +192,33 @@ done
 
 fun (sequential) insert_after :: "(json_document \<times> lamport) list \<Rightarrow> (json_document \<times> lamport) \<Rightarrow> (json_document \<times> lamport) list" where
   "insert_after [] y = [y]" |
-  "insert_after ((v1, OperationID k1) # xs) (v2, OperationID k2) = (
+  "insert_after ((v1, k1) # xs) (v2, k2) = (
     if k1 < k2
-      then (v2, OperationID k2) # (v1, OperationID k1) # xs
-      else (v1, OperationID k1) # (insert_after xs (v2, OperationID k2))
+      then (v2, k2) # (v1, k1) # xs
+      else (v1, k1) # (insert_after xs (v2, k2))
   )"
 
-function (sequential) insert :: "json_document \<Rightarrow> json_cursor \<Rightarrow> (json_document \<times> lamport) \<rightharpoonup> json_document" where
-  "insert _              (Cursor [])                 v = None" |
-  "insert (Map_Node  ms) (Cursor (MapC k#cs))        v =
+function (sequential) insert :: "json_document \<Rightarrow> json_cursor \<Rightarrow> lamport option \<Rightarrow> (json_document \<times> lamport) \<rightharpoonup> json_document" where
+  "insert (Map_Node ms) (Cursor (MapC k#cs)) lo v =
      (let current_node =
         case DAList.lookup ms k of
-          None   \<Rightarrow> Map_Node DAList.empty
-        | Some n \<Rightarrow> n
+          None    \<Rightarrow> default_for_type_tag k
+        | Some n  \<Rightarrow> n
       in
-        do { t \<leftarrow> insert current_node (Cursor cs) v
+        do { t \<leftarrow> insert current_node (Cursor cs) lo v
            ; Some (Map_Node (DAList.update k t ms))
            })" |
-  "insert (List_Node xs) (Cursor [ListC Head])       v = Some (List_Node (insert_after xs v))" |
-  "insert (List_Node []) _                           _ = None" |
-  "insert (List_Node ((v1, k1) # xs)) (Cursor [ListC k2]) v =
-     (if k1 = k2 then Some (List_Node ((v1, k1) # (insert_after xs v)))
-      else (case insert (List_Node xs) (Cursor [ListC k2]) v of
-              Some (List_Node xs') \<Rightarrow> Some (List_Node ((v1, k1) # xs))
-            | _ \<Rightarrow> None))" |
-  "insert (List_Node xs) (Cursor (ListC k#cs))        v =
-     do { m \<leftarrow> modify_element xs (\<lambda>l. k = l) (\<lambda>j. insert j (Cursor cs) v)
+  "insert (List_Node xs) (Cursor (ListC k#cs)) lo v =
+     do { m \<leftarrow> modify_element xs (\<lambda>l. k = l) (\<lambda>j. insert j (Cursor cs) lo v)
         ; Some (List_Node m)
         }" |
-  "insert _              _                  _ = None"
+  "insert (List_Node xs) (Cursor []) None     v = Some (List_Node (insert_after xs v))" |
+  "insert (List_Node ((v1, k1) # xs)) (Cursor []) (Some l) v =
+     (if k1 = l then Some (List_Node ((v1, k1) # (insert_after xs v)))
+      else (case insert (List_Node xs) (Cursor []) (Some l) v of
+              Some (List_Node xs') \<Rightarrow> Some (List_Node ((v1, k1) # xs))
+            | _ \<Rightarrow> None))" |
+  "insert _ _ _ _ = None"
 by pat_completeness auto
 
 termination insert
@@ -198,59 +226,7 @@ termination insert
   apply auto
 done
 
-(*
-function (sequential) extend_map_branch :: "json_document \<Rightarrow> json_cursor \<Rightarrow> string \<Rightarrow> json_document \<rightharpoonup> json_document" where
-  "extend_map_branch (Map_Node m) (Cursor [])          key v = Some (Map_Node (DAList.update key v m))" |
-  "extend_map_branch (Map_Node m) (Cursor (MapC k#cs)) key v =
-     do { n \<leftarrow> DAList.lookup m k
-        ; t \<leftarrow> extend_map_branch n (Cursor cs) key v
-        ; Some (Map_Node (DAList.update k t m))
-        }" |
-  "extend_map_branch (List_Node ls) (Cursor (ListC i#cs)) key v =
-     (if i < length ls then
-        let (lt, e, gt) = split_at ls i in
-          do { t \<leftarrow> extend_map_branch e (Cursor cs) key v
-             ; Some (List_Node (lt @ [t] @ gt))
-             }
-      else None)" |
-  "extend_map_branch _              _                     _  _ = None"
-by pat_completeness auto
-
-termination extend_map_branch
-  apply(relation "measures [\<lambda>(doc, c, s). case c of Cursor cs \<Rightarrow> size cs, \<lambda>(doc, c, s). size doc]")
-  apply auto
-done
-
-function (sequential) extend_list_branch :: "json_document \<Rightarrow> json_cursor \<Rightarrow> nat \<Rightarrow> json_document \<rightharpoonup> json_document" where
-  "extend_list_branch (List_Node l) (Cursor [])           j v =
-     (if j < length l then
-        let (lt, e, gt) = split_at l j in
-          Some (List_Node (gt @ [v] @ lt))
-      else if j = length l then
-        Some (List_Node (l #> v))
-      else None)" |
-  "extend_list_branch (List_Node l) (Cursor (ListC i#cs)) j v =
-     (if i < length l then
-        let (lt, e, gt) = split_at l i in
-          do { t \<leftarrow> extend_list_branch e (Cursor cs) j v
-             ; Some (List_Node (lt @ [t] @ gt))
-             }
-      else None)" |
-  "extend_list_branch (Map_Node m)  (Cursor (MapC k#cs))  j v =
-     do { n \<leftarrow> DAList.lookup m k
-        ; t \<leftarrow> extend_list_branch n (Cursor cs) j v
-        ; Some (Map_Node (DAList.update k t m))
-        }" |
-  "extend_list_branch _             _                     _ _ = None"
-by pat_completeness auto
-
-termination extend_list_branch
-  apply(relation "measures [\<lambda>(doc, c, m). case c of Cursor cs \<Rightarrow> size cs, \<lambda>(doc, c, m). size doc]")
-  apply auto
-done
-*)
-
-definition grow_map_entry :: "json_cursor \<Rightarrow> string \<Rightarrow> json_cursor" where
+definition grow_map_entry :: "json_cursor \<Rightarrow> map_type_tag \<Rightarrow> json_cursor" where
   "grow_map_entry c k \<equiv>
      case c of
        Cursor cs \<Rightarrow> Cursor (cs #> MapC k)"
@@ -259,27 +235,28 @@ definition grow_list_entry :: "json_cursor \<Rightarrow> lamport \<Rightarrow> j
   "grow_list_entry c l \<equiv>
      case c of
        Cursor cs \<Rightarrow> Cursor (cs #> ListC l)"
-
+          
 inductive compatible_json_cursor :: "json_document \<Rightarrow> json_cursor \<Rightarrow> bool" ("_/ \<bowtie>/ _" [65,65]65) where
   compatible_json_cursor_Nil [intro!]: "j \<bowtie> (Cursor [])" |
-  compatible_json_cursor_MapC [intro!]: "\<lbrakk> DAList.lookup m k = Some n; n \<bowtie> Cursor cs \<rbrakk> \<Longrightarrow> Map_Node m \<bowtie> (Cursor (MapC k#cs))" |
-  compatible_json_cursor_ListC [intro!]: "\<lbrakk> index_of l (\<lambda>(doc, l). l = i) = Some ((doc, _), idx); doc \<bowtie> Cursor cs \<rbrakk> \<Longrightarrow> List_Node l \<bowtie> (Cursor (ListC i#cs))"
+  compatible_json_cursor_Some_MapC [intro!]: "\<lbrakk> DAList.lookup m k = Some n; n \<bowtie> Cursor cs \<rbrakk> \<Longrightarrow> Map_Node m \<bowtie> (Cursor (MapC k#cs))" |
+  compatible_json_cursor_None_MapC [intro!]: "\<lbrakk> DAList.lookup m k = None; default_for_type_tag k \<bowtie> Cursor cs \<rbrakk> \<Longrightarrow> Map_Node m \<bowtie> (Cursor (MapC k#cs))" |
+  compatible_json_cursor_ListC [intro!]: "\<lbrakk> index_of l (\<lambda>(d, l). l = i) = Some ((d, _), idx); d \<bowtie> Cursor cs \<rbrakk> \<Longrightarrow> List_Node l \<bowtie> (Cursor (ListC i#cs))"
 
 function (sequential) json_document_cursor_compatible :: "json_document \<Rightarrow> json_cursor \<Rightarrow> bool" where
   "json_document_cursor_compatible j             (Cursor [])           = True" |
   "json_document_cursor_compatible (Map_Node m)  (Cursor (MapC k#cs))  =
      (case DAList.lookup m k of
         Some n \<Rightarrow> json_document_cursor_compatible n (Cursor cs)
-      | _ \<Rightarrow> False)" |
+      | None \<Rightarrow> json_document_cursor_compatible (default_for_type_tag k) (Cursor cs))" |
   "json_document_cursor_compatible (List_Node l) (Cursor (ListC i#cs)) =
-     (case index_of l (\<lambda>(doc, l). l = i) of
-        Some ((doc, _), idx) \<Rightarrow> json_document_cursor_compatible doc (Cursor cs)
+     (case index_of l (\<lambda>(d, l). l = i) of
+        Some ((d, _), idx) \<Rightarrow> json_document_cursor_compatible d (Cursor cs)
       | _ \<Rightarrow> False)" |
   "json_document_cursor_compatible _             _                     = False"
 by pat_completeness auto
 
 termination json_document_cursor_compatible
-  apply(relation "measures [\<lambda>(doc, c). case c of Cursor cs \<Rightarrow> size cs, \<lambda>(doc, c). size doc]")
+  apply(relation "measures [\<lambda>(d, c). case c of Cursor cs \<Rightarrow> size cs, \<lambda>(d, c). size d]")
   apply auto
 done
 
@@ -292,29 +269,41 @@ using assms proof(induction rule: json_document_cursor_compatible.induct)
     by auto
 next
   fix m k cs
-  assume IH: "json_document_cursor_compatible (Map_Node m) (Cursor (MapC k # cs))" and
-    *: "(\<And>x2. DAList.lookup m k = Some x2 \<Longrightarrow> json_document_cursor_compatible x2 (Cursor cs) \<Longrightarrow> x2 \<bowtie> Cursor cs)"
-  from this obtain n where **: "DAList.lookup m k = Some n"
-    by fastforce
-  hence "json_document_cursor_compatible n (Cursor cs)"
-    using IH by simp
-  hence "n \<bowtie> Cursor cs"
-    using * ** by simp
-  thus "Map_Node m \<bowtie> Cursor (MapC k # cs)"
-    using ** by auto
+  assume IH1: "(DAList.lookup m k = None \<Longrightarrow> json_document_cursor_compatible (default_for_type_tag k) (Cursor cs) \<Longrightarrow> default_for_type_tag k \<bowtie> Cursor cs)"
+    and IH2: "(\<And>x2. DAList.lookup m k = Some x2 \<Longrightarrow> json_document_cursor_compatible x2 (Cursor cs) \<Longrightarrow> x2 \<bowtie> Cursor cs)"
+    and *: "json_document_cursor_compatible (Map_Node m) (Cursor (MapC k # cs))"
+  show "Map_Node m \<bowtie> Cursor (MapC k # cs)"
+  proof(cases "DAList.lookup m k")
+    assume "DAList.lookup m k = None"
+    hence "json_document_cursor_compatible (default_for_type_tag k) (Cursor cs)"
+      using * by auto
+    hence "default_for_type_tag k \<bowtie> Cursor cs"
+      using IH1 `DAList.lookup m k = None` by auto
+    thus "Map_Node m \<bowtie> Cursor (MapC k # cs)"
+      using `DAList.lookup m k = None` by blast
+  next
+    fix a
+    assume "DAList.lookup m k = Some a"
+    hence "json_document_cursor_compatible a (Cursor cs)"
+      using * by auto
+    hence "a \<bowtie> Cursor cs"
+      using IH2 `DAList.lookup m k = Some a` by auto
+    thus "Map_Node m \<bowtie> Cursor (MapC k # cs)"
+      using `DAList.lookup m k = Some a` compatible_json_cursor_Some_MapC by metis
+  qed
 next
   fix l i cs
   assume IH: "json_document_cursor_compatible (List_Node l) (Cursor (ListC i # cs))" and
-    *: "(\<And>x2 x y xa ya. index_of l (\<lambda>(doc, l). l = i) = Some x2 \<Longrightarrow> (x, y) = x2 \<Longrightarrow> (xa, ya) = x \<Longrightarrow> json_document_cursor_compatible xa (Cursor cs) \<Longrightarrow> xa \<bowtie> Cursor cs)"
-  from this obtain doc a idx where **: "index_of l (\<lambda>(doc, l). l = i) = Some ((doc, a), idx)"
+    *: "(\<And>x2 x y xa ya. index_of l (\<lambda>(d, l). l = i) = Some x2 \<Longrightarrow> (x, y) = x2 \<Longrightarrow> (xa, ya) = x \<Longrightarrow> json_document_cursor_compatible xa (Cursor cs) \<Longrightarrow> xa \<bowtie> Cursor cs)"
+  from this obtain d a idx where **: "index_of l (\<lambda>(d, l). l = i) = Some ((d, a), idx)"
     apply simp
-    apply(case_tac "index_of l (\<lambda>(doc, l). l = i)"; simp)
+    apply(case_tac "index_of l (\<lambda>(d, l). l = i)"; simp)
     apply(case_tac "a"; simp)
     apply(case_tac "aa"; simp)
     done
-  hence "json_document_cursor_compatible doc (Cursor cs)"
+  hence "json_document_cursor_compatible d (Cursor cs)"
     using IH by simp
-  hence "doc \<bowtie> Cursor cs"
+  hence "d \<bowtie> Cursor cs"
     using * ** by simp
   thus "List_Node l \<bowtie> Cursor (ListC i # cs)"
     using ** by auto
@@ -326,8 +315,8 @@ lemma json_document_cursor_compatible_complete:
 using assms by(induction, auto)
 
 lemma compatible_json_cursor_fetch:
-  assumes "doc \<bowtie> c"
-  shows   "\<exists>j. fetch doc c = Some j"
-using assms by(induction, simp_all)
+  assumes "d \<bowtie> c"
+  shows   "\<exists>j. fetch d c = Some j"
+using assms by(induction; simp)
 
 end
