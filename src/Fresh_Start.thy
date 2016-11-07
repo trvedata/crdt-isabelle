@@ -9,6 +9,142 @@ type_synonym ('id, 'v) elt = "'id \<times> 'v"
 
 hide_const insert
 
+fun insert_body :: "('id::{linorder}, 'v) elt list \<Rightarrow> ('id, 'v) elt \<Rightarrow> ('id, 'v) elt list" where
+  "insert_body []     e = [e]" |
+  "insert_body (x#xs) e =
+     (if fst x < fst e then
+        e#x#xs
+      else x#insert_body xs e)"
+
+fun insert_after :: "('id::{linorder}, 'v) elt list \<Rightarrow> ('id, 'v) elt \<Rightarrow> 'id option \<rightharpoonup> ('id, 'v) elt list" where
+  "insert_after xs     e None     = Some (insert_body xs e)" |
+  "insert_after []     e (Some i) = None" |
+  "insert_after (x#xs) e (Some i) =
+     (if fst x = i then
+        Some (x#insert_body xs e)
+      else
+        do { t \<leftarrow> insert_after xs e (Some i)
+           ; Some (x#t)
+           })"
+
+lemma insert_body_commutes:
+  assumes "distinct (map fst (e1#e2#xs))"
+  shows   "insert_body (insert_body xs e1) e2 = insert_body (insert_body xs e2) e1"
+using assms
+  apply(induction xs)
+    apply force
+    apply clarsimp
+    apply(case_tac "fst e1 < fst e2")
+      apply force+
+done
+
+lemma insert_after_insert_body:
+  assumes "distinct (map fst (e1#e2#xs))" "i2 \<noteq> Some (fst e1)"
+  shows   "insert_after (insert_body xs e1) e2 i2 = do { ys \<leftarrow> insert_after xs e2 i2; Some (insert_body ys e1) }"
+using assms
+  apply(induction xs)
+    apply(case_tac "i2")
+      apply force
+      apply clarsimp
+    apply clarsimp
+    apply(case_tac "a < fst e1")
+      apply clarsimp
+      apply(case_tac "i2")
+        apply clarsimp
+        apply(case_tac "fst e2 < fst e1")
+          apply force+
+        apply clarsimp
+      apply clarsimp
+      apply(case_tac "i2")
+        apply force
+        apply clarsimp
+        apply(case_tac "aa < fst e1")
+          apply clarsimp
+          apply clarsimp
+          apply(force simp add: insert_body_commutes)
+  done
+
+lemma insert_after_Nil_None:
+  assumes "fst e1 \<noteq> fst e2" "i \<noteq> fst e2" "i2 \<noteq> Some (fst e1)"
+  shows "insert_after [] e2 i2 \<bind> (\<lambda>ys. insert_after ys e1 (Some i)) = None"
+using assms by (case_tac "i2") clarsimp+
+
+lemma insert_after_insert_body_commute:
+  assumes "a \<noteq> aa"
+          "aa \<noteq> fst e2"
+          "aa \<notin> fst ` set xs"
+          "fst e2 \<notin> fst ` set xs"
+          "distinct (map fst xs)"
+  shows   "insert_after (insert_body xs (aa, ba)) e2 (Some a) = insert_after xs e2 (Some a) \<bind> (\<lambda>y. Some (insert_body y (aa, ba)))"
+using assms
+  apply(induction xs)
+    apply clarsimp
+    apply clarsimp
+    apply(force simp add: insert_body_commutes)
+  done
+
+lemma insert_after_commutes:
+  assumes "distinct (map fst (e1#e2#xs))" "i1 = None \<or> i1 \<noteq> Some (fst e2)" "i2 = None \<or> i2 \<noteq> Some (fst e1)"
+  shows   "do { ys \<leftarrow> insert_after xs e1 i1; insert_after ys e2 i2 } = do { ys \<leftarrow> insert_after xs e2 i2; insert_after ys e1 i1 }"
+using assms
+  apply(induction rule: insert_after.induct)
+    apply clarsimp
+    apply(erule disjE)
+      apply clarsimp
+      apply(force simp add: insert_body_commutes)
+      apply(rule insert_after_insert_body, simp, simp, simp)
+    apply(erule disjE)
+      apply simp
+      apply clarsimp
+      apply(rule insert_after_Nil_None[symmetric], simp, simp, simp)
+    apply(erule disjE)
+      apply clarsimp
+      apply clarsimp
+      apply(case_tac "a = i")
+        apply clarsimp
+        apply(case_tac "i2")
+          apply clarsimp
+          apply(force simp add: insert_body_commutes)
+        apply clarsimp
+      apply(case_tac "a = i")
+        apply clarsimp
+        apply(force simp add: insert_body_commutes)
+        apply clarsimp
+        apply(force simp add: insert_after_insert_body_commute)
+        apply clarsimp
+        apply(case_tac i2)
+          apply(force cong: Option.bind_cong simp add: insert_after_insert_body)
+          apply clarsimp
+          apply(case_tac "ab = i")
+            apply clarsimp
+            apply(metis bind_assoc)
+            apply clarsimp
+            apply(case_tac "a = ab")
+              apply clarsimp
+              apply(force cong: Option.bind_cong simp add: insert_after_insert_body)
+              apply clarsimp
+              apply(metis bind_assoc)
+  done
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 fun insert :: "('id::{linorder}, 'v) elt list \<Rightarrow> ('id, 'v) elt \<Rightarrow> 'id option \<rightharpoonup> ('id::{linorder}, 'v) elt list" where
   "insert [] e     None     = Some [e]" |
   "insert [] e     (Some i) = None" |
@@ -63,6 +199,21 @@ using assms
   apply force
 done
 
+lemma insert_Some_None_iff:
+  shows   "insert xs e (Some i) = None \<longleftrightarrow> i \<notin> set (map fst xs)"
+  apply(induction xs, simp)
+  apply(case_tac a)
+  apply clarsimp
+  apply(case_tac "aa = i")
+    apply clarsimp
+    apply(case_tac "insert xs e None")
+      apply clarsimp
+      apply clarsimp
+    apply clarsimp
+    apply(case_tac "insert xs e (Some i)")
+      apply force
+      apply clarsimp
+done
 
 lemma insertNoneNoneNoneNone:
   assumes
@@ -142,7 +293,28 @@ lemma insertSomeSome2:
        idx \<noteq> i1' \<Longrightarrow> (case insert xs e1 (Some i1') of None \<Rightarrow> None | Some t \<Rightarrow> Some ((idx, e) # t)) \<bind> (\<lambda>ys. insert ys e2 i2) = insert ((idx, e) # xs) e2 i2 \<bind> (\<lambda>ys. insert ys e1 (Some i1'))"
 sorry
 
+lemma insert_Cons_Some_Some_bind:
+  assumes "i1 \<noteq> fst x" "i2 \<noteq> fst x"
+  shows "insert (x#xs) e1 (Some i1) \<bind> (\<lambda>ys. insert ys e2 (Some i2)) = insert xs e1 (Some i1) \<bind> (\<lambda>ys. insert ys e2 (Some i2) \<bind> (\<lambda>zs. Some (x#zs)))"
+using assms
+  apply clarsimp
+  apply(case_tac "insert xs e1 (Some i1)")
+    apply clarsimp+
+    apply(case_tac "insert a e2 (Some i2)")
+    apply clarsimp+
+  done
 
+lemma foo:
+  assumes "i1 = fst x" "i2 \<noteq> fst x"
+  shows "insert (x#xs) e1 (Some i1) \<bind> (\<lambda>ys. insert ys e2 (Some i2)) = insert xs e1 None \<bind> (\<lambda>ys. insert ys e2 (Some i2) \<bind> (\<lambda>zs. Some (x#zs)))"
+using assms
+sorry
+
+lemma insert_preserves_fst_set:
+  assumes "i2' \<notin> set (map fst xs)" "insert xs e1 None = Some a" "i2' \<noteq> fst e1"
+  shows   "i2' \<notin> set (map fst a)"
+using assms
+sorry
 
 lemma insert_commutes:
   assumes "distinct (map fst (e1#e2#xs))" "i1 = None \<or> i1 \<noteq> Some (fst e2)" "i2 = None \<or> i2 \<noteq> Some (fst e1)"
@@ -157,7 +329,7 @@ using assms
   apply clarsimp
   apply (rename_tac idx e xs)
   (* i1 = None *)
-  apply(cases i1; clarsimp)
+  apply(cases i1, clarsimp)
     (* i2 = None *)
     apply(cases i2; clarsimp)
       apply(case_tac "insert xs e1 None")
@@ -253,7 +425,77 @@ using assms
 
 (* i2 = Some i2' *)
 apply (rename_tac i2')
+  apply clarsimp
+  apply(case_tac "insert xs e1 None")
+    apply force
+  apply clarsimp
+  apply(case_tac "insert xs e2 None")
+    apply force
+  apply clarsimp
+  apply(case_tac "insert a e2 None")
+    apply force
+  apply clarsimp
+  apply(case_tac "insert aa e1 None")
+    apply force
+  apply clarsimp
+  apply(case_tac "i2' = i1'")
+    apply clarsimp
+    apply(case_tac "idx = i1'")
+      apply clarsimp
+      apply(rule insertNoneNoneNoneNone)
+        prefer 2
+        apply assumption
+        prefer 2
+        apply assumption back
+        apply simp
+        apply simp
+        apply simp
+      apply clarsimp
+      apply(case_tac "insert xs e1 (Some i1')")
+        apply clarsimp
+        apply(case_tac "insert xs e2 (Some i1')")
+          apply clarsimp
+          apply clarsimp
+        apply clarsimp
+        apply(case_tac "insert xs e2 (Some i1')")
+          apply clarsimp
+          apply clarsimp
+  apply safe
+    apply clarsimp
+    apply(case_tac "insert xs e2 (Some i2')")
+      apply clarsimp
+        apply(case_tac "insert xs e2 (Some i2')")
+          apply clarsimp
+          apply(subgoal_tac "insert a e2 (Some i2') = None")
+          prefer 2
+          apply(subst (asm) insert_Some_None_iff)
+          apply(subst insert_Some_None_iff)
+
+
+
+          apply(frule insert_Some_NoneE)
+          apply clarsimp
+          apply(case_tac "insert ad e1 None")
+            apply clarsimp
+            apply clarsimp
+    
+(*
+  apply(case_tac "idx \<noteq> i1' \<and> idx \<noteq> i2'")
+  apply(subst insert_Cons_Some_Some_bind, simp)
+  apply(erule conjE, simp, simp)+
+  apply(subgoal_tac "insert xs e2 (Some i2') \<bind> (\<lambda>ys. insert ys e1 (Some i1') \<bind> (\<lambda>zs. Some ((idx, e) # zs))) =
+       (case insert xs e2 (Some i2') of None \<Rightarrow> None | Some t \<Rightarrow> Some ((idx, e) # t)) \<bind> (\<lambda>ys. insert ys e1 (Some i1'))")
+  prefer 2
+  apply clarsimp
+*)
+
+apply clarsimp
 apply (rule conjI, rule impI)
+  (* idx = i1' *)
+  prefer 2
+  apply clarsimp
+  prefer 2
+  apply assumption
 apply (rule insertSomeSome1)
 apply assumption+
 apply (rule impI)
