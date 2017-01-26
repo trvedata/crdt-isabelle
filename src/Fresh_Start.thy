@@ -205,30 +205,30 @@ locale infinite_event_structure =
   assumes node_total_order_irrefl: "e1 \<in> carriers i \<Longrightarrow> \<not> (e1 \<sqsubset>\<^sup>i e1)"
   assumes local_order_to_global: "{e1, e2} \<subseteq> carriers i \<Longrightarrow> e1 \<sqsubset>\<^sup>i e2 \<Longrightarrow> e1 \<sqsubset>\<^sup>G e2"
   assumes global_order_to_local: "{e1, e2} \<subseteq> carriers i \<Longrightarrow> e1 \<sqsubset>\<^sup>G e2 \<Longrightarrow> e1 \<sqsubset>\<^sup>i e2"
+  assumes local_order_carrier_closed: "e1 \<sqsubset>\<^sup>i e2 \<Longrightarrow> {e1,e2} \<subseteq> carriers i"
+  assumes global_order_carrier_closed: "e1 \<sqsubset>\<^sup>G e2 \<Longrightarrow> {e1, e2} \<subseteq> (\<Union>i. carriers i)"
   assumes broadcast_before_delivery: "(i, Broadcast, m) \<in> carriers i \<Longrightarrow> (i, Broadcast, m) \<sqsubset>\<^sup>G (j, Deliver, m)"
   assumes no_message_lost: "(i, Broadcast, m) \<in> carriers i \<Longrightarrow> (j, Deliver, m) \<in> carriers j"
   assumes delivery_has_a_cause: "(i, Deliver, m) \<in> carriers i \<Longrightarrow> \<exists>j. (j, Broadcast, m) \<in> carriers j"
   assumes carriers_message_consistent: "(j, bt, m) \<in> carriers i \<Longrightarrow> i = j"
+  assumes broadcast_fifo_order: "{(j, Deliver, m1), (j, Deliver, m2)} \<subseteq> carriers j \<Longrightarrow> (i, Broadcast, m1) \<sqsubset>\<^sup>i (i, Broadcast, m2) \<Longrightarrow> (j, Deliver, m1) \<sqsubset>\<^sup>j (j, Deliver, m2)"
+  assumes broadcast_causal: "{(j, Deliver, m1), (j, Deliver, m2)} \<subseteq> carriers j \<Longrightarrow> (i, Deliver, m1) \<sqsubset>\<^sup>i (i, Broadcast, m2) \<Longrightarrow> (j, Deliver, m1) \<sqsubset>\<^sup>j (j, Deliver, m2)"
 
-interpretation trivial_model: infinite_event_structure "\<lambda>m. {}" "\<lambda>e1 m e2. True" "\<lambda>e1 e2. True"
-  apply standard
-  apply auto
-  done
+interpretation trivial_model: infinite_event_structure "\<lambda>m. {}" "\<lambda>e1 m e2. False" "\<lambda>e1 e2. False"
+  by standard simp_all
 
 interpretation non_trivial_model: infinite_event_structure
   "\<lambda>m. if m = 0 then {(0, Broadcast, 0), (0, Deliver, 0)} else {(m, Deliver, 0)}"
   "\<lambda>e1 m e2. m = 0 \<and> e1 = (0, Broadcast, 0) \<and> e2 = (0, Deliver, 0)"
   "\<lambda>e1 e2. (\<exists>m. e1 = (0, Broadcast, 0) \<and> e2 = (m, Deliver, 0))"
-  apply standard
-  apply(case_tac "i = 0"; force)+
-  done
+  by standard (case_tac "i = 0"; force)+
 
 datatype 'a formula
   = True   ("\<top>" 65)
   | False  ("\<bottom>" 65)
   | Event  "'a event"
   | Conjunction "'a formula" "'a formula" ("_/ and/ _"  [75,75]75)
-  | Implication "'a formula" "'a formula" ("_/ \<rightarrow>/ _"    [65,65]65)
+  | Implication "'a formula" "'a formula" ("_/ \<rightarrow>/ _"    [66,65]65)
   | GlobalB     "'a formula"              ("\<box>\<^sup>G_"         [100]100)
   | LocalB      "nat" "'a formula"        ("\<box>\<^sup>__"         [100,100]100)
   | LabolgB     "'a formula"              ("\<box>\<^sup>-\<^sup>1\<^sup>,\<^sup>G_"       [100]100)
@@ -254,7 +254,7 @@ termination (in infinite_event_structure) satisfaction
 definition negation :: "'a formula \<Rightarrow> 'a formula" ("not/_" [100]100) where
   "not \<phi> \<equiv> \<phi> \<rightarrow> \<bottom>"
 
-definition disjunction :: "'a formula \<Rightarrow> 'a formula \<Rightarrow> 'a formula" ("_/ or/  _" [75,75]75) where
+definition disjunction :: "'a formula \<Rightarrow> 'a formula \<Rightarrow> 'a formula" (infixr "or" 75) where
   "\<phi> or \<psi> \<equiv> not ((not \<phi>) and (not \<psi>))"
 
 definition globalD :: "'a formula \<Rightarrow> 'a formula" ("\<diamondop>\<^sup>G_" [100]100) where
@@ -262,6 +262,15 @@ definition globalD :: "'a formula \<Rightarrow> 'a formula" ("\<diamondop>\<^sup
 
 definition localD :: "nat \<Rightarrow> 'a formula \<Rightarrow> 'a formula" ("\<diamondop>\<^sup>__" [100,100]100) where
   "\<diamondop>\<^sup>i \<phi> \<equiv> not (\<box>\<^sup>i (not \<phi>))"
+
+definition globalD_inv :: "'a formula \<Rightarrow> 'a formula" ("\<diamondop>\<^sup>-\<^sup>1\<^sup>,\<^sup>G_" [100]100) where
+  "\<diamondop>\<^sup>-\<^sup>1\<^sup>,\<^sup>G \<phi> \<equiv> not (\<box>\<^sup>-\<^sup>1\<^sup>,\<^sup>G (not \<phi>))"
+
+definition localD_inv :: "nat \<Rightarrow> 'a formula \<Rightarrow> 'a formula" ("\<diamondop>\<^sup>-\<^sup>1\<^sup>,\<^sup>__" [100,100]100) where
+  "\<diamondop>\<^sup>-\<^sup>1\<^sup>,\<^sup>i \<phi> \<equiv> not (\<box>\<^sup>-\<^sup>1\<^sup>,\<^sup>i (not \<phi>))"
+
+definition all_node :: "(nat \<Rightarrow> 'a formula) \<Rightarrow> 'a formula" (binder "AllNode" 65) where
+  "AllNode x. P x \<equiv> not (ExNode x. not (P x))"
 
 lemma (in infinite_event_structure) negation_satisfaction:
   shows "(e \<Turnstile> not \<phi>) = (\<not> (e \<Turnstile> \<phi>))"
@@ -271,8 +280,22 @@ definition (in infinite_event_structure) validity :: "'a formula \<Rightarrow> b
   "\<Turnstile> \<phi> \<equiv> \<forall>e \<in> (\<Union>i. carriers i). e \<Turnstile> \<phi>"
 
 lemma (in infinite_event_structure) S4_global_transitivity:
-  shows "\<Turnstile> \<box>\<^sup>G \<box>\<^sup>G \<phi> \<rightarrow> \<box>\<^sup>G \<phi>"
+  shows "\<Turnstile> \<box>\<^sup>G \<phi> \<rightarrow> \<box>\<^sup>G \<box>\<^sup>G \<phi>"
 unfolding validity_def
+sorry
+
+lemma (in infinite_event_structure) S4_global_reflexivity:
+  shows "\<Turnstile> \<box>\<^sup>G \<phi> \<rightarrow> \<phi>"
+unfolding validity_def sorry
+
+lemma (in infinite_event_structure) global_distribution:
+  shows "\<Turnstile> \<box>\<^sup>G (\<phi> \<rightarrow> \<psi>) \<rightarrow> (\<box>\<^sup>G \<phi>) \<rightarrow> (\<box>\<^sup>G \<psi>)"
+unfolding validity_def
+sorry
+
+lemma (in infinite_event_structure) global_necessitation:
+  assumes "\<Turnstile> \<phi>"
+  shows   "\<Turnstile> \<box>\<^sup>G \<phi>"
 sorry
 
 lemma (in infinite_event_structure) all_messages_delivered:
@@ -295,12 +318,164 @@ unfolding validity_def negation_def
   apply auto
 done
 
+lemma (in infinite_event_structure) no_out_of_thin_air:
+  shows "\<Turnstile> Event (i, Deliver, m) \<rightarrow> ExNode q. (\<diamondop>\<^sup>-\<^sup>1\<^sup>,\<^sup>G (Event (q, Broadcast, m)))"
+unfolding validity_def
+  apply standard+
+  apply(clarsimp simp add: globalD_inv_def negation_def)
+  apply(frule carriers_message_consistent, clarsimp) 
+  apply(drule delivery_has_a_cause)
+  apply clarsimp
+  apply(rule_tac x=j in exI)
+  apply(rule broadcast_before_delivery, assumption)
+done
+
+lemma (in infinite_event_structure) reliable_delivery:
+  shows "\<Turnstile> Event (i, Broadcast, m) \<rightarrow> AllNode q. \<diamondop>\<^sup>G (Event (q, Deliver, m))"
+unfolding validity_def
+  apply standard+
+  apply(clarsimp simp add: all_node_def negation_def globalD_inv_def globalD_def disjunction_def)
+  apply(frule carriers_message_consistent, clarsimp)
+  apply(simp add: broadcast_before_delivery)
+done
+
+lemma (in infinite_event_structure) global_order_carriers_closed_split1:
+  assumes "(i1, t1, m1) \<sqsubset>\<^sup>G (i2, t2, m2)"
+  shows   "(i1, t1, m1) \<in> carriers i1"
+using assms
+  apply -
+  apply(drule global_order_carrier_closed, clarsimp, frule carriers_message_consistent, force)
+done
+
+lemma (in infinite_event_structure) global_order_carriers_closed_split2:
+  assumes "(i1, t1, m1) \<sqsubset>\<^sup>G (i2, t2, m2)"
+  shows   "(i2, t2, m2) \<in> carriers i2"
+using assms
+  apply -
+  apply(drule global_order_carrier_closed, clarsimp, frule carriers_message_consistent, force)
+done
+
+lemma (in infinite_event_structure) fifo_broadcast_order:
+  shows "\<Turnstile> (Event (i, Broadcast, m1) and \<diamondop>\<^sup>i Event (i, Broadcast, m2)) \<rightarrow>
+          \<box>\<^sup>G(Event (j, Deliver, m2) \<rightarrow> \<diamondop>\<^sup>-\<^sup>1\<^sup>,\<^sup>j Event (j, Deliver, m1))"
+using assms unfolding validity_def
+  apply(clarsimp simp add: negation_def localD_inv_def localD_def globalD_def)
+  apply(frule carriers_message_consistent, clarsimp)
+  apply(rule broadcast_fifo_order[rotated])
+  apply assumption
+  apply(drule global_order_carriers_closed_split2)
+  apply (drule no_message_lost)
+  apply force
+done
+
+lemma (in infinite_event_structure) causal_broadcast_order:
+  shows "\<Turnstile> (Event (i, Deliver, m1) and \<diamondop>\<^sup>i Event (i, Broadcast, m2)) \<rightarrow>
+          \<box>\<^sup>G(Event (j, Deliver, m2) \<rightarrow> \<diamondop>\<^sup>-\<^sup>1\<^sup>,\<^sup>j Event (j, Deliver, m1))"
+using assms unfolding validity_def
+  apply(clarsimp simp add: negation_def localD_inv_def localD_def globalD_def)
+  apply(frule carriers_message_consistent, clarsimp)
+  apply(rule broadcast_causal[rotated])
+  apply assumption
+  apply(drule global_order_carriers_closed_split2)
+  apply(drule delivery_has_a_cause)
+  apply clarsimp
+  apply (drule no_message_lost)
+  apply force
+done
+
+locale finite_event_structure = infinite_event_structure +
+  assumes finite_carriers: "finite (carriers i)"
+
+definition (in finite_event_structure) ordered_node_events :: "nat \<Rightarrow> 'a event list" where
+  "ordered_node_events i \<equiv>
+     let events = carriers i in
+       linorder.sorted_list_of_set (\<lambda>e1 e2. e1 \<sqsubset>\<^sup>i e2)
+         (Set.filter (\<lambda>e.
+            case e of (_, Broadcast, _) \<Rightarrow> HOL.False | (_, Delivery, _) \<Rightarrow> HOL.True) events)"
+
 section\<open>Network events to...\<close>
 
 type_synonym lamport = "nat \<times> nat"
 
 datatype 'v operation
   = Insert "lamport" "'v" "lamport option"
+
+locale network = finite_event_structure carriers
+    for carriers :: "nat \<Rightarrow> 'v operation event set" +
+  fixes event_id :: "'v operation event \<Rightarrow> lamport"
+  assumes event_id_unique: "event_id e1 = event_id e2 \<longleftrightarrow> e1 = e2"
+
+definition (in network) interpret_delivery :: "'v operation event \<Rightarrow> (lamport, 'v) elt list \<rightharpoonup> (lamport, 'v) elt list" where
+  "interpret_delivery oper_evt xs \<equiv>
+     case oper_evt of
+       (_, Deliver, Insert i v pos) \<Rightarrow> insert xs (i, v) pos
+     | (_, Broadcast, m) \<Rightarrow> Some xs"
+
+fun option_foldr :: "('a \<Rightarrow> 'b \<Rightarrow> 'b option) \<Rightarrow> 'a list \<Rightarrow> 'b \<Rightarrow> 'b option" where
+  "option_foldr f []     e = Some e" |
+  "option_foldr f (x#xs) e =
+     (case f x e of
+        None \<Rightarrow> None
+      | Some h \<Rightarrow> option_foldr f xs h)"
+
+lemma (in network) lengths_same:
+  assumes "{ m. (i, Deliver, m) \<in> carriers i } = { m. (j, Deliver, m) \<in> carriers j }"
+  shows   "length (ordered_node_events i) = length (ordered_node_events j)"
+using assms
+  apply(simp add: ordered_node_events_def)
+  apply(rule finite.induct)
+  using finite_carriers sorry
+
+theorem (in network) foo:
+  assumes "{ m. (i, Deliver, m) \<in> carriers i } = { m. (j, Deliver, m) \<in> carriers j }"
+          "\<And>j lamp v pos. (j, Broadcast, Insert lamp v pos) \<in> carriers j \<Longrightarrow> pos = None \<or> (\<exists>k k' k''. pos = Some k \<and> (j, Deliver, Insert k k' k'') \<in> carriers j)"
+          "xs = ordered_node_events i"
+          "ys = ordered_node_events j"
+  shows   "option_foldr interpret_delivery xs [] =
+             option_foldr interpret_delivery ys []"
+using assms
+  apply(induction xs)
+  apply(drule lengths_same)
+  apply(simp add: ordered_node_events_def)
+  apply(frule lengths_same, clarsimp)
+  apply(erule_tac x="i" in meta_allE)
+sorry
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 definition next_lamport :: "(lamport, 'v) elt list \<Rightarrow> nat \<Rightarrow> lamport" where
   "next_lamport xs node_name \<equiv>
@@ -315,10 +490,7 @@ inductive possible_broadcasts :: "(lamport, 'v) elt list \<Rightarrow> nat \<Rig
   possible_broadcasts_Cons_tail [intro!]: "\<lbrakk> possible_broadcasts xs node_name tail \<rbrakk> \<Longrightarrow> possible_broadcasts (x#xs) node_name tail" |
   possible_broadcasts_Cons_head [intro!]: "\<lbrakk> next_lamport xs node_name = next; (node_name, Broadcast, Insert next v (Some i)) = oper \<rbrakk> \<Longrightarrow> possible_broadcasts ((i,_)#xs) node_name oper"
 
-definition interpret_delivery :: "(lamport, 'v) elt list \<Rightarrow> 'v operation \<rightharpoonup> (lamport, 'v) elt list" where
-  "interpret_delivery xs oper \<equiv>
-     case oper of
-       Insert i v pos \<Rightarrow> insert xs (i, v) pos"
+
 
 inductive node_state_evolution :: "(lamport, 'a) elt list \<Rightarrow> nat \<Rightarrow> 'a operation event \<Rightarrow> (lamport, 'a) elt list \<Rightarrow> bool" where
   "\<lbrakk> interpret_delivery xs oper = Some ys \<rbrakk> \<Longrightarrow> node_state_evolution xs node_name (node_name, Deliver, oper) ys" |
