@@ -395,6 +395,173 @@ definition (in finite_event_structure) ordered_node_events :: "nat \<Rightarrow>
 
 section\<open>Network events to...\<close>
 
+lemma distinct_set_notin:
+  assumes "distinct (x#xs)"
+  shows   "x \<notin> set xs"
+using assms by(induction xs, auto)
+
+lemma set_insert_inject:
+  assumes "a \<notin> set xs"
+          "a \<notin> set ys" 
+          "set (a#xs) = set (a#ys)"
+  shows   "set xs = set ys"
+using assms
+  apply(induction xs arbitrary: ys)
+  apply fastforce+
+done
+
+lemma remove1_head:
+  shows "remove1 x (x#xs) = xs"
+by(induction xs, auto)
+
+lemma set_remove1_eq:
+  assumes "set (x # xs) = set ys"
+          "distinct ys"
+          "distinct (x#xs)"
+  shows   "set xs = set (remove1 x ys)"
+using assms
+  apply(induction ys arbitrary: x xs, simp)
+  apply(case_tac "x=a", clarify)
+  apply(drule distinct_set_notin)+
+  apply(drule set_insert_inject, assumption, assumption)
+  apply(subst remove1_head, assumption)
+  apply(subst remove1.simps, subst if_cong[where c=HOL.False], simp, rule refl, rule refl, subst if_False)
+sorry
+
+lemma set_comm_rearrange:
+  assumes "\<And>x y. {x, y} \<subseteq> set ys \<Longrightarrow> x \<circ> y = y \<circ> x"
+          "a \<in> set ys"
+  shows   "a \<circ> foldr op \<circ> (remove1 a ys) id = foldr op \<circ> ys id"
+using assms
+  apply(induction ys arbitrary: a, simp)
+  apply simp
+  apply(erule disjE, clarify)
+  apply clarsimp
+  apply(erule_tac x=aa in meta_allE)
+  apply(erule meta_impE, assumption)
+  apply(erule_tac x=a in meta_allE, erule_tac x=aa in meta_allE)
+  apply clarsimp
+  apply(metis o_assoc)
+done
+
+lemma
+  fixes   xs :: "('s \<Rightarrow> 's) list"
+  assumes "set xs = set ys"
+  assumes "distinct xs"
+          "distinct ys"
+  assumes "\<And>x y. {x, y} \<subseteq> set xs \<Longrightarrow> x \<circ> y = y \<circ> x"
+  shows   "foldr (op \<circ>) xs id = foldr (op \<circ>) ys id"
+using assms
+  apply(induction xs arbitrary: ys, simp)
+  apply(erule_tac x="List.remove1 a ys" in meta_allE)
+  apply(subgoal_tac "set xs = set (remove1 a ys)")
+defer
+  using set_remove1_eq apply metis
+  apply(erule meta_impE, assumption)
+  apply(subgoal_tac "a \<in> set ys")
+  apply simp
+  apply(rule set_comm_rearrange, simp, simp)
+  apply auto
+done
+
+locale happens_before = order hb hb_strict
+    for hb :: "('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> bool" and hb_strict :: "('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> bool"
+
+abbreviation (in happens_before) concurrent :: "('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> bool" where
+  "concurrent s1 s2 \<equiv> \<not> (hb s1 s2) \<and> \<not> (hb s2 s1)"
+
+inductive (in happens_before) hb_consistent :: "('a \<Rightarrow> 'a) list \<Rightarrow> bool" where
+  "hb_consistent []" |
+  "\<lbrakk> hb_consistent xs; hb_consistent zs; \<forall>x \<in> set xs. hb x y \<or> concurrent x y; \<forall>z \<in> set zs. hb y z \<or> concurrent y z \<rbrakk> \<Longrightarrow> hb_consistent (xs @ [y] @ zs)"
+
+inductive_cases (in happens_before) hb_consistent_elim: "hb_consistent zs"
+
+lemma (in happens_before) foldr_foldr_cong:
+  assumes "foldr (op \<circ>) ys id = foldr (op \<circ>) zs id"
+          "xs1 = xs2"
+  shows   "foldr (op \<circ>) (xs1 @ ys) id = foldr (op \<circ>) (xs2 @ zs) id"
+using assms by(induction xs1, auto)
+
+lemma foldr_circ_append:
+  shows "foldr (op \<circ>) (f @ g) id = foldr (op \<circ>) f id \<circ> foldr (op \<circ>) g id"
+by(induction f, auto)
+
+lemma (in happens_before)
+  assumes "hb_consistent ys"
+          "a \<in> set ys"
+  shows   "\<exists>ys1 ys2. (foldr (op \<circ>) ys id = foldr (op \<circ>) (ys1 @ [a] @ ys2) id) \<and>
+           (\<forall>y \<in> set ys1. hb y a \<or> concurrent a y) \<and>
+           (\<forall>y \<in> set ys2. hb a y \<or> concurrent a y)"
+using assms
+  apply -
+  apply(induction rule: hb_consistent.induct, force)
+  apply(clarsimp simp del: foldr_append)
+  apply(erule disjE)
+  apply(clarsimp simp del: foldr_append)
+  apply(rule_tac x="xs" in exI, rule_tac x="zs" in exI, simp)
+  apply force
+  apply(erule disjE)
+  apply(clarsimp simp del: foldr_append)
+  apply(rule_tac x=ys1 in exI) (* ? *)
+  apply(rule_tac x="ys2@y#zs" in exI)
+  apply(clarsimp simp del: foldr_append)
+  apply(rule conjI)
+  apply(subst foldr_circ_append, simp)
+defer
+  apply(rule ballI)
+  apply(subgoal_tac "ya \<in> set ys2 \<or> ya \<in> set zs")
+  apply(erule disjE)
+  apply force
+  apply(erule_tac x=a in ballE)
+  apply(erule_tac x=ya in ballE)
+  apply(erule disjE)+
+  apply(rule disjI1)
+  apply(rule order_trans, assumption, assumption)
+
+defer
+  apply clarsimp
+  apply(erule disjE)
+  apply force
+  apply(erule_tac x=ya in ballE)
+  apply(erule_tac x=a in ballE)
+  apply(erule disjE)
+  apply(erule disjE)
+defer
+  apply(rule_tac x=xs in exI)
+  apply(
+*)
+
+(*
+  apply(induction ys arbitrary: a, force)
+  apply simp
+  apply(erule disjE)
+  apply clarsimp
+  apply(rule_tac x="[]" in exI, rule_tac x="ys" in exI, simp)
+  apply(rule ballI, erule_tac x=y in meta_allE, erule meta_impE, assumption)
+  apply(erule exE)+
+*)
+
+lemma
+  fixes   xs :: "('s \<Rightarrow> 's) list" and
+          hb :: "('s \<Rightarrow> 's) \<Rightarrow> ('s \<Rightarrow> 's) \<Rightarrow> bool"
+  assumes "class.order hb (\<lambda>x y. hb x y \<and> x \<noteq> y)"
+  assumes "set xs = set ys"
+  assumes "distinct xs"
+          "distinct ys"
+  assumes "\<And>x y. {x, y} \<subseteq> set xs \<Longrightarrow> \<not> (hb x y) \<Longrightarrow> \<not> (hb y x) \<Longrightarrow> x \<circ> y = y \<circ> x"
+          "\<And>x y. {x, y} \<subseteq> set xs \<Longrightarrow> hb x y \<Longrightarrow> \<exists>xs1 xs2 xs3. xs = xs1 @ [x] @ xs2 @ [y] @ xs3"
+  shows   "foldr (op \<circ>) xs id = foldr (op \<circ>) ys id"
+using assms
+  apply(induction xs arbitrary: ys, simp)
+  apply(erule_tac x="List.remove1 a ys" in meta_allE)
+  apply(subgoal_tac "set xs = set (remove1 a ys)")
+(*
+defer
+  using set_remove1_eq apply metis
+  apply(erule meta_impE, assumption)
+  apply clarsimp
+*) sorry
+
 type_synonym lamport = "nat \<times> nat"
 
 datatype 'v operation
