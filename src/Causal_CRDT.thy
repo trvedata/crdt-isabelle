@@ -3,7 +3,26 @@ theory
 imports
   Network
   Ordered_List
+  Convergence
 begin
+
+context finite_event_structure begin
+
+definition hb :: "('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> bool" where
+  "hb m1 m2 \<equiv> \<exists>i. (i, Deliver, m1) \<sqsubset>\<^sup>i (i, Deliver, m2)"
+
+definition weak_hb :: "('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> bool" where
+  "weak_hb m1 m2 \<equiv> hb m1 m2 \<or> m1 = m2"
+
+sublocale hb: happens_before weak_hb hb
+sorry
+
+lemma "\<forall>i<length xs. \<forall>j<length xs. i < j \<longrightarrow> hb (xs ! i) (xs ! j) \<and> \<not> hb (xs ! j) (xs ! i) \<Longrightarrow>  hb.hb_consistent xs"
+apply (induct xs rule: rev_induct, clarsimp)
+apply auto
+
+end
+
 
 type_synonym lamport = "nat \<times> nat"
 

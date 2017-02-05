@@ -8,7 +8,7 @@ datatype event_type
   = Broadcast
   | Deliver
 
-type_synonym 'a event = "nat \<times> event_type \<times> 'a"
+type_synonym 'a event = "nat \<times> event_type \<times> ('a \<Rightarrow> 'a)"
 
 locale infinite_event_structure =
   fixes carriers :: "nat \<Rightarrow> 'a event set"
@@ -34,9 +34,9 @@ interpretation trivial_model: infinite_event_structure "\<lambda>m. {}" "\<lambd
   by standard simp_all
 
 interpretation non_trivial_model: infinite_event_structure
-  "\<lambda>m. if m = 0 then {(0, Broadcast, 0), (0, Deliver, 0)} else {(m, Deliver, 0)}"
-  "\<lambda>e1 m e2. m = 0 \<and> e1 = (0, Broadcast, 0) \<and> e2 = (0, Deliver, 0)"
-  "\<lambda>e1 e2. (\<exists>m. e1 = (0, Broadcast, 0) \<and> e2 = (m, Deliver, 0))"
+  "\<lambda>m. if m = 0 then {(0, Broadcast, id), (0, Deliver, id)} else {(m, Deliver, id)}"
+  "\<lambda>e1 m e2. m = 0 \<and> e1 = (0, Broadcast, id) \<and> e2 = (0, Deliver, id)"
+  "\<lambda>e1 e2. (\<exists>m. e1 = (0, Broadcast, id) \<and> e2 = (m, Deliver, id))"
   by standard (case_tac "i = 0"; force)+
 
 locale finite_event_structure = infinite_event_structure +
@@ -47,6 +47,6 @@ definition (in finite_event_structure) ordered_node_events :: "nat \<Rightarrow>
      let events = carriers i in
        linorder.sorted_list_of_set (\<lambda>e1 e2. e1 \<sqsubset>\<^sup>i e2)
          (Set.filter (\<lambda>e.
-            case e of (_, Broadcast, _) \<Rightarrow> HOL.False | (_, Delivery, _) \<Rightarrow> HOL.True) events)"
+            case e of (_, Broadcast, _) \<Rightarrow> HOL.False | (_, Deliver, _) \<Rightarrow> HOL.True) events)"
 
 end
