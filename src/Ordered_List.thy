@@ -29,6 +29,8 @@ fun insert :: "('id::{linorder}, 'v) elt list \<Rightarrow> ('id, 'v) elt \<Righ
            ; Some (x#t)
            })"
 
+find_consts name: insert
+
 lemma insert_body_commutes:
   assumes "distinct (map fst (e1#e2#xs))"
   shows   "insert_body (insert_body xs e1) e2 = insert_body (insert_body xs e2) e1"
@@ -85,6 +87,19 @@ using assms
     apply clarsimp
     apply(force simp add: insert_body_commutes)
   done
+
+lemma insert_no_failure:
+  assumes "i = None \<or> (i = Some i' \<and> (\<exists>v b. (i', v, b) \<in> set xs))"
+  shows   "\<exists>xs'. insert xs e i = Some xs'"
+  using assms
+  apply (induct rule: insert.induct)
+  apply force
+  apply force
+  apply clarsimp
+  apply (erule meta_impE)
+  apply force
+  apply clarsimp
+done
 
 lemma insert_commutes:
   assumes "distinct (map fst (e1#e2#xs))"
@@ -196,6 +211,18 @@ fun delete :: "('id::{linorder}, 'v) elt list \<Rightarrow> 'id \<rightharpoonup
         do { t \<leftarrow> delete xs i
            ; Some ((i',v,flag)#t)
            })"
+
+lemma delete_no_failure:
+  assumes "\<exists>v b. (i, v, b) \<in> set xs"
+  shows   "\<exists>xs'. delete xs i = Some xs'"
+  using assms
+  apply (induct xs)
+  apply clarsimp
+  apply clarsimp
+  apply (erule meta_impE)
+  apply force
+  apply clarsimp
+done
 
 lemma delete_commutes:
   shows "do { ys \<leftarrow> delete xs i1; delete ys i2 } = do { ys \<leftarrow> delete xs i2; delete ys i1 }"
