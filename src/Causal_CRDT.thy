@@ -37,31 +37,41 @@ lemma list_filter_pred:
   shows   "p x"
 using assms by simp
 
-lemma (in finite_event_structure) ordered_node_events_Broadcast [rule_format]:
-  shows "(e, m, f) \<in> set (ordered_node_events i) \<longrightarrow> m = Deliver"
-  apply(unfold ordered_node_events_def)
-  apply clarsimp
-  apply(subst (asm) qsort_set_mem_preserve[rule_format, symmetric])
-  apply clarsimp
-  apply(case_tac "aa"; clarsimp; case_tac "ac"; clarsimp)
-  using node_total_order_total apply fastforce
-  apply(drule list_filter_pred, simp split: event_type.split_asm)
-done
+lemma (in finite_event_structure) ordered_node_events_Deliver:
+  assumes "(e, m, f) \<in> set (ordered_node_events i)"
+  shows   "m = Deliver"
+sorry
 
-lemma
+lemma (in finite_event_structure) ordered_node_events_rev_elim:
+  assumes "xs@[(x,y,z)] = ordered_node_events i"
+  shows   "\<forall>e \<in> set xs. e \<sqsubset>\<^sup>i (x,y,z)"
+sorry
+
+lemma (in finite_event_structure)
   shows "hb.hb_consistent (map (snd o snd) (ordered_node_events i))"
   apply -
-  apply(unfold ordered_node_events_def)
-  apply(rule_tac x="carriers i" in finite.induct)
-  apply(clarsimp simp add: finite_carriers)
+  apply(induction "ordered_node_events i" rule: rev_induct)
+  apply(force)
+  apply(case_tac x; clarify)
+  apply(frule_tac ordered_node_events_rev_elim)
+  apply(subgoal_tac "hb.hb_consistent (map (snd \<circ> snd) (xs @ [(ab, ba, c)]))")
+  apply(simp)
+  apply(subst map_append)
+  apply simp
+  apply(rule hb.hb_consistent.intros)
+  apply auto
+prefer 2
+  apply(unfold hb_def)
+  apply(rule_tac x=i in exI)
+  apply(rule disjI1)
+  apply(erule_tac x="(a, aa, b)" in ballE)
+  apply(frule local_order_carrier_closed)
   apply clarsimp
-  apply(subst filter_empty)
-  apply(subst linorder.sorted_list_of_set_empty)
-  apply(rule linorder_local_order)
-  apply force
+  apply(frule carriers_message_consistent)
+  apply(frule carriers_message_consistent) back
   apply clarsimp
-  apply(case_tac aa; clarsimp)
-  apply(subst set_filter_insert, clarsimp)+
+  sorry
+  
 
 type_synonym lamport = "nat \<times> nat"
 
