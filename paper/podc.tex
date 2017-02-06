@@ -1,10 +1,13 @@
 \documentclass[letter,11pt]{article}
 
+\PassOptionsToPackage{hyphens}{url}
 \usepackage[british]{babel}
 \usepackage[colorlinks]{hyperref}
+\usepackage[hyphenbreaks]{breakurl} % Fix URL line breaking when using dvips (e.g. arxiv.org)
+\usepackage[numbers,sort]{natbib}
 \usepackage{microtype}
 
-\title{Verifying Replicated Growable Arrays}
+\title{Formal Verification of Causal CRDTs}
 \author{Victor~B.~F.~Gomes, Martin Kleppmann, Dominic P.~Mulligan,\\Alastair R. Beresford}
 \date{Computer Laboratory, University of Cambridge}
 
@@ -23,7 +26,17 @@ To be completed...
 \section{Introduction}
 \label{sect.introduction}
 
+\section{Related Work}
+\label{sect.relatedwork}
+
+\cite{Zeller:2014fl}
+
 \section{Conclusion}
 \label{sect.conclusion}
+
+\subsection*{Acknowledgements}
+
+\bibliographystyle{plainnat}
+\bibliography{references}{}
 
 \end{document}
