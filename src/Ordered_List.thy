@@ -5,7 +5,9 @@ imports
   "~~/src/HOL/Library/Monad_Syntax"
 begin
 
-type_synonym ('id, 'v) elt = "'id \<times> 'v"
+type_synonym ('id, 'v) elt = "'id \<times> 'v \<times> bool"
+
+section\<open>Insert\<close>
 
 hide_const insert
 
@@ -58,7 +60,7 @@ using assms
       apply(case_tac "i2")
         apply force
         apply clarsimp
-        apply(case_tac "aa < fst e1")
+        apply(case_tac "ab < fst e1")
           apply clarsimp
           apply clarsimp
           apply(force simp add: insert_body_commutes)
@@ -119,11 +121,11 @@ using assms
         apply(case_tac i2)
           apply(force cong: Option.bind_cong simp add: insert_insert_body)
           apply clarsimp
-          apply(case_tac "ab = i")
+          apply(case_tac "ad = i")
             apply clarsimp
             apply(metis bind_assoc)
             apply clarsimp
-            apply(case_tac "a = ab")
+            apply(case_tac "a = ad")
               apply clarsimp
               apply(force cong: Option.bind_cong simp add: insert_insert_body)
               apply clarsimp
@@ -172,15 +174,78 @@ lemma insert_insert':
     apply(case_tac "xb")
       apply simp
       apply(rule impI)
-      apply(case_tac "insert' list (a, b) None")
+      apply(case_tac "insert' list (a, aa, b) None")
         apply clarsimp+
       apply safe
-      apply(case_tac "insert' list (a, b) None")
+      apply(case_tac "insert' list (a, aa, b) None")
         apply force
         apply(force simp add: insert_body_insert')
-    apply(case_tac "insert' list (a, b) (Some ab)")
+    apply(case_tac "insert' list (a, aa, b) (Some ad)")
       apply clarsimp
       apply clarsimp
   done
+
+section\<open>Delete\<close>
+
+fun delete :: "('id::{linorder}, 'v) elt list \<Rightarrow> 'id \<rightharpoonup> ('id, 'v) elt list" where
+  "delete []                 i = None" |
+  "delete ((i', v, flag)#xs) i = 
+     (if i' = i then
+        Some ((i', v, True)#xs)
+      else
+        do { t \<leftarrow> delete xs i
+           ; Some ((i',v,flag)#t)
+           })"
+
+lemma delete_commutes:
+  shows "do { ys \<leftarrow> delete xs i1; delete ys i2 } = do { ys \<leftarrow> delete xs i2; delete ys i1 }"
+  apply(induction xs, simp)
+  apply(case_tac "delete xs i1"; case_tac "delete xs i2"; clarsimp)
+done
+
+lemma insert_body_delete_commute:
+  assumes "i2 \<noteq> fst e"
+          "fst x \<noteq> fst e"
+          "fst e \<notin> fst ` set xs"
+          "distinct (map fst xs)"
+  shows   "delete (insert_body xs e) i2 \<bind> (\<lambda>t. Some (x # t)) =
+            delete xs i2 \<bind> (\<lambda>y. Some (x # insert_body y e))"
+using assms
+  apply(induction xs arbitrary: x)
+  apply simp
+  apply(case_tac "e"; simp)
+  apply simp
+  apply(case_tac x; clarsimp)
+  apply(case_tac "a=i2"; clarsimp)
+  apply(case_tac "e"; clarsimp)
+  apply(case_tac "e"; clarsimp)
+done
+
+lemma insert_delete_commute:
+  assumes "distinct (map fst (e#xs))"
+          "i1 = None \<or> i1 \<noteq> Some (fst e)"
+          "i2 \<noteq> fst e"
+  shows   "do { ys \<leftarrow> insert xs e i1; delete ys i2 } = do { ys \<leftarrow> delete xs i2; insert ys e i1 }"
+using assms
+  apply(induction xs)
+  apply(erule disjE; clarsimp)
+  apply(cases e; clarsimp)
+  apply(cases i1; clarsimp)
+  apply(cases e; clarsimp)
+  apply(erule disjE; clarsimp)
+  apply(case_tac "a=i2"; clarsimp)
+  apply(case_tac "e"; clarsimp)
+  apply(case_tac "e"; clarsimp)
+  apply(case_tac "a=i2"; clarsimp)
+  apply(case_tac "i1"; clarsimp)
+  apply(case_tac "e"; clarsimp)
+  apply(case_tac "i1", simp, case_tac "a < fst e", simp, case_tac e, simp, case_tac e, simp)
+  apply clarsimp
+  apply(case_tac "ab=i2"; clarsimp)
+  apply(subst bind_assoc[symmetric], simp)
+  apply(case_tac "a=ab"; clarsimp)
+  apply(rule insert_body_delete_commute; simp_all)
+  apply(subst bind_assoc[symmetric], simp)
+done
 
 end
