@@ -67,7 +67,7 @@ subsection\<open>Happens before relations and consistency\<close>
 locale happens_before = preorder hb_weak hb
     for hb_weak :: "('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> bool" and hb :: "('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> bool"
 
-abbreviation (in happens_before) concurrent :: "('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> bool" where
+abbreviation (in happens_before) (input) concurrent :: "('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> bool" where
   "concurrent s1 s2 \<equiv> \<not> (hb s1 s2) \<and> \<not> (hb s2 s1)"
 
 definition (in happens_before) concurrent_set :: "('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a) list \<Rightarrow> bool" where

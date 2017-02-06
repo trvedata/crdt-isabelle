@@ -19,5 +19,7 @@ locale example = finite_event_structure carriers for
   assumes insert_id_unique: "id1 = id2 \<Longrightarrow> (i, Broadcast, Insert (id1, v1, b1) n1) \<in> carriers i \<Longrightarrow> (j, Broadcast, Insert (id2, v2, b2) n2) \<in> carriers j \<Longrightarrow> v1 = v2 \<and> n1 = n2"
   assumes allowed_delete: "(i, Broadcast, Delete x) \<in> carriers i \<Longrightarrow> (\<exists>n' v b. (i, Deliver, Insert (x, v, b) n') \<sqsubset>\<^sup>i (i, Broadcast, Delete x))"
 
+lemma (in example) "hb.concurrent (Insert e n) (Insert e' n') \<Longrightarrow> n = None \<or> n \<noteq> Some (fst e')"
+
 
 end
