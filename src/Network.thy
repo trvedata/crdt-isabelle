@@ -171,8 +171,6 @@ done
   
 definition (in finite_event_structure) ordered_node_events :: "nat \<Rightarrow> 'a event list" where
   "ordered_node_events i \<equiv>
-     let events   = carriers i;
-         filtered = List.filter (\<lambda>e. case e of (_, Broadcast, _) \<Rightarrow> False | _ \<Rightarrow> True) events
-     in  qsort (\<lambda>e1 e2. e1 \<sqsubset>\<^sup>i e2 \<or> e1 = e2) filtered"
+     qsort (\<lambda>e1 e2. (e1 \<sqsubset>\<^sup>i e2)) (List.filter (\<lambda>e. case e of (_, Broadcast, _) \<Rightarrow> False | _ \<Rightarrow> True) (carriers i))"
 
 end
