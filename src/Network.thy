@@ -169,8 +169,8 @@ lemma qsort_set_mem_preserve:
   apply auto
 done
   
-definition (in finite_event_structure) ordered_node_events :: "nat \<Rightarrow> 'a event list" where
-  "ordered_node_events i \<equiv>
-     qsort (\<lambda>e1 e2. (e1 \<sqsubset>\<^sup>i e2)) (List.filter (\<lambda>e. case e of (_, Broadcast, _) \<Rightarrow> False | _ \<Rightarrow> True) (carriers i))"
+definition (in finite_event_structure) ordered_node_events :: "'a event list \<Rightarrow> 'a event list" where
+  "ordered_node_events cs \<equiv>
+     List.filter (\<lambda>e. case e of (_, Broadcast, _) \<Rightarrow> False | _ \<Rightarrow> True) cs"
 
 end
