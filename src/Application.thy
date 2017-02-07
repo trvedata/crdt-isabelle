@@ -19,19 +19,28 @@ locale example = finite_event_structure carriers for
   assumes insert_id_unique: "id1 = id2 \<Longrightarrow> (i, Broadcast, Insert (id1, v1, b1) n1) \<in> set (carriers i) \<Longrightarrow> (j, Broadcast, Insert (id2, v2, b2) n2) \<in> set (carriers j) \<Longrightarrow> v1 = v2 \<and> n1 = n2"
   assumes allowed_delete: "(i, Broadcast, Delete x) \<in> set (carriers i) \<Longrightarrow> (\<exists>n' v b. (i, Deliver, Insert (x, v, b) n') \<sqsubset>\<^sup>i (i, Broadcast, Delete x))"
 
+lemma (in example) 
+  assumes "fst e1 = fst e2"
+          "(i, Broadcast, Insert e1 n1) \<in> set (carriers i)"
+          "(j, Broadcast, Insert e2 n2) \<in> set (carriers j)"
+  shows   "Insert e1 n1 = Insert e2 n2"
+  using assms
+  apply (subgoal_tac "e1 = e2")
+  apply (metis surjective_pairing insert_id_unique)
+  apply (cases e1, cases e2; clarsimp)
+  by (metis insert_flag snd_conv insert_id_unique)
+
+
 lemma (in example) insert_id_unique_node:
-  assumes "id1 = id2" 
-          "(i, Broadcast, Insert (id1, v1, b1) n1) \<in> set (carriers i)"
-          "(j, Broadcast, Insert (id2, v2, b2) n2) \<in> set (carriers j)"
+  assumes "fst e1 = fst e2" 
+          "(i, Broadcast, Insert e1 n1) \<in> set (carriers i)"
+          "(j, Broadcast, Insert e2 n2) \<in> set (carriers j)"
   shows   "i = j"
   using assms broadcasts_unique insert_id_unique
-  by (smt insert_flag snd_conv)
+  by (smt insert_flag prod.collapse)
 
-lemma insert_id_unique_deliver:
-  "id1 = id2 \<Longrightarrow> (i, Deliver, Insert (id1, v1, b1) n1) \<in> set (carriers i) \<Longrightarrow> (j, Deliver, Insert (id2, v2, b2) n2) \<in> set (carriers j) \<Longrightarrow> v1 = v2 \<and> n1 = n2"
-  sorry
 
-lemma (in example)
+lemma (in example) insert_commute_assms:
   assumes "{(i, Deliver, Insert e n), (i, Deliver, Insert e' n')} \<subseteq> set (carriers i)"
      and  "hb.concurrent (Insert e n) (Insert e' n')"
  shows    "n = None \<or> n \<noteq> Some (fst e')"
@@ -70,7 +79,7 @@ apply (subgoal_tac "(j, Broadcast, Insert e (Some (fst e))) \<sqsubset>\<^sup>j 
 apply (meson insert_subset local_order_carrier_closed node_total_order_irrefl)
 apply (rule node_total_order_trans)
 apply assumption+
-using insert_id_unique_deliver oops
+oops
 
 
 lemma (in example)
@@ -96,36 +105,52 @@ apply (smt delivery_has_a_cause example.insert_flag example_axioms insert_id_uni
 using insert_id_unique_node
 by (smt delivery_has_a_cause insert_flag insert_id_unique insert_subset local_order_carrier_closed prod.sel(2))
 
+
 lemma (in example) insert_no_failure:
   assumes "(i, Deliver, Insert e n) \<in> set (carriers i)"
           "hb.hb_consistent XS"
           "insert xs e n = xs'"
   shows   "\<exists>xs''. xs' = Some xs''"
+oops
 
-
-lemma (in example) insert_no_failure:
-  assumes "(i, Deliver, Insert e n) \<in> set (carriers i)"
-          "insert xs e n = xs'"
-  shows   "\<exists>xs''. xs' = Some xs''"
-
-lemma (in example) insert_no_failure:
-  assumes "(i, Deliver, Insert e n) \<in> set (carriers i)"
-  shows   "n = None \<or> (\<exists>n'. n = Some n' \<and> (\<exists>n'' v b. (i, Deliver, Insert (n', v, b) n'') \<in> set (carriers i)))"
-using assms apply clarsimp
-apply (cases n)
-apply clarsimp
-apply clarsimp
-apply (drule delivery_has_a_cause)
-apply clarsimp
-apply (drule allowed_insert)
-apply auto
-thm 
 
 
 lemma (in example)
-  assumes "{(i, Deliver, Insert e n)} \<subseteq> set (carriers i)"
+  assumes "{(i, Deliver, Insert e n), (i, Deliver, Insert e' n')} \<subseteq> set (carriers i)"
           "hb.concurrent (Insert e n) (Insert e' n')"
   shows   "Insert e n \<circ> Insert e' n' = Insert e' n' \<circ> Insert e n"
+using assms
+apply (subst Insert_def)+
+apply (rule ext)
+apply (rename_tac xs)
+apply clarsimp
+apply (insert insert_commutes[of e e' _ n n'])
+apply (erule_tac x=xs in meta_allE)
+apply (subgoal_tac "distinct (map fst (e # e' # xs))")
+apply (subgoal_tac "n = None \<or> n \<noteq> Some (fst e')")
+apply (subgoal_tac "n' = None \<or> n' \<noteq> Some (fst e)")
+apply clarsimp
+apply (subgoal_tac "\<exists>ys. insert xs e n = Some ys")
+apply (subgoal_tac "\<exists>ys'. insert xs e' n' = Some ys'")
+apply clarsimp
+defer
+defer
+
+apply (rule insert_commute_assms)
+apply clarsimp
+apply (rule conjI)
+apply assumption+
+apply clarsimp
+
+apply (rule insert_commute_assms)
+apply clarsimp
+apply (rule conjI)
+apply assumption+
+apply clarsimp
+defer
+
+sorry
+
 
 
 end
