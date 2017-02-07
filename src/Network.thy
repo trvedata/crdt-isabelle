@@ -1,7 +1,6 @@
 theory
   Network
 imports
-  Main
   Convergence
 begin
 

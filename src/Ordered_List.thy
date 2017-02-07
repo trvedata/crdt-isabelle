@@ -89,7 +89,7 @@ using assms
   done
 
 lemma insert_no_failure:
-  assumes "i = None \<or> (i = Some i' \<and> (\<exists>v b. (i', v, b) \<in> set xs))"
+  assumes "i = None \<or> (\<exists>i'. i = Some i' \<and> (\<exists>v b. (i', v, b) \<in> set xs))"
   shows   "\<exists>xs'. insert xs e i = Some xs'"
   using assms
   apply (induct rule: insert.induct)
