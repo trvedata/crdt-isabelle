@@ -37,19 +37,146 @@ lemma list_filter_pred:
   shows   "p x"
 using assms by simp
 
-lemma (in finite_event_structure) ordered_node_events_Deliver:
-  assumes "(e, m, f) \<in> set (ordered_node_events i)"
-  shows   "m = Deliver"
-sorry
+lemma set_elem_nth:
+  assumes "x \<in> set xs"
+  shows   "\<exists>m. m < length xs \<and> xs ! m = x"
+using assms
+  apply(induction xs, auto)
+  apply(rule_tac x="m+1" in exI)
+  apply auto
+done
 
-lemma (in finite_event_structure) ordered_node_events_rev_elim:
-  assumes "xs@[(x,y,z)] = ordered_node_events i"
-  shows   "\<forall>e \<in> set xs. e \<sqsubset>\<^sup>i (x,y,z)"
+lemma (in finite_event_structure) hb_consistent_lt_hb:
+  assumes "hb.hb_consistent cs"
+          "i < j" "j < length cs"
+  shows   "hb (cs ! i) (cs ! j) \<or> \<not> hb (cs ! j) (cs ! i)"
+using assms
+  apply(induction rule: hb.hb_consistent.induct)
+  apply force
+  apply(subgoal_tac "j < length xs \<or> j = length xs")
+  apply(erule disjE)
+  apply clarsimp
+  apply(subst (asm) nth_append, simp)+
+  apply clarsimp
+prefer 2
+  apply force
+  apply(clarsimp simp add: hb_def)
+  apply(subst (asm) nth_append, simp)+
+done
+
+lemma (in finite_event_structure)
+  assumes "\<And>m n. m < length cs \<Longrightarrow> n < m \<Longrightarrow> cs ! n \<sqsubset>\<^sup>i cs ! m"
+  shows   "hb.hb_consistent (map (snd \<circ> snd) (ordered_node_events cs))"
+using assms
+  apply -
+  apply(induction cs rule: rev_induct)
+  apply(unfold ordered_node_events_def)
+  apply force
+  apply clarsimp
+  apply(case_tac aa; clarsimp)
+defer
+  apply(rule hb.hb_consistent.intros)
+prefer 2
+  apply clarsimp
+  apply(subgoal_tac "(\<And>m n. m < length xs \<Longrightarrow> n < m \<Longrightarrow> xs ! n \<sqsubset>\<^sup>i xs ! m)")
+  apply clarsimp
+  apply(drule set_elem_nth)
+  apply(erule exE, erule conjE)
+  apply(erule_tac x="length xs" in meta_allE)
+  apply(erule_tac x="m" in meta_allE) back
+  apply clarsimp
+  apply(subst (asm) nth_append, simp)
+  apply(case_tac ab; clarsimp)
+  apply(unfold hb_def)
+  apply(frule local_order_carrier_closed)
+  apply clarsimp
+  apply(drule carriers_message_consistent)+
+  apply clarsimp
+defer
+  apply(case_tac ab; clarsimp)
+  apply(erule_tac x=m in meta_allE)
+  apply(erule_tac x=n in meta_allE)
+  apply clarsimp
+  apply(subst (asm) nth_append, simp)+
+  apply(subgoal_tac "(\<And>m n. m < length xs \<Longrightarrow> n < m \<Longrightarrow> xs ! n \<sqsubset>\<^sup>i xs ! m)")
+  apply clarsimp
+  apply(erule_tac x=m in meta_allE)
+  apply(erule_tac x=n in meta_allE)
+  apply clarsimp
+  apply(subst (asm) nth_append, simp)+
+  apply(subgoal_tac "(\<And>m n. m < length xs \<Longrightarrow> n < m \<Longrightarrow> xs ! n \<sqsubset>\<^sup>i xs ! m)")
+  apply clarsimp
+  apply(erule_tac x=m in meta_allE)
+  apply(erule_tac x=n in meta_allE)
+  apply clarsimp
+  apply(subst (asm) nth_append, simp)+
+  apply safe
+prefer 2
+  apply(frule local_order_carrier_closed)
+  apply(frule local_order_carrier_closed) back
+  apply(drule broadcast_fifo_order[rotated], force)
+  apply(meson insert_subset node_total_order_irrefl node_total_order_trans)
+prefer 2
+  apply(meson broadcast_causal insert_subset local_order_carrier_closed node_total_order_irrefl node_total_order_trans)
 sorry
 
 lemma (in finite_event_structure)
-  shows "hb.hb_consistent (map (snd o snd) (ordered_node_events i))"
+  assumes "\<And>e1 e2. e1 \<sqsubset>\<^sup>i e2 \<Longrightarrow> {e1, e2} \<subseteq> set cs"
+          "\<And>e1. \<not> e1 \<sqsubset>\<^sup>i e1"
+          "\<And>m n. m < length cs \<Longrightarrow> n < m \<Longrightarrow> cs ! n \<sqsubset>\<^sup>i cs ! m"
+          "\<And>i1 i2 e1 e2 m1 m2. (i1, e1, m2) \<in> set cs \<Longrightarrow> (i2, e2, m2) \<in> set cs \<Longrightarrow> i1 = i2"
+          "\<And>i m1 m2. {(i, Deliver, m1), (i, Deliver, m2), (i, Broadcast, m1), (i, Broadcast, m2)} \<subseteq> set cs \<Longrightarrow>
+            ((i, Deliver, m1) \<sqsubset>\<^sup>i (i, Deliver, m2) \<longleftrightarrow> (i, Broadcast, m1) \<sqsubset>\<^sup>i (i, Broadcast, m2))"
+  shows   "hb.hb_consistent (map (snd o snd) (ordered_node_events cs))"
+using assms
   apply -
+  apply(induction cs rule: rev_induct)
+  apply(unfold ordered_node_events_def)
+  apply clarsimp
+  apply clarsimp
+  apply(rule conjI; case_tac aa; clarsimp)
+  apply(rule hb.hb_consistent.intros)
+  apply(subgoal_tac "(\<And>a aa b aaa aaaa ba. (a, aa, b) \<sqsubset>\<^sup>i (aaa, aaaa, ba) \<Longrightarrow> (a, aa, b) \<in> set xs \<and> (aaa, aaaa, ba) \<in> set xs)")
+  apply clarsimp
+  apply(subgoal_tac "(\<And>m n. m < length xs \<Longrightarrow> n < m \<Longrightarrow> xs ! n \<sqsubset>\<^sup>i xs ! m)")
+  apply clarsimp
+  apply(subgoal_tac "(\<And>i1 e1 m1 i2 e2 m2. (i1, e1, m2) \<in> set xs \<Longrightarrow> (i2, e2, m2) \<in> set xs \<Longrightarrow> i1 = i2)")
+  apply clarsimp
+  apply force
+  apply(erule_tac x=m in meta_allE) back
+  apply(erule_tac x=n in meta_allE) back
+  apply clarsimp
+  apply(subst (asm) nth_append, simp)+
+prefer 
+  apply(erule_tac x=aa in meta_allE)
+  apply(erule_tac x=aaa in meta_allE)
+  apply(erule_tac x=ba in meta_allE)
+  apply(erule_tac x=aaaa in meta_allE)
+  apply(erule_tac x=aaaaa in meta_allE) back
+  apply(erule_tac x=baa in meta_allE)
+  apply clarsimp
+  apply safe
+  apply(erule disjE)+
+  apply clarsimp
+  apply(case_tac ab; clarsimp)
+  apply(unfold hb_def)
+  apply clarsimp
+  apply(rule conjI)
+  apply(subgoal_tac "(aa, Deliver, ba) \<sqsubset>\<^sup>i (a, Deliver, b)")
+  apply(subgoal_tac "aa=a")
+  apply clarsimp
+  apply(erule_tac x=a in meta_allE) back back
+  apply(erule_tac x=b in meta_allE)
+  apply(erule_tac x=ba in meta_allE)
+  apply clarsimp
+defer
+  apply(erule_tac x=aa in meta_allE) back
+  apply(erule_tac x=Deliver in meta_allE)
+  apply(erule_tac x=ba in meta_allE)
+  apply(erule_tac x=a in meta_allE) back back
+  apply(erule_tac x=Deliver in meta_allE)
+  apply clarsimp
+(*
   apply(induction "ordered_node_events i" rule: rev_induct)
   apply(force)
   apply(case_tac x; clarify)
@@ -71,7 +198,7 @@ prefer 2
   apply(frule carriers_message_consistent) back
   apply clarsimp
   sorry
-  
+*)
 
 type_synonym lamport = "nat \<times> nat"
 
