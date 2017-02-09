@@ -28,7 +28,8 @@ locale finite_event_structure =
   assumes no_message_lost: "(i, Broadcast, m) \<in> set (carriers i) \<Longrightarrow> (j, Deliver, m) \<in> set (carriers j)"
   assumes delivery_has_a_cause: "(i, Deliver, m) \<in> set (carriers i) \<Longrightarrow> \<exists>j. (j, Broadcast, m) \<in> set (carriers j)"
   assumes carriers_message_consistent: "(j, bt, m) \<in> set (carriers i) \<Longrightarrow> i = j"
-  assumes broadcast_fifo_order: "{(j, Deliver, m1), (j, Deliver, m2)} \<subseteq> set (carriers j) \<Longrightarrow> (i, Broadcast, m1) \<sqsubset>\<^sup>i (i, Broadcast, m2) \<Longrightarrow> (j, Deliver, m1) \<sqsubset>\<^sup>j (j, Deliver, m2)"
+  assumes delivery_fifo_order: "{(j, Deliver, m1), (j, Deliver, m2)} \<subseteq> set (carriers j) \<Longrightarrow> (i, Broadcast, m1) \<sqsubset>\<^sup>i (i, Broadcast, m2) \<Longrightarrow> (j, Deliver, m1) \<sqsubset>\<^sup>j (j, Deliver, m2)"
+  assumes broadcast_fifo_order: "{(i, Broadcast, m1), (i, Broadcast, m2)} \<subseteq> set (carriers i) \<Longrightarrow> (j, Deliver, m1) \<sqsubset>\<^sup>j (j, Deliver, m2) \<Longrightarrow> (i, Broadcast, m1) \<sqsubset>\<^sup>i (i, Broadcast, m2)" 
   assumes broadcast_causal: "{(j, Deliver, m1), (j, Deliver, m2)} \<subseteq> set (carriers j) \<Longrightarrow> (i, Deliver, m1) \<sqsubset>\<^sup>i (i, Broadcast, m2) \<Longrightarrow> (j, Deliver, m1) \<sqsubset>\<^sup>j (j, Deliver, m2)"
   assumes broadcasts_unique: "i \<noteq> j \<Longrightarrow> (i, Broadcast, m) \<in> set (carriers i) \<Longrightarrow> \<not> (j, Broadcast, m) \<in> set (carriers j)"
 
@@ -100,7 +101,7 @@ proof
     apply(rule notI)
     apply(frule local_order_carrier_closed)
     apply(frule local_order_carrier_closed) back
-    apply(drule broadcast_fifo_order[rotated], clarsimp)
+    apply(drule delivery_fifo_order[rotated], clarsimp)
     apply(rule conjI, assumption, assumption)
     using node_total_order_irrefl apply (meson insert_subset node_total_order_trans)
     apply(rule notI)
@@ -128,7 +129,7 @@ next
     apply -
     apply safe
     apply (metis (mono_tags, hide_lams) broadcasts_unique insert_subset local_order_carrier_closed node_total_order_trans)
-    apply (meson broadcast_fifo_order insert_subset local_order_carrier_closed no_message_lost node_total_order_trans)
+    apply (meson delivery_fifo_order insert_subset local_order_carrier_closed no_message_lost node_total_order_trans)
     apply (metis (no_types, lifting) broadcasts_unique insert_subset local_order_carrier_closed node_total_order_trans)
     apply (meson broadcast_causal delivery_has_a_cause insert_subset local_order_carrier_closed no_message_lost node_total_order_trans)
     apply blast

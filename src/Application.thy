@@ -2,7 +2,7 @@ theory
   Application
 imports
   Network
-  Ordered_list
+  Ordered_List
 begin
 
 definition Insert :: "('id, 'v) elt \<Rightarrow> 'id option \<Rightarrow> ('id::{linorder}, 'v) elt list \<Rightarrow> ('id, 'v) elt list" where

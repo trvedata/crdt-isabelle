@@ -113,11 +113,11 @@ using assms by (auto simp: concurrent_elems_commute_def)
 
 inductive (in happens_before) hb_consistent :: "('a \<Rightarrow> 'a) list \<Rightarrow> bool" where
   [intro!]: "hb_consistent []" |
-  [intro!]: "\<lbrakk> hb_consistent xs; \<forall>x \<in> set xs. hb x y \<and> \<not> hb y x \<rbrakk> \<Longrightarrow> hb_consistent (xs @ [y])"
+  [intro!]: "\<lbrakk> hb_consistent xs; \<forall>x \<in> set xs. hb x y \<or> \<not> hb y x \<rbrakk> \<Longrightarrow> hb_consistent (xs @ [y])"
 
 lemma (in happens_before) [intro!]:
   assumes "hb_consistent (xs @ ys)"
-  and     "\<forall>x \<in> set (xs @ ys). hb x z \<and> \<not> hb z x"
+  and     "\<forall>x \<in> set (xs @ ys). hb x z \<or> \<not> hb z x"
   shows   "hb_consistent (xs @ ys @ [z])"
 using assms hb_consistent.intros append_assoc by metis
 
@@ -137,7 +137,10 @@ using assms by(induction ys arbitrary: xs rule: List.rev_induct) auto
 lemma (in happens_before) hb_consistent_append_D2 [dest]:
   assumes "hb_consistent (xs @ ys)"
   shows   "hb_consistent ys"
-using assms by(induction ys arbitrary: xs rule: List.rev_induct) auto
+using assms
+  apply(induction ys arbitrary: xs rule: List.rev_induct)
+  apply fastforce+
+done
 
 lemma (in happens_before) hb_consistent_append_elim_ConsD [elim]:
   assumes "hb_consistent (y#ys)"
@@ -188,7 +191,7 @@ using assms proof (induction arbitrary: xs rule: hb_consistent.induct, simp)
                {x} \<union> set xs = set ys \<Longrightarrow>
                distinct (x # xs) \<Longrightarrow> distinct ys \<Longrightarrow>
              \<exists>prefix suffix. ys = prefix @ x # suffix \<and> concurrent_set x suffix)"
-  assume assms: "hb_consistent ys" "\<forall>x\<in>set ys. hb x y \<and> \<not> hb y x"
+  assume assms: "hb_consistent ys" "\<forall>x\<in>set ys. hb x y \<or> \<not> hb y x"
                 "hb_consistent (xs @ [x])"
                 "{x} \<union> set xs = set (ys @ [y])"
                 "distinct (x # xs)" "distinct (ys @ [y])"
@@ -206,7 +209,7 @@ using assms proof (induction arbitrary: xs rule: hb_consistent.induct, simp)
     hence "{x} \<union> set (remove1 y xs) = set ys"
       using assms by auto
     moreover have "hb_consistent ((remove1 y xs) @ [x])"
-      using assms hb_consistent_remove1 by auto        
+      using assms hb_consistent_remove1 by force        
     moreover have "distinct (x # (remove1 y xs))"
       using assms by simp
     moreover have "distinct ys"
@@ -215,7 +218,8 @@ using assms proof (induction arbitrary: xs rule: hb_consistent.induct, simp)
       using IH by force
     moreover {
       have "concurrent x y"
-        using assms y_in_xs by auto
+        using assms y_in_xs
+        sorry
       hence "concurrent_set x (suffix@[y])"
         using ys_split by clarsimp
     }
@@ -230,9 +234,9 @@ qed
 lemma (in happens_before) hb_consistent_append [intro!]:
   assumes "hb_consistent suffix"
           "hb_consistent prefix"
-          "\<And>s p. s \<in> set suffix \<Longrightarrow> p \<in> set prefix \<Longrightarrow> hb p s \<and> \<not> hb s p"
+          "\<And>s p. s \<in> set suffix \<Longrightarrow> p \<in> set prefix \<Longrightarrow> hb p s \<or> \<not> hb s p"
   shows "hb_consistent (prefix @ suffix)"
-using assms by (induction rule: hb_consistent.induct) auto
+using assms by (induction rule: hb_consistent.induct) force+
 
 abbreviation (in happens_before) porder :: "('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> bool" where
   "porder x y \<equiv> hb x y \<or> concurrent x y"
@@ -241,8 +245,8 @@ lemma (in happens_before) hb_consistent_append_porder:
   assumes "hb_consistent (xs @ ys)"
           "x \<in> set xs"
           "y \<in> set ys"
-  shows   "hb x y \<and> \<not> hb y x"
-using assms by (induction ys arbitrary: xs rule: rev_induct) auto
+  shows   "hb x y \<or> \<not> hb y x"
+using assms by (induction ys arbitrary: xs rule: rev_induct) force+
 
 theorem (in happens_before) convergence:
   assumes "set xs = set ys"
@@ -272,7 +276,14 @@ using assms proof(induction xs arbitrary: ys rule: rev_induct, simp)
     have "hb_consistent prefix" "hb_consistent suffix"
       using ys_split assms by fastforce+
     hence "hb_consistent (prefix @ suffix)"
-    using ys_split assms by (auto simp add: hb_consistent_append_porder)
+    using ys_split assms
+        apply clarsimp
+        apply(rule hb_consistent_append)
+        apply force apply force
+        apply(rule hb_consistent_append_porder)
+        apply(assumption) back
+        apply fastforce+
+      done
   }
   ultimately have IH': "foldr op \<circ> xs id = foldr op \<circ> (prefix@suffix) id"
     using ys_split assms by (fastforce intro!: IH)
