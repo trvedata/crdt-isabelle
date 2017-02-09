@@ -68,11 +68,11 @@ done
 
 lemma (in finite_event_structure) hb_consistent_technical:
   assumes "\<And>m n. m < length cs \<Longrightarrow> n < m \<Longrightarrow> cs ! n \<sqsubset>\<^sup>i cs ! m"
-  shows   "hb.hb_consistent (map (snd \<circ> snd) (ordered_node_events cs))"
+  shows   "hb.hb_consistent (ordered_node_operations cs)"
 using assms
   apply -
   apply(induction cs rule: rev_induct)
-  apply(unfold ordered_node_events_def)
+  apply(unfold ordered_node_operations_def)
   apply force
   apply clarsimp
   apply(case_tac aa; clarsimp)
@@ -127,39 +127,93 @@ defer
   apply clarsimp
 done
 
-lemma take_drop_horror:
+lemma horror_size2:
   assumes "m < length cs"
-          "n < m"
-          "length cs \<ge> 2"
-  shows   "take n cs @ cs ! n # drop (Suc n) (take m cs) @ cs ! m # drop (Suc m) cs = cs"
+          "length cs > 0"
+  shows   "\<exists>xs ys. cs = xs@(cs!m)#ys"
 using assms
-sorry
-
-lemma nth_append_technical:
-  assumes "m < length cs"
-          "n < m"
-          "length cs \<ge> 2"
-  shows "\<exists>xs ys zs. xs @ [cs ! n] @ ys @ [cs ! m] @ zs = cs"
-using assms
-  apply(rule_tac x="take n cs" in exI)
-  apply(rule_tac x="drop (Suc n) (take m cs)" in exI)
-  apply(rule_tac x="drop (Suc m) cs" in exI)
-  apply clarsimp
-  apply(rule take_drop_horror; simp)
+apply (induct m arbitrary: cs)
+apply clarsimp
+apply (rule_tac x="[]" in exI)
+apply (rule_tac x="tl cs" in exI)
+apply clarsimp
+apply (case_tac cs)
+apply force
+apply force
+apply clarsimp
+apply (case_tac cs)
+apply clarsimp
+apply clarsimp
+apply (case_tac "list = []")
+apply clarsimp
+apply (erule_tac x=list in meta_allE)
+apply clarsimp
+apply (rule_tac x="a#xs" in exI)
+apply (rule_tac x="ys" in exI)
+apply clarsimp
 done
 
+lemma horror_size3:
+  assumes "m < length cs"
+          "n < m"
+          "length cs > 1"
+  shows   "\<exists>xs ys zs. xs@(cs!n)#ys@(cs!m)#zs=cs"
+using assms
+apply (induct n arbitrary: cs m)
+apply clarsimp
+apply (rule_tac x="[]" in exI)
+apply clarsimp
+apply (insert horror_size2)
+apply (erule_tac x="m-1" in meta_allE)
+apply (erule_tac x="tl cs" in meta_allE)
+apply clarsimp
+apply (subgoal_tac "m - Suc 0 < length cs - Suc 0")
+apply clarsimp
+apply (rule_tac x=xs in exI)
+apply (rule_tac x=ys in exI)
+apply (subgoal_tac "cs ! m = tl cs ! (m - Suc 0)")
+apply clarsimp
+apply (metis gr_implies_not0 length_0_conv list.collapse nth_Cons_0)
+apply (metis One_nat_def Suc_pred length_tl nth_tl)
+using Suc_leI diff_less_mono apply blast
+apply clarsimp
+apply (thin_tac "(\<And>m cs. m < length cs \<Longrightarrow> cs \<noteq> [] \<Longrightarrow> \<exists>xs ys. cs = xs @ cs ! m # ys)")
+apply (case_tac cs)
+apply clarsimp
+apply clarsimp
+apply (case_tac "list = []")
+apply clarsimp
+apply (erule_tac x=list in meta_allE)
+apply (erule_tac x="m-1" in meta_allE)
+apply clarsimp
+apply (subgoal_tac "m - Suc 0 < length list")
+defer
+apply linarith
+apply clarsimp
+apply (subgoal_tac "n < m - Suc 0")
+defer
+apply linarith
+apply clarsimp
+apply (rule_tac x="a#xs" in exI)
+apply clarsimp
+apply force
+done
+
+
 corollary (in finite_event_structure)
-  shows "hb.hb_consistent (map (snd \<circ> snd) (ordered_node_events (carriers i)))"
+  shows "hb.hb_consistent (ordered_node_operations (carriers i))"
   apply(subgoal_tac "carriers i = [] \<or> (\<exists>c. carriers i = [c]) \<or> (length (carriers i) \<ge> 2)")
-  apply(erule disjE, clarsimp simp add: ordered_node_events_def)
-  apply(erule disjE, clarsimp simp add: ordered_node_events_def)
+  apply(erule disjE, clarsimp simp add: ordered_node_operations_def)
+  apply(erule disjE, clarsimp simp add: ordered_node_operations_def)
   apply(case_tac aa; clarsimp)
 defer
   apply(cases "carriers i"; clarsimp; case_tac "list"; clarsimp)
   apply(rule hb_consistent_technical[where i=i])
   apply(subst carriers_compatible[symmetric])
-  apply(rule nth_append_technical, simp, simp, simp)
+  apply (rule horror_size3, simp+)
 done
+
+(*
 
 type_synonym lamport = "nat \<times> nat"
 
@@ -186,23 +240,23 @@ fun option_foldr :: "('a \<Rightarrow> 'b \<Rightarrow> 'b option) \<Rightarrow>
 
 lemma (in network) lengths_same:
   assumes "{ m. (i, Deliver, m) \<in> carriers i } = { m. (j, Deliver, m) \<in> carriers j }"
-  shows   "length (ordered_node_events i) = length (ordered_node_events j)"
+  shows   "length (ordered_node_operations i) = length (ordered_node_operations j)"
 using assms
-  apply(simp add: ordered_node_events_def)
+  apply(simp add: ordered_node_operations_def)
   apply(rule finite.induct)
   using finite_carriers sorry
 
 theorem (in network) foo:
   assumes "{ m. (i, Deliver, m) \<in> carriers i } = { m. (j, Deliver, m) \<in> carriers j }"
           "\<And>j lamp v pos. (j, Broadcast, Insert lamp v pos) \<in> carriers j \<Longrightarrow> pos = None \<or> (\<exists>k k' k''. pos = Some k \<and> (j, Deliver, Insert k k' k'') \<in> carriers j)"
-          "xs = ordered_node_events i"
-          "ys = ordered_node_events j"
+          "xs = ordered_node_operations i"
+          "ys = ordered_node_operations j"
   shows   "option_foldr interpret_delivery xs [] =
              option_foldr interpret_delivery ys []"
 using assms
   apply(induction xs)
   apply(drule lengths_same)
-  apply(simp add: ordered_node_events_def)
+  apply(simp add: ordered_node_operations_def)
   apply(frule lengths_same, clarsimp)
   apply(erule_tac x="i" in meta_allE)
 sorry
@@ -233,5 +287,5 @@ inductive (in node_state_evolution' :: "(lamport, 'a) elt list \<Rightarrow> 'a 
 locale infinite_stateful_network = infinite_event_structure +
   fixes states :: "nat \<Rightarrow> (lamport, 'a) elt list"
   
-
+*)
 end

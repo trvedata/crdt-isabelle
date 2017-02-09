@@ -206,7 +206,7 @@ using assms proof (induction arbitrary: xs rule: hb_consistent.induct, simp)
     assume y_in_xs: "y \<in> set xs"
     hence "{x} \<union> (set xs - {y}) = set ys"
       using assms by (auto intro: set_equality_technical)
-    hence "{x} \<union> set (remove1 y xs) = set ys"
+    hence remove_y_in_xs: "{x} \<union> set (remove1 y xs) = set ys"
       using assms by auto
     moreover have "hb_consistent ((remove1 y xs) @ [x])"
       using assms hb_consistent_remove1 by force        
@@ -218,8 +218,7 @@ using assms proof (induction arbitrary: xs rule: hb_consistent.induct, simp)
       using IH by force
     moreover {
       have "concurrent x y"
-        using assms y_in_xs
-        sorry
+        using assms y_in_xs remove_y_in_xs by (metis hb_consistent_elim(2) insert_is_Un list.set_intros(1) list.simps(15) local.less_asym)
       hence "concurrent_set x (suffix@[y])"
         using ys_split by clarsimp
     }

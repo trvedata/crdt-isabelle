@@ -14,7 +14,7 @@ locale finite_event_structure =
   fixes carriers :: "nat \<Rightarrow> 'a event list"
   fixes node_total_order :: "'a event \<Rightarrow> nat \<Rightarrow> 'a event \<Rightarrow> bool" (infix "\<sqsubset>\<^sup>_" 50)
   fixes global_order :: "'a event \<Rightarrow> 'a event \<Rightarrow> bool" (infix "\<sqsubset>\<^sup>G" 50 )
-  assumes carriers_compatible: "(\<exists>xs ys zs. xs@[x]@ys@[z]@zs = carriers i) \<longleftrightarrow> (x \<sqsubset>\<^sup>i z)"
+  assumes carriers_compatible: "(\<exists>xs ys zs. xs@x#ys@z#zs = carriers i) \<longleftrightarrow> (x \<sqsubset>\<^sup>i z)"
   assumes global_order_trans: "e1 \<sqsubset>\<^sup>G e2 \<Longrightarrow> e2 \<sqsubset>\<^sup>G e3 \<Longrightarrow> e1 \<sqsubset>\<^sup>G e3"
   assumes global_order_irrefl: "e1 \<in> (\<Union>i. set (carriers i)) \<Longrightarrow> \<not> (e1 \<sqsubset>\<^sup>G e1)"
   assumes node_total_order_trans: "e1 \<sqsubset>\<^sup>i e2 \<Longrightarrow> e2 \<sqsubset>\<^sup>i e3 \<Longrightarrow> e1 \<sqsubset>\<^sup>i e3"
@@ -170,8 +170,9 @@ lemma qsort_set_mem_preserve:
   apply auto
 done
   
-definition (in finite_event_structure) ordered_node_events :: "'a event list \<Rightarrow> 'a event list" where
-  "ordered_node_events cs \<equiv>
-     List.filter (\<lambda>e. case e of (_, Broadcast, _) \<Rightarrow> False | _ \<Rightarrow> True) cs"
+definition (in finite_event_structure) ordered_node_operations :: "'a event list \<Rightarrow> ('a \<Rightarrow> 'a) list" where
+  "ordered_node_operations cs \<equiv>
+    map (snd o snd) (
+     List.filter (\<lambda>e. case e of (_, Broadcast, _) \<Rightarrow> False | _ \<Rightarrow> True) cs)"
 
 end

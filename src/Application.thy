@@ -108,11 +108,11 @@ by (smt delivery_has_a_cause insert_flag insert_id_unique insert_subset local_or
 
 lemma (in example) insert_no_failure:
   assumes "(i, Deliver, Insert e n) \<in> set (carriers i)"
-          "hb.hb_consistent XS"
-          "insert xs e n = xs'"
+          "hb.hb_consistent xs"
+          "insert XS e n = xs'"
   shows   "\<exists>xs''. xs' = Some xs''"
+using assms
 oops
-
 
 
 lemma (in example)
@@ -133,6 +133,8 @@ apply clarsimp
 apply (subgoal_tac "\<exists>ys. insert xs e n = Some ys")
 apply (subgoal_tac "\<exists>ys'. insert xs e' n' = Some ys'")
 apply clarsimp
+
+
 defer
 defer
 
