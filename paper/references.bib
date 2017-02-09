@@ -21,6 +21,19 @@ month = sep,
 doi = {10.1007/978-94-010-0068-0_15}
 }
 
+%% http://pagesperso.lina.univ-nantes.fr/~molli-p/pmwiki/uploads/Main/iminetcs05.pdf
+@article{Imine:2006kn,
+author = {Imine, Abdessamad and Rusinowitch, Micha{\"e}l and Oster, G{\'e}rald and Molli, Pascal},
+title = {Formal design and verification of operational transformation algorithms for copies convergence},
+journal = {Theoretical Computer Science},
+year = {2006},
+volume = {351},
+number = {2},
+pages = {167--183},
+month = feb,
+doi = {10.1016/j.tcs.2005.09.066}
+}
+
 @inproceedings{Sinchuk:2016cf,
 author = {Sinchuk, Sergey and Chuprikov, Pavel and Solomatov, Konstantin},
 title = {Verified Operational Transformation for Trees},
@@ -30,8 +43,50 @@ month = aug,
 doi = {10.1007/978-3-319-43144-4_22}
 }
 
+@misc{Jungnickel:2015ua,
+author = {Jungnickel, Tim and Herb, Tobias},
+title = {{TP1}-valid Transformation Functions for Operations on ordered {n-ary} Trees},
+howpublished = "arXiv:1512.05949",
+year = {2015},
+month = dec,
+url = {https://arxiv.org/abs/1512.05949}
+}
+
+%% https://hal.inria.fr/hal-00934311
+@inproceedings{Burckhardt:2014ft,
+author = {Burckhardt, Sebastian and Gotsman, Alexey and Yang, Hongseok and Zawirski, Marek},
+title = {Replicated Data Types: Specification, Verification, Optimality},
+booktitle = {41st ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages (POPL)},
+year = {2014},
+pages = {271--284},
+month = jan,
+doi = {10.1145/2535838.2535848}
+}
+
+%% https://www.academia.edu/26094865/On_Synthesizing_a_Consistent_Operational_Transformation_Approach
+@article{Randolph:2015gj,
+author = {Randolph, Aurel and Boucheneb, Hanifa and Imine, Abdessamad and Quintero, Alejandro},
+title = {On Synthesizing a Consistent Operational Transformation Approach},
+journal = {IEEE Transactions on Computers},
+year = {2015},
+volume = {64},
+number = {4},
+pages = {1074--1089},
+month = apr,
+doi = {10.1109/TC.2014.2308203}
+}
+
 
 %%%%%%%%%% CRDTs
+
+%% http://hal.inria.fr/inria-00555588/
+@techreport{Shapiro:2011wy,
+author = {Shapiro, Marc and Pregui{\c c}a, Nuno and Baquero, Carlos and Zawirski, Marek},
+title = {A comprehensive study of Convergent and Commutative Replicated Data Types},
+year = {2011},
+number = {7506},
+institution = {INRIA}
+}
 
 %% https://pages.lip6.fr/Marek.Zawirski/papers/RR-7687.pdf
 @inproceedings{Shapiro:2011un,
@@ -42,15 +97,6 @@ year = {2011},
 pages = {386--400},
 month = oct,
 doi = {10.1007/978-3-642-24550-3_29}
-}
-
-%% http://hal.inria.fr/inria-00555588/
-@techreport{Shapiro:2011wy,
-author = {Shapiro, Marc and Pregui{\c c}a, Nuno and Baquero, Carlos and Zawirski, Marek},
-title = {A comprehensive study of Convergent and Commutative Replicated Data Types},
-year = {2011},
-number = {7506},
-institution = {INRIA}
 }
 
 %% http://repositorium.sdum.uminho.pt/bitstream/1822/38206/1/1867.pdf
@@ -84,6 +130,16 @@ year = {2009},
 number = {CS/TR-2009-318},
 month = sep,
 institution = {KAIST}
+}
+
+@misc{Kleppmann:2016ve,
+author = {Kleppmann, Martin and Beresford, Alastair R},
+title = {A Conflict-Free Replicated {JSON} Datatype},
+journal = {arXiv},
+howpublished = "arXiv:1608.03960 [cs.DC]",
+year = {2016},
+month = aug,
+url = {http://arxiv.org/abs/1608.03960}
 }
 
 %% https://hal.inria.fr/inria-00445975/document
@@ -130,6 +186,27 @@ month = sep,
 doi = {10.1145/2494266.2494278}
 }
 
+%% https://hal.inria.fr/docs/00/62/95/03/PDF/doce63-ahmednacer.pdf
+@inproceedings{Mehdi:2011ke,
+author = {Mehdi, Ahmed-Nacer and Ignat, Claudia-Lavinia and Oster, G{\'e}rald and Roh, Hyun-Gul and Urso, Pascal},
+title = {Evaluating {CRDTs} for real-time document editing},
+booktitle = {11th ACM Symposium on Document Engineering (DocEng)},
+year = {2011},
+pages = {103--112},
+month = sep,
+doi = {10.1145/2034691.2034717}
+}
+
+%% https://hal.inria.fr/file/index/docid/957167/filename/main.pdf
+@inproceedings{Mehdi:2014gp,
+author = {Mehdi, Ahmed-Nacer and Urso, Pascal and Balegas, Valter and Pergui{\c c}a, Nuno},
+title = {Merging {OT} and {CRDT} algorithms},
+booktitle = {1st Workshop on Principles and Practice of Eventual Consistency (PaPEC)},
+year = {2014},
+month = apr,
+doi = {10.1145/2596631.2596636}
+}
+
 %% https://pages.lip6.fr/Marc.Shapiro/papers/semantics-sets-BA-DISC-2012.pdf
 @inproceedings{Bieniusa:2012gt,
 author = {Bieniusa, Annette and Zawirski, Marek and Pregui{\c c}a, Nuno and Shapiro, Marc and Baquero, Carlos and Balegas, Valter and Duarte, S{\'e}rgio},
@@ -149,17 +226,6 @@ year = {2016},
 pages = {259--268},
 month = jul,
 doi = {10.1145/2933057.2933090}
-}
-
-%% https://arxiv.org/pdf/1010.3615.pdf
-@inproceedings{Martin:2010ih,
-author = {Martin, St{\'e}phane and Urso, Pascal and Weiss, St{\'e}phane},
-title = {Scalable {XML} Collaborative Editing with Undo},
-booktitle = {On the Move to Meaningful Internet Systems},
-year = {2010},
-pages = {507--514},
-month = oct,
-doi = {10.1007/978-3-642-16934-2_37}
 }
 
 %% http://arxiv.org/abs/1603.01529
@@ -206,6 +272,15 @@ pages = {288--297},
 doi = {10.1145/240080.240305}
 }
 
+%% http://hal.archives-ouvertes.fr/docs/00/10/90/39/PDF/OsterCollaborateCom06.pdf
+@inproceedings{Oster:2006tr,
+author = {Oster, G{\'e}rald and Molli, Pascal and Urso, Pascal and Imine, Abdessamad},
+title = {Tombstone Transformation Functions for Ensuring Consistency in Collaborative Editing Systems},
+booktitle = {2nd International Conference on Collaborative Computing (CollaborateCom)},
+year = {2006},
+doi = {10.1109/COLCOM.2006.361867}
+}
+
 %% http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.53.933&rep=rep1&type=pdf
 @inproceedings{Sun:1998vf,
 author = {Sun, Chengzheng and Ellis, Clarence},
@@ -215,6 +290,28 @@ year = {1998},
 pages = {59--68},
 month = nov,
 doi = {10.1145/289444.289469}
+}
+
+%% http://salvin.jeancharles.free.fr/Documents/Projet%20-%20Boulot/NTU-Singapore/p63-sun.pdf
+@article{Sun:1998un,
+author = {Sun, Chengzheng and Jia, Xiaohua and Zhang, Yanchun and Yang, Yun and Chen, David},
+title = {Achieving Convergence, Causality Preservation, and Intention Preservation in Real-Time Cooperative Editing Systems},
+journal = {ACM Transactions on Computer-Human Interaction (TOCHI)},
+year = {1998},
+volume = {5},
+number = {1},
+pages = {63--108},
+doi = {10.1145/274444.274447}
+}
+
+@inproceedings{Suleiman:1998eu,
+author = {Suleiman, Maher and Cart, Mich{\`e}le and Ferri{\'e}, Jean},
+title = {Concurrent operations in a distributed and mobile collaborative environment},
+booktitle = {14th International Conference on Data Engineering (ICDE)},
+year = {1998},
+pages = {36--45},
+month = feb,
+doi = {10.1109/ICDE.1998.655755}
 }
 
 %% http://www.lively-kernel.org/repository/webwerkstatt/projects/Collaboration/paper/Jupiter.pdf
@@ -228,26 +325,14 @@ month = nov,
 doi = {10.1145/215585.215706}
 }
 
-%% http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.100.74&rep=rep1&type=pdf
-@inproceedings{Davis:2002iv,
-author = {Davis, Aguido Horatio and Sun, Chengzheng and Lu, Junwei},
-title = {Generalizing Operational Transformation to the {Standard General Markup Language}},
+@inproceedings{Li:2004er,
+author = {Li, Du and Li, Rui},
+title = {Preserving operation effects relation in group editors},
 booktitle = {ACM Conference on Computer Supported Cooperative Work (CSCW)},
-year = {2002},
-pages = {58--67},
+year = {2004},
+pages = {457--466},
 month = nov,
-doi = {10.1145/587078.587088}
-}
-
-%% http://www.ecscw.org/2003/017Ignat_ecscw03.pdf
-@inproceedings{Ignat:2003jy,
-author = {Ignat, Claudia-Lavinia and Norrie, Moira C},
-title = {Customizable Collaborative Editor Relying on {treeOPT} Algorithm},
-booktitle = {8th European Conference on Computer-Supported Cooperative Work (ECSCW)},
-year = {2003},
-pages = {315--334},
-month = sep,
-doi = {10.1007/978-94-010-0068-0_17}
+doi = {10.1145/1031607.1031683}
 }
 
 @inproceedings{Li:2006kd,
@@ -291,20 +376,6 @@ title = {{Etherpad} and {EasySync} Technical Manual},
 year = {2011},
 month = mar,
 url = {https://github.com/ether/etherpad-lite/blob/e2ce9dc/doc/easysync/easysync-full-description.pdf}
-}
-
-@webpage{Google:2015vk,
-author = {{Google, Inc.}},
-title = {{Google Realtime API}},
-year = {2015},
-url = {https://developers.google.com/google-apps/realtime/overview}
-}
-
-@misc{Lemonik:2016wh,
-author = {Lemonik, Micah},
-howpublished = {Personal communication},
-year = {2016},
-month = mar
 }
 
 
@@ -367,6 +438,19 @@ booktitle = {11th Australian Computer Science Conference},
 year = {1988},
 pages = {56--66},
 month = feb
+}
+
+%% http://www.win.tue.nl/~johanl/educ/2Q341/Clocks%20synchronization/causality.pdf
+@article{Raynal:1996jl,
+author = {Raynal, Michel and Singhal, Mukesh},
+title = {Logical time: capturing causality in distributed systems},
+journal = {IEEE Computer},
+year = {1996},
+volume = {29},
+number = {2},
+pages = {49--56},
+month = feb,
+doi = {10.1109/2.485846}
 }
 
 %% https://dspace.jaist.ac.jp/dspace/bitstream/10119/4883/1/defago_et_al.pdf
