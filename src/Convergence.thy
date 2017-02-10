@@ -270,4 +270,14 @@ using assms proof(induction xs arbitrary: ys rule: rev_induct, simp)
     using ys_split fold_append by (metis IH' conc fold_comp_eq o_apply)
 qed
 
+corollary (in happens_before) convergence_point:
+  assumes "set xs = set ys"
+          "concurrent_elems_commute xs"
+          "distinct xs"
+          "distinct ys"
+          "hb_consistent xs"
+          "hb_consistent ys"
+  shows   "fold (op \<circ>) xs id a = fold (op \<circ>) ys id a"
+using assms by (simp add: convergence)
+
 end

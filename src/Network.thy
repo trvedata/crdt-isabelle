@@ -14,25 +14,99 @@ locale finite_event_structure =
   fixes carriers :: "nat \<Rightarrow> 'a event list"
   fixes node_total_order :: "'a event \<Rightarrow> nat \<Rightarrow> 'a event \<Rightarrow> bool" (infix "\<sqsubset>\<^sup>_" 50)
   fixes global_order :: "'a event \<Rightarrow> 'a event \<Rightarrow> bool" (infix "\<sqsubset>\<^sup>G" 50 )
+  (* Isolated node *)
   assumes carriers_distinct: "distinct (carriers i)"
-  assumes carriers_compatible: "(\<exists>xs ys zs. xs@x#ys@z#zs = carriers i) \<longleftrightarrow> (x \<sqsubset>\<^sup>i z)"
+  assumes carriers_message_consistent: "(j, bt, m) \<in> set (carriers i) \<Longrightarrow> i = j"
+  assumes carriers_compatible: "(x \<sqsubset>\<^sup>i z) \<longleftrightarrow> (\<exists>xs ys zs. xs@x#ys@z#zs = carriers i)"
+  (* Global order *)
   assumes global_order_trans: "e1 \<sqsubset>\<^sup>G e2 \<Longrightarrow> e2 \<sqsubset>\<^sup>G e3 \<Longrightarrow> e1 \<sqsubset>\<^sup>G e3"
   assumes global_order_irrefl: "e1 \<in> (\<Union>i. set (carriers i)) \<Longrightarrow> \<not> (e1 \<sqsubset>\<^sup>G e1)"
-  assumes node_total_order_trans: "e1 \<sqsubset>\<^sup>i e2 \<Longrightarrow> e2 \<sqsubset>\<^sup>i e3 \<Longrightarrow> e1 \<sqsubset>\<^sup>i e3"
   assumes node_total_order_total: "{e1, e2} \<subseteq> set (carriers i) \<Longrightarrow> e1 \<noteq> e2 \<Longrightarrow> (e1 \<sqsubset>\<^sup>i e2) \<or> (e2 \<sqsubset>\<^sup>i e1)"
-  assumes node_total_order_irrefl: "e1 \<in> set (carriers i) \<Longrightarrow> \<not> (e1 \<sqsubset>\<^sup>i e1)"
   assumes local_order_to_global: "e1 \<sqsubset>\<^sup>i e2 \<Longrightarrow> e1 \<sqsubset>\<^sup>G e2"
   assumes global_order_to_local: "{e1, e2} \<subseteq> set (carriers i) \<Longrightarrow> e1 \<sqsubset>\<^sup>G e2 \<Longrightarrow> e1 \<sqsubset>\<^sup>i e2"
-  assumes local_order_carrier_closed: "e1 \<sqsubset>\<^sup>i e2 \<Longrightarrow> {e1,e2} \<subseteq> set (carriers i)"
   assumes global_order_carrier_closed: "e1 \<sqsubset>\<^sup>G e2 \<Longrightarrow> {e1, e2} \<subseteq> (\<Union>i. set (carriers i))"
+  (* Broadcast/Deliver interaction *)
   assumes broadcast_before_delivery: "(i, Broadcast, m) \<in> set (carriers i) \<Longrightarrow> (i, Broadcast, m) \<sqsubset>\<^sup>G (j, Deliver, m)"
   assumes no_message_lost: "(i, Broadcast, m) \<in> set (carriers i) \<Longrightarrow> (j, Deliver, m) \<in> set (carriers j)"
   assumes delivery_has_a_cause: "(i, Deliver, m) \<in> set (carriers i) \<Longrightarrow> \<exists>j. (j, Broadcast, m) \<in> set (carriers j)"
-  assumes carriers_message_consistent: "(j, bt, m) \<in> set (carriers i) \<Longrightarrow> i = j"
   assumes delivery_fifo_order: "{(j, Deliver, m1), (j, Deliver, m2)} \<subseteq> set (carriers j) \<Longrightarrow> (i, Broadcast, m1) \<sqsubset>\<^sup>i (i, Broadcast, m2) \<Longrightarrow> (j, Deliver, m1) \<sqsubset>\<^sup>j (j, Deliver, m2)"
   assumes broadcast_fifo_order: "{(i, Broadcast, m1), (i, Broadcast, m2)} \<subseteq> set (carriers i) \<Longrightarrow> (j, Deliver, m1) \<sqsubset>\<^sup>j (j, Deliver, m2) \<Longrightarrow> (i, Broadcast, m1) \<sqsubset>\<^sup>i (i, Broadcast, m2)" 
   assumes broadcast_causal: "{(j, Deliver, m1), (j, Deliver, m2)} \<subseteq> set (carriers j) \<Longrightarrow> (i, Deliver, m1) \<sqsubset>\<^sup>i (i, Broadcast, m2) \<Longrightarrow> (j, Deliver, m1) \<sqsubset>\<^sup>j (j, Deliver, m2)"
   assumes broadcasts_unique: "i \<noteq> j \<Longrightarrow> (i, Broadcast, m) \<in> set (carriers i) \<Longrightarrow> \<not> (j, Broadcast, m) \<in> set (carriers j)"
+
+lemma prefix_eq_distinct_list: "distinct xs \<Longrightarrow> pre1@ys = xs \<Longrightarrow> pre2@ys = xs \<Longrightarrow> pre1 = pre2"
+  apply (induct xs arbitrary: pre1 pre2)
+  apply clarsimp
+  apply (case_tac pre1)
+  apply (thin_tac "(\<And>pre1 pre2. distinct xs \<Longrightarrow> pre1 @ ys = xs \<Longrightarrow> pre2 @ ys = xs \<Longrightarrow> pre1 = pre2)")
+  apply clarsimp
+  apply (case_tac pre2)
+  apply (thin_tac "(\<And>pre1 pre2. distinct xs \<Longrightarrow> pre1 @ ys = xs \<Longrightarrow> pre2 @ ys = xs \<Longrightarrow> pre1 = pre2)")
+  apply clarsimp
+  apply (erule_tac x=list in meta_allE)
+  apply (erule_tac x=lista in meta_allE)
+  apply clarsimp
+done
+
+lemma list_nill_or_snoc: "xs = [] \<or> (\<exists>y ys. xs = ys@[y])"
+  by (induct xs, auto)
+
+lemma suffix_eq_distinct_list: "distinct xs \<Longrightarrow> ys@suf1 = xs \<Longrightarrow> ys@suf2 = xs \<Longrightarrow> suf1 = suf2"
+  apply (induct xs  arbitrary: suf1 suf2 rule: rev_induct)
+  apply clarsimp
+  apply clarsimp
+  apply (subgoal_tac "suf1 = [] \<or> (\<exists>y ys. suf1 = ys@[y])")
+  apply (subgoal_tac "suf2 = [] \<or> (\<exists>y ys. suf2 = ys@[y])")
+  apply (erule disjE, clarsimp)
+  apply clarsimp
+  using list_nill_or_snoc apply auto
+done
+
+
+lemma pre_suf_eq_distinct_list: "distinct xs \<Longrightarrow> ys \<noteq> [] \<Longrightarrow> pre1@ys@suf1 = xs \<Longrightarrow> pre2@ys@suf2 = xs \<Longrightarrow> pre1 = pre2 \<and> suf1 = suf2"
+apply (induct xs arbitrary: pre1 pre2 ys)
+apply clarsimp
+apply (case_tac pre1)
+apply (thin_tac " (\<And>pre1 pre2 ys. distinct xs \<Longrightarrow> ys \<noteq> [] \<Longrightarrow> pre1 @ ys @ suf1 = xs \<Longrightarrow> pre2 @ ys @ suf2 = xs \<Longrightarrow> pre1 = pre2 \<and> suf1 = suf2)")
+apply clarsimp
+apply (case_tac pre2)
+apply clarsimp
+apply (rule_tac xs="a#xs" in suffix_eq_distinct_list)
+apply force
+apply assumption
+apply assumption
+apply clarsimp
+apply (metis append_eq_Cons_conv list.set_intros(1))
+apply (case_tac pre2)
+apply (thin_tac " (\<And>pre1 pre2 ys. distinct xs \<Longrightarrow> ys \<noteq> [] \<Longrightarrow> pre1 @ ys @ suf1 = xs \<Longrightarrow> pre2 @ ys @ suf2 = xs \<Longrightarrow> pre1 = pre2 \<and> suf1 = suf2)")
+apply clarsimp
+apply (metis append_eq_Cons_conv list.set_intros(1))
+apply (erule_tac x=list in meta_allE, erule_tac x=lista in meta_allE, erule_tac x=ys in meta_allE)
+apply clarsimp
+done
+
+
+lemma (in finite_event_structure) node_total_order_trans: "e1 \<sqsubset>\<^sup>i e2 \<Longrightarrow> e2 \<sqsubset>\<^sup>i e3 \<Longrightarrow> e1 \<sqsubset>\<^sup>i e3"
+  apply (clarsimp simp add: carriers_compatible)
+  apply (rule_tac x=xs in exI, rule_tac x="ys @ e2 # ysa" in exI, rule_tac x=zsa in exI)
+  apply (subgoal_tac "xs @ e1 # ys = xsa \<and> zs = ysa @ e3 # zsa")
+  apply clarsimp
+  apply (rule_tac xs="carriers i" and ys="[e2]" in pre_suf_eq_distinct_list)
+  using carriers_distinct apply simp
+  apply auto
+done
+
+lemma (in finite_event_structure) local_order_carrier_closed: "e1 \<sqsubset>\<^sup>i e2 \<Longrightarrow> {e1,e2} \<subseteq> set (carriers i)"
+  apply (clarsimp simp add: carriers_compatible)
+  apply safe
+  apply (metis in_set_conv_decomp)
+  apply (metis Un_iff Un_subset_iff insert_subset list.simps(15) set_append set_subset_Cons)
+done
+
+lemma (in finite_event_structure) node_total_order_irrefl: "e1 \<in> set (carriers i) \<Longrightarrow> \<not> (e1 \<sqsubset>\<^sup>i e1)"
+  apply (clarsimp simp add: carriers_compatible)
+  apply (metis Un_iff carriers_distinct distinct_append distinct_set_notin list.set_intros(1) set_append)
+done
 
 interpretation trivial_model: finite_event_structure "\<lambda>m. []" "\<lambda>e1 m e2. False" "\<lambda>e1 e2. False"
   by standard auto
@@ -42,14 +116,14 @@ interpretation non_trivial_model: finite_event_structure
   "\<lambda>e1 m e2. m = 0 \<and> e1 = (0, Broadcast, id) \<and> e2 = (0, Deliver, id)"
   "\<lambda>e1 e2. (\<exists>m. e1 = (0, Broadcast, id) \<and> e2 = (m, Deliver, id))"
   apply standard
+  apply force
   apply (case_tac "i=0"; clarsimp)
-  apply(case_tac "i=0")
-  apply(rule iffI, (erule exE)+)
+  apply force
+  apply (rule iffI)
+  apply clarsimp
+  apply (rule_tac x="[]" in exI; force)
   apply clarsimp
   apply(case_tac xs; case_tac ys; case_tac zs; clarsimp)
-  apply clarsimp
-  apply(rule_tac x="[]" in exI)+
-  apply force
   by standard (case_tac "i = 0"; force)+
 
 context finite_event_structure begin
@@ -176,5 +250,11 @@ definition (in finite_event_structure) ordered_node_operations :: "'a event list
   "ordered_node_operations cs \<equiv>
     map (snd o snd) (
      List.filter (\<lambda>e. case e of (_, Broadcast, _) \<Rightarrow> False | _ \<Rightarrow> True) cs)"
+
+lemma (in finite_event_structure) [simp]: "ordered_node_operations [] = []"
+  by (clarsimp simp: ordered_node_operations_def)
+
+lemma (in finite_event_structure) ordered_nodes_opers_append: "ordered_node_operations (xs@ys) = (ordered_node_operations xs)@(ordered_node_operations ys)"
+  by (clarsimp simp: ordered_node_operations_def)
 
 end
