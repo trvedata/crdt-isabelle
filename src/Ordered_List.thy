@@ -29,8 +29,6 @@ fun insert :: "('id::{linorder}, 'v) elt list \<Rightarrow> ('id, 'v) elt \<Righ
            ; Some (x#t)
            })"
 
-find_consts name: insert
-
 lemma insert_body_commutes:
   assumes "distinct (map fst (e1#e2#xs))"
   shows   "insert_body (insert_body xs e1) e2 = insert_body (insert_body xs e2) e1"
@@ -211,6 +209,17 @@ fun delete :: "('id::{linorder}, 'v) elt list \<Rightarrow> 'id \<rightharpoonup
         do { t \<leftarrow> delete xs i
            ; Some ((i',v,flag)#t)
            })"
+
+lemma delete_element_preserve:
+  assumes "delete xs i = Some ys"
+  shows   "map fst xs = map fst ys"
+using assms
+  apply(induction xs arbitrary: ys)
+  apply simp
+  apply(case_tac a; clarsimp)
+  apply(case_tac "aaa=i"; clarsimp)
+  apply(case_tac "delete xs i"; clarsimp)
+done
 
 lemma delete_no_failure:
   assumes "\<exists>v b. (i, v, b) \<in> set xs"

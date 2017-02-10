@@ -14,6 +14,7 @@ locale finite_event_structure =
   fixes carriers :: "nat \<Rightarrow> 'a event list"
   fixes node_total_order :: "'a event \<Rightarrow> nat \<Rightarrow> 'a event \<Rightarrow> bool" (infix "\<sqsubset>\<^sup>_" 50)
   fixes global_order :: "'a event \<Rightarrow> 'a event \<Rightarrow> bool" (infix "\<sqsubset>\<^sup>G" 50 )
+  assumes carriers_distinct: "distinct (carriers i)"
   assumes carriers_compatible: "(\<exists>xs ys zs. xs@x#ys@z#zs = carriers i) \<longleftrightarrow> (x \<sqsubset>\<^sup>i z)"
   assumes global_order_trans: "e1 \<sqsubset>\<^sup>G e2 \<Longrightarrow> e2 \<sqsubset>\<^sup>G e3 \<Longrightarrow> e1 \<sqsubset>\<^sup>G e3"
   assumes global_order_irrefl: "e1 \<in> (\<Union>i. set (carriers i)) \<Longrightarrow> \<not> (e1 \<sqsubset>\<^sup>G e1)"
@@ -41,7 +42,8 @@ interpretation non_trivial_model: finite_event_structure
   "\<lambda>e1 m e2. m = 0 \<and> e1 = (0, Broadcast, id) \<and> e2 = (0, Deliver, id)"
   "\<lambda>e1 e2. (\<exists>m. e1 = (0, Broadcast, id) \<and> e2 = (m, Deliver, id))"
   apply standard
-  apply (case_tac "i=0")
+  apply (case_tac "i=0"; clarsimp)
+  apply(case_tac "i=0")
   apply(rule iffI, (erule exE)+)
   apply clarsimp
   apply(case_tac xs; case_tac ys; case_tac zs; clarsimp)

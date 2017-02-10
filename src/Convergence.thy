@@ -4,28 +4,6 @@ imports
   Main
 begin
 
-subsection\<open>Useful general facts\<close>
-
-lemma foldr_foldr_cong:
-  assumes "foldr (op \<circ>) ys f = foldr (op \<circ>) zs f"
-          "xs1 = xs2"
-  shows   "foldr (op \<circ>) (xs1 @ ys) f = foldr (op \<circ>) (xs2 @ zs) f"
-using assms by(induction xs1, auto)
-
-lemma foldr_snoc_unfold:
-  shows "foldr (op \<circ>) (ys @ [x]) f = foldr (op \<circ>) ys (x \<circ> f)"
-  by (induction ys arbitrary: f) auto
-
-lemma foldr_foldr_cong':
-  fixes  f :: "'a \<Rightarrow> 'a"
-  assumes "\<And>(x::'a\<Rightarrow>'a). foldr (op \<circ>) ys x = foldr (op \<circ>) zs x"
-  shows   "foldr (op \<circ>) (ys @ [x]) f = foldr (op \<circ>) (zs @ [x]) f"
-using assms by (induction ys arbitrary: f zs rule: rev_induct) auto
-  
-lemma foldr_circ_append:
-  shows "foldr (op \<circ>) (f @ g) id = foldr (op \<circ>) f id \<circ> foldr (op \<circ>) g id"
-  by(induction f, auto)
-
 section\<open>Network events to...\<close>
 
 lemma distinct_set_notin:
@@ -44,10 +22,6 @@ lemma remove1_head:
   shows "remove1 x (x#xs) = xs"
   by(induction xs, auto)
 
-lemma foldr_comp_f_absorb:
-  shows "foldr op \<circ> xs x = foldr op \<circ> (xs @ [x]) id"
-  by(induction xs, auto)
-
 lemma set_membership_equality_technicalD [dest]:
   assumes "{x} \<union> (set xs) = {y} \<union> (set ys)"
   shows "x = y \<or> y \<in> set xs"
@@ -59,8 +33,11 @@ lemma set_equality_technical:
   shows "{x} \<union> (set xs - {y}) = set ys"
 using assms by (induction xs) auto
 
-lemma foldr_comp_eq: "foldr op \<circ> xs x \<circ> y = foldr op \<circ> xs (x \<circ> y)"
-  by (induction xs; clarsimp) metis
+lemma fold_comp_eq:
+  shows "fold op \<circ> xs x = fold op \<circ> xs id \<circ> x"
+  apply(induction xs rule: rev_induct)
+  apply auto
+done
 
 subsection\<open>Happens before relations and consistency\<close>
 
@@ -156,27 +133,25 @@ lemma (in happens_before) hb_consistent_singleton [intro!]:
   shows "hb_consistent [x]"
 using hb_consistent.intros by fastforce
 
-lemma (in happens_before) foldr_concurrent_rearrange:
+lemma (in happens_before) fold_concurrent_rearrange:
   assumes "concurrent_set x xs"
           "concurrent_elems_commute (x#xs)"
-  shows "x \<circ> foldr (op \<circ>) xs id = foldr (op \<circ>) xs id \<circ> x"
-using assms by (induction xs; clarsimp) (metis o_assoc concurrent_elems_commute_ConsD2)
+  shows "x \<circ> fold (op \<circ>) xs id = fold (op \<circ>) xs id \<circ> x"
+using assms
+  apply(induction xs rule: rev_induct, clarsimp)
+  apply clarsimp
+  apply(metis (no_types, hide_lams) append_Cons concurrent_elems_commute_ConsD concurrent_elems_commute_ConsD2 concurrent_elems_commute_Cons_eq o_assoc)
+done
 
-lemma (in happens_before) foldr_concurrent_rearrange':
+lemma (in happens_before) fold_concurrent_rearrange':
   assumes "concurrent_set x xs"
           "concurrent_elems_commute (x#xs)"
-  shows "foldr (op \<circ>) (x#xs) id = foldr (op \<circ>) (xs@[x]) id"
-using assms by (auto simp: foldr_concurrent_rearrange foldr_comp_eq)
-
-lemma (in happens_before) foldr_concurrent_rearrange2:
-  assumes "concurrent_set x xs"
-          "concurrent_elems_commute (x#xs)"
-  shows "foldr op \<circ> xs x = foldr (op \<circ>) xs id \<circ> x"
-using assms by (induction xs; clarsimp) (metis o_assoc concurrent_elems_commute_ConsD2)
-
-lemma foldr_comp_append_rearrange:
-  shows "foldr op \<circ> prefix (foldr op \<circ> suffix id \<circ> x) = foldr op \<circ> prefix (foldr op \<circ> suffix id) \<circ> x"
-  by (induction prefix; clarsimp)
+  shows "fold (op \<circ>) (x#xs) id = fold (op \<circ>) (xs@[x]) id"
+using assms
+  apply clarsimp
+  apply(subst fold_concurrent_rearrange, clarsimp, clarsimp)
+  apply(rule fold_comp_eq)
+done
 
 lemma (in happens_before) hb_consistent_prefix_suffix_exists:
   assumes "hb_consistent ys"
@@ -254,7 +229,7 @@ theorem (in happens_before) convergence:
           "distinct ys"
           "hb_consistent xs"
           "hb_consistent ys"
-  shows   "foldr (op \<circ>) xs id = foldr (op \<circ>) ys id"
+  shows   "fold (op \<circ>) xs id = fold (op \<circ>) ys id"
 using assms proof(induction xs arbitrary: ys rule: rev_induct, simp)
   fix x xs ys
   assume IH: "(\<And>ys. set xs = set ys \<Longrightarrow>
@@ -262,7 +237,7 @@ using assms proof(induction xs arbitrary: ys rule: rev_induct, simp)
                      distinct xs \<Longrightarrow> distinct ys \<Longrightarrow>
                      hb_consistent xs \<Longrightarrow>
                      hb_consistent ys \<Longrightarrow> 
-               foldr op \<circ> xs id = foldr op \<circ> ys id)"
+               fold op \<circ> xs id = fold op \<circ> ys id)"
    assume assms: "set (xs @ [x]) = set ys"
                  "concurrent_elems_commute (xs @ [x])"
                  "distinct (xs @ [x])"      "distinct ys"
@@ -284,24 +259,15 @@ using assms proof(induction xs arbitrary: ys rule: rev_induct, simp)
         apply fastforce+
       done
   }
-  ultimately have IH': "foldr op \<circ> xs id = foldr op \<circ> (prefix@suffix) id"
+  ultimately have IH': "fold op \<circ> xs id = fold op \<circ> (prefix@suffix) id"
     using ys_split assms by (fastforce intro!: IH)
 
   have "concurrent_elems_commute (x # suffix)"
     using ys_split assms concurrent_elems_commute_subset by auto
-  have conc: "foldr op \<circ> (suffix @ [x]) id = foldr op \<circ> (x # suffix) id"
-    using ys_split assms by (subst foldr_concurrent_rearrange') auto
-
-  have "foldr op \<circ> (xs @ [x]) id = foldr op \<circ> xs id \<circ> x"
-    by (simp add: foldr_comp_eq)
-  also have "... = foldr op \<circ> (prefix @ suffix) id \<circ> x"
-    by (simp add: IH')
-  also have "... = foldr op \<circ> prefix (foldr op \<circ> (suffix @ [x]) id)"
-    by (auto simp: foldr_comp_eq)
-  also have "... = foldr op \<circ> prefix (foldr op \<circ> (x # suffix) id)"
-    using conc by simp
-  finally show "foldr op \<circ> (xs @ [x]) id = foldr op \<circ> ys id"
-    using ys_split by auto
+  have conc: "fold op \<circ> (suffix @ [x]) id = fold op \<circ> (x # suffix) id"
+    using ys_split assms by (subst fold_concurrent_rearrange') auto
+  show "fold op \<circ> (xs @ [x]) id = fold op \<circ> ys id"
+    using ys_split fold_append by (metis IH' conc fold_comp_eq o_apply)
 qed
 
 end
