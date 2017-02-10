@@ -42,13 +42,13 @@ significant trust in that single server: it is at risk of being compromised, cen
 otherwise subverted by adversaries. For sensitive scenarios, such as communication between
 dissidents of a repressive regime, such centralization is problematic.
 
-Peer-to-peer systems with end-to-end encryption can be more robust against such interference. In
-this setting, especially when the participating nodes are mobile devices, totally ordered broadcast
-of editing operations is prohibitively expensive~\cite{Attiya:2015dm}. Thus, there has been
-significant interest in collaborative editing algorithms that work correctly in the face of the
-increased concurrency encountered in peer-to-peer systems~\cite{Randolph:2015gj}.
+Decentralized peer-to-peer systems with end-to-end encryption can be more robust against such
+interference. In this setting, especially when the participating nodes are mobile devices, totally
+ordered broadcast of editing operations is prohibitively expensive~\cite{Attiya:2015dm}. Thus, there
+has been significant interest in collaborative editing algorithms that work correctly in the face of
+the increased concurrency encountered in peer-to-peer systems~\cite{Randolph:2015gj}.
 
-There two families of algorithms for collaborative editing: \emph{operational transformation}
+There are two families of algorithms for collaborative editing: \emph{operational transformation}
 (OT)~\cite{Ellis:1989ue,Ressel:1996wx,Oster:2006tr,Sun:1998vf,Sun:1998un,Suleiman:1998eu,Nichols:1995fd}
 and \emph{conflict-free replicated datatypes}
 (CRDTs)~\cite{Shapiro:2011wy,Roh:2011dw,Preguica:2009fz,Oster:2006wj,Weiss:2010hx,Nedelec:2013ky,Kleppmann:2016ve}.
@@ -56,54 +56,72 @@ Both allow a document to be modified concurrently on different replicas, with ch
 immediately to the local copy, while asynchronously propagating changes to other replicas. The
 goal of these algorithms is to ensure that for all concurrent executions, the replicas converge
 toward the same state without any edits being lost (a property known as \emph{strong eventual
-consistency}~\cite{Shapiro:2011un}). We discuss the relationship between OT and CRDTs further in
-Section~\ref{sect.relatedwork}.
+consistency}~\cite{Shapiro:2011un}).
 
 However, these algorithms have a checkered history. OT algorithms have a reputation of being very
 difficult to understand and to implement correctly~\cite{Spiewak:2010vw}. Despite the fact that OT
 has been studied for almost three decades~\cite{Ellis:1989ue}, few algorithms work correctly in a
-peer-to-peer setting, and several published algorithms were later shown to violating their supposed
-guarantees~\cite{Imine:2003ks,Imine:2006kn,Li:2004er,Randolph:2015gj}.
+peer-to-peer setting, and several published algorithms were later shown to violate their supposed
+convergence guarantees~\cite{Imine:2003ks,Imine:2006kn}. It has even been proved that in the classic
+formulation of OT it is impossible to achieve the $\mathit{TP}_2$ property required for convergence
+in a peer-to-peer setting, and that additional parameters must be added to transformation functions
+to make convergence possible~\cite{Randolph:2015gj}.
 
-Of one particular algorithm called Replicated Growable Array~\cite{Roh:2011dw} (RGA, which we study
-in this paper), Attiya et al. recently wrote, ``the reason why RGA actually works has been a bit of
-a mystery''~\cite{Attiya:2016kh}.
+CRDTs are a more recent development~\cite{Shapiro:2011un}. While OT is based on transforming
+non-commutative operations so that they have the same effect when reordered, CRDTs define operations
+in a way that makes them commutative by design, making them more amenable to peer-to-peer settings
+in which each node may apply edits in a different order. CRDTs also have attractive performance
+characteristics~\cite{Mehdi:2011ke}.
 
-The problem that makes collaborative algorithms difficult is that arbitrary edits may occur
-concurrently. Since each participant may apply edits to the document in a different order, and there
-are many possible interleavings of concurrent operations, informal reasoning about the correctness
-of these algorithms quickly becomes unmanageable.
+To date there has been fairly little formal verification of the correctness of CRDTs, and the
+history of broken OT algorithms highlights the inadequacy of informal reasoning in this domain. In
+this work we contribute to the formal basis of collaborative editing algorithms by using the
+interactive proof assistant software Isabelle (TODO citation) to develop machine-checked proofs of
+correctness for CRDTs.
 
-Formal verification can help address this problem, by encouraging us to break down the problem into
-manageable modules with well-defined properties, and by using machine-checked proofs and automated
-reasoning to verify that an algorithm satisfies those properties. In this paper we present a modular
-framework for such formal verification of collaborative editing algorithms.
+In particular, we study the Replicated Growable Array (RGA) CRDT~\cite{Roh:2011dw}, which represents
+a collaboratively editable document as a sequence of characters. There are previous pen-and-paper
+correctness proofs of RGA in the literature~\cite{Attiya:2016kh,Kleppmann:2016ve,Roh:2009ws}, but to
+our knowledge, ours is the first mechanized proof of the convergence of RGA. The algorithm is
+subtle~-- Attiya et al.\ recently wrote, ``the reason why RGA actually works has been a bit of a
+mystery''~\cite{Attiya:2016kh}~-- which makes formal verification particularly important.
 
-op-based vs. state-based
+Our proof is structured in four modules:
+\begin{enumerate}
+    \item A general convergence theorem that applies in any system where concurrent operations are
+        commutative;
+    \item A formal model of a network protocol providing reliable, causally-ordered broadcast;
+    \item An implementation of the RGA algorithm, and a proof that well-formed, concurrent insertion
+        and deletion operations commute;
+    \item A proof that when the RGA algorithm is executed in our network model, all possible
+        executions are well-formed, and thus converge.
+\end{enumerate}
 
-The main contributions of this paper are the first machine-checked correctness proof of the RGA
-algorithm, of any op-based CRDT? + network model
+In doing so, we go much further than previous correctness proofs of collaborative editing
+algorithms. Previous formalizations of OT using theorem
+provers~\cite{Imine:2003ks,Imine:2006kn,Sinchuk:2016cf,Jungnickel:2015ua} focus on proving that the
+transformation functions satisfy given properties (such as the transformation properties
+$\mathit{TP}_1$ and $\mathit{TP}_2$~\cite{Oster:2006tr,Ressel:1996wx}), and do not explicitly model
+the network. A previous formalization of CRDTs~\cite{Zeller:2014fl}, also using Isabelle, considers
+other datatypes (sets, registers, counters) but not the ordered sequence datatype provided by RGA.
 
-Modular design that treats the convergence proof, CRDT, and network model separately. Reusable
+By including a model of the network in our proof, we rule out a larger set of potential errors in
+the algorithm that may result from the interaction of operation properties with assumptions about
+the network. Moreover, our network model and convergence theorems are independent of any particular
+CRDT, so they can be reused for correctness proofs of any other replicated datatype that is based on
+operation commutativity, encompassing a wide range of CRDTs~\cite{Baquero:2014ed}.
 
-The next generation is going to use CRDTs. They are more efficient, it supports p2p and e2e, but currently lacking a formal
-basis. We provide the foundation for ensuring the correctness of next-generation systems.
-FB/WhatsApp reaching over a billion users with e2e encryption.
-
-CRDTs used in industry
+Besides presenting the first machine-checked proof of the RGA algorithm, our main contribution in
+this paper is to establish a modular toolkit of proof techniques and building blocks for
+machine-checked correctness proofs of operation-based CRDTs. Our proofs are broken down into modules
+with well-defined properties, allowing modules to be reused for proofs of new datatypes in future.
+By making formal verification easier, we hope to provide a strong foundation for the development of
+the next generation of algorithms for collaborative editing.
 
 
 \section{Related Work}
 \label{sect.relatedwork}
 
-Previously published correctness proofs~\cite{Attiya:2016kh,Kleppmann:2016ve,Roh:2009ws} of RGA have
-used informal natural language reasoning; to our knowledge, ours is the first mechanized proof of
-the algorithm.
-
-The main high-level difference between these families is that CRDTs define operations such that
-concurrent operations are commutative by design; by contrast, OT allows non-commutative operations,
-and instead defines transformation functions that rewrite operations so that they have the same
-effect on every replica, even if the operations are applied in different orders.
 
 \subsection{Formal Verification}
 
@@ -124,12 +142,8 @@ executions~\cite{Suleiman:1998eu,Sun:1998vf}.
 
 
 % \cite{Burckhardt:2014ft}
-% \cite{Baquero:2014ed}
 % \cite{Roh:2009ws}
 % \cite{Bieniusa:2012gt}
-% \cite{Almeida:2016tk}
-% \cite{Baquero:2015tm}
-% \cite{Li:2006kd}
 % \cite{Wang:2015vo}
 % \cite{Spiewak:2010vw}
 % \cite{Google:2015vk}
