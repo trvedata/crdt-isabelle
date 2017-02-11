@@ -99,6 +99,54 @@ lemma insert_no_failure:
   apply clarsimp
 done
 
+lemma insert_element_add_None: "insert xs e None = Some ys \<Longrightarrow> set (map fst xs) \<union> {fst e} = set (map fst ys)"
+  apply (induct xs arbitrary: ys)
+  apply clarsimp
+  apply clarsimp
+  apply blast
+done
+
+lemma insert_Some_not_empty: "insert xs e (Some i) \<noteq> Some []"
+  apply (induct xs)
+  apply clarsimp
+  apply (case_tac "insert xs e (Some i)")
+  apply clarsimp
+  apply clarsimp
+done
+
+lemma insert_body_preserve_element:
+  shows  "set (map fst xs) \<union> {fst e} = set (map fst (insert_body xs e))"
+  apply (induct xs)
+  apply clarsimp
+  apply clarsimp
+  by (simp add: insert_commute)
+
+lemma insert_preserve_element:
+  assumes "\<exists>ys. insert xs e i = Some ys"
+  shows   "set (map fst (the (insert xs e i))) = set (map fst xs) \<union> {fst e}"
+using assms
+  apply (induct xs)
+  apply clarsimp
+    apply (cases i)
+    apply clarsimp
+    apply clarsimp
+  apply clarsimp
+  apply (cases i)
+    apply clarsimp
+    apply (simp add: insert_commute)
+    apply clarsimp
+    apply (case_tac "a=ab")
+    apply clarsimp
+    using insert_body_preserve_element
+    apply (metis Un_commute Un_insert_left insert_is_Un list.set_map)
+    apply clarsimp
+    apply (case_tac "insert xs e (Some ab)")
+      apply clarsimp
+      apply clarsimp
+      apply (simp add: insert_commute)
+done
+  
+
 lemma insert_commutes:
   assumes "distinct (map fst (e1#e2#xs))"
           "i1 = None \<or> i1 \<noteq> Some (fst e2)"
