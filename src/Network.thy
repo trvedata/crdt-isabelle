@@ -21,7 +21,6 @@ locale finite_event_structure =
   (* Global order *)
   assumes global_order_trans: "e1 \<sqsubset>\<^sup>G e2 \<Longrightarrow> e2 \<sqsubset>\<^sup>G e3 \<Longrightarrow> e1 \<sqsubset>\<^sup>G e3"
   assumes global_order_irrefl: "e1 \<in> (\<Union>i. set (carriers i)) \<Longrightarrow> \<not> (e1 \<sqsubset>\<^sup>G e1)"
-  assumes node_total_order_total: "{e1, e2} \<subseteq> set (carriers i) \<Longrightarrow> e1 \<noteq> e2 \<Longrightarrow> (e1 \<sqsubset>\<^sup>i e2) \<or> (e2 \<sqsubset>\<^sup>i e1)"
   assumes local_order_to_global: "e1 \<sqsubset>\<^sup>i e2 \<Longrightarrow> e1 \<sqsubset>\<^sup>G e2"
   assumes global_order_to_local: "{e1, e2} \<subseteq> set (carriers i) \<Longrightarrow> e1 \<sqsubset>\<^sup>G e2 \<Longrightarrow> e1 \<sqsubset>\<^sup>i e2"
   assumes global_order_carrier_closed: "e1 \<sqsubset>\<^sup>G e2 \<Longrightarrow> {e1, e2} \<subseteq> (\<Union>i. set (carriers i))"
@@ -62,7 +61,6 @@ lemma suffix_eq_distinct_list: "distinct xs \<Longrightarrow> ys@suf1 = xs \<Lon
   using list_nill_or_snoc apply auto
 done
 
-
 lemma pre_suf_eq_distinct_list: "distinct xs \<Longrightarrow> ys \<noteq> [] \<Longrightarrow> pre1@ys@suf1 = xs \<Longrightarrow> pre2@ys@suf2 = xs \<Longrightarrow> pre1 = pre2 \<and> suf1 = suf2"
 apply (induct xs arbitrary: pre1 pre2 ys)
 apply clarsimp
@@ -85,6 +83,7 @@ apply (erule_tac x=list in meta_allE, erule_tac x=lista in meta_allE, erule_tac 
 apply clarsimp
 done
 
+(* node_total_order_total: "{e1, e2} \<subseteq> set (carriers i) \<Longrightarrow> e1 \<noteq> e2 \<Longrightarrow> (e1 \<sqsubset>\<^sup>i e2) \<or> (e2 \<sqsubset>\<^sup>i e1)" *)
 
 lemma (in finite_event_structure) node_total_order_trans: "e1 \<sqsubset>\<^sup>i e2 \<Longrightarrow> e2 \<sqsubset>\<^sup>i e3 \<Longrightarrow> e1 \<sqsubset>\<^sup>i e3"
   apply (clarsimp simp add: carriers_compatible)

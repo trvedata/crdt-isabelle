@@ -89,7 +89,7 @@ using assms
 lemma insert_no_failure:
   assumes "i = None \<or> (\<exists>i'. i = Some i' \<and> (\<exists>v b. (i', v, b) \<in> set xs))"
   shows   "\<exists>xs'. insert xs e i = Some xs'"
-  using assms
+using assms
   apply (induct rule: insert.induct)
   apply force
   apply force
@@ -145,7 +145,55 @@ using assms
       apply clarsimp
       apply (simp add: insert_commute)
 done
-  
+
+lemma insert_body_split:
+  shows   "\<exists>ws zs. insert_body xs e = ws@[e]@zs \<and> xs = ws@zs"
+using assms
+  apply(induction xs)
+  apply clarsimp
+  apply clarsimp
+  apply(case_tac e; clarsimp)
+  apply(case_tac "a<ab"; clarsimp)
+  apply force
+  apply(rule_tac x="(a, aa, b) # ws" in exI)
+  apply(rule_tac x="zs" in exI)
+  apply force
+done
+
+lemma insert_Some_split:
+  assumes "insert xs e i = Some ys"
+  shows   "\<exists>ws zs. ys = ws@[e]@zs \<and> xs = ws@zs"
+using assms
+  apply(induction xs arbitrary: ys)
+  apply(case_tac i; clarsimp)
+  apply clarsimp
+  apply(case_tac i; clarsimp)
+  apply(case_tac e; clarsimp)
+  apply(case_tac "a < ab"; clarsimp)
+  apply force
+  apply(erule_tac x="insert_body xs (ab, ba, c)" in meta_allE)
+  apply clarsimp
+  apply(rule_tac x="(a, aa, b) # ws" in exI)
+  apply(rule_tac x="zs" in exI)
+  apply force
+  apply(case_tac e; clarsimp)
+  apply(case_tac "a=ab"; clarsimp)
+  apply(insert insert_body_split)
+  apply(erule_tac x=xs in meta_allE) back
+  apply(erule_tac x="(ac, ba, c)" in meta_allE)
+  apply clarsimp
+  apply(rule_tac x="(ab, aa, b) # ws" in exI)
+  apply(rule_tac x="zs" in exI)
+  apply force
+  apply clarsimp
+  apply(subst (asm) bind_eq_Some_conv)
+  apply clarsimp
+  apply(erule_tac x="y" in meta_allE)
+  apply clarsimp
+  apply(rule_tac x="(a, aa, b) # ws" in exI)
+  apply(rule_tac x="zs" in exI)
+  apply force
+done
 
 lemma insert_commutes:
   assumes "distinct (map fst (e1#e2#xs))"
