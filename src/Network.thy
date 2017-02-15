@@ -4,11 +4,15 @@ imports
   Convergence
 begin
 
+section\<open>Model of the network\<close>
+
+subsection\<open>Finite Event Structure\<close>
+
 datatype event_type
   = Broadcast
   | Deliver
 
-type_synonym 'a event = "nat \<times> event_type \<times> ('a \<Rightarrow> 'a)"
+type_synonym 'a event = "nat \<times> event_type \<times> 'a"
 
 locale finite_event_structure =
   fixes carriers :: "nat \<Rightarrow> 'a event list"
@@ -24,66 +28,6 @@ locale finite_event_structure =
   assumes local_order_to_global: "e1 \<sqsubset>\<^sup>i e2 \<Longrightarrow> e1 \<sqsubset>\<^sup>G e2"
   assumes global_order_to_local: "{e1, e2} \<subseteq> set (carriers i) \<Longrightarrow> e1 \<sqsubset>\<^sup>G e2 \<Longrightarrow> e1 \<sqsubset>\<^sup>i e2"
   assumes global_order_carrier_closed: "e1 \<sqsubset>\<^sup>G e2 \<Longrightarrow> {e1, e2} \<subseteq> (\<Union>i. set (carriers i))"
-  (* Broadcast/Deliver interaction *)
-  assumes broadcast_before_delivery: "(i, Broadcast, m) \<in> set (carriers i) \<Longrightarrow> (i, Broadcast, m) \<sqsubset>\<^sup>G (j, Deliver, m)"
-  assumes no_message_lost: "(i, Broadcast, m) \<in> set (carriers i) \<Longrightarrow> (j, Deliver, m) \<in> set (carriers j)"
-  assumes delivery_has_a_cause: "(i, Deliver, m) \<in> set (carriers i) \<Longrightarrow> \<exists>j. (j, Broadcast, m) \<in> set (carriers j)"
-  assumes delivery_fifo_order: "{(j, Deliver, m1), (j, Deliver, m2)} \<subseteq> set (carriers j) \<Longrightarrow> (i, Broadcast, m1) \<sqsubset>\<^sup>i (i, Broadcast, m2) \<Longrightarrow> (j, Deliver, m1) \<sqsubset>\<^sup>j (j, Deliver, m2)"
-  assumes broadcast_fifo_order: "{(i, Broadcast, m1), (i, Broadcast, m2)} \<subseteq> set (carriers i) \<Longrightarrow> (j, Deliver, m1) \<sqsubset>\<^sup>j (j, Deliver, m2) \<Longrightarrow> (i, Broadcast, m1) \<sqsubset>\<^sup>i (i, Broadcast, m2)" 
-  assumes broadcast_causal: "{(j, Deliver, m1), (j, Deliver, m2)} \<subseteq> set (carriers j) \<Longrightarrow> (i, Deliver, m1) \<sqsubset>\<^sup>i (i, Broadcast, m2) \<Longrightarrow> (j, Deliver, m1) \<sqsubset>\<^sup>j (j, Deliver, m2)"
-  assumes broadcasts_unique: "i \<noteq> j \<Longrightarrow> (i, Broadcast, m) \<in> set (carriers i) \<Longrightarrow> \<not> (j, Broadcast, m) \<in> set (carriers j)"
-
-lemma prefix_eq_distinct_list: "distinct xs \<Longrightarrow> pre1@ys = xs \<Longrightarrow> pre2@ys = xs \<Longrightarrow> pre1 = pre2"
-  apply (induct xs arbitrary: pre1 pre2)
-  apply clarsimp
-  apply (case_tac pre1)
-  apply (thin_tac "(\<And>pre1 pre2. distinct xs \<Longrightarrow> pre1 @ ys = xs \<Longrightarrow> pre2 @ ys = xs \<Longrightarrow> pre1 = pre2)")
-  apply clarsimp
-  apply (case_tac pre2)
-  apply (thin_tac "(\<And>pre1 pre2. distinct xs \<Longrightarrow> pre1 @ ys = xs \<Longrightarrow> pre2 @ ys = xs \<Longrightarrow> pre1 = pre2)")
-  apply clarsimp
-  apply (erule_tac x=list in meta_allE)
-  apply (erule_tac x=lista in meta_allE)
-  apply clarsimp
-done
-
-lemma list_nill_or_snoc: "xs = [] \<or> (\<exists>y ys. xs = ys@[y])"
-  by (induct xs, auto)
-
-lemma suffix_eq_distinct_list: "distinct xs \<Longrightarrow> ys@suf1 = xs \<Longrightarrow> ys@suf2 = xs \<Longrightarrow> suf1 = suf2"
-  apply (induct xs  arbitrary: suf1 suf2 rule: rev_induct)
-  apply clarsimp
-  apply clarsimp
-  apply (subgoal_tac "suf1 = [] \<or> (\<exists>y ys. suf1 = ys@[y])")
-  apply (subgoal_tac "suf2 = [] \<or> (\<exists>y ys. suf2 = ys@[y])")
-  apply (erule disjE, clarsimp)
-  apply clarsimp
-  using list_nill_or_snoc apply auto
-done
-
-lemma pre_suf_eq_distinct_list: "distinct xs \<Longrightarrow> ys \<noteq> [] \<Longrightarrow> pre1@ys@suf1 = xs \<Longrightarrow> pre2@ys@suf2 = xs \<Longrightarrow> pre1 = pre2 \<and> suf1 = suf2"
-apply (induct xs arbitrary: pre1 pre2 ys)
-apply clarsimp
-apply (case_tac pre1)
-apply (thin_tac " (\<And>pre1 pre2 ys. distinct xs \<Longrightarrow> ys \<noteq> [] \<Longrightarrow> pre1 @ ys @ suf1 = xs \<Longrightarrow> pre2 @ ys @ suf2 = xs \<Longrightarrow> pre1 = pre2 \<and> suf1 = suf2)")
-apply clarsimp
-apply (case_tac pre2)
-apply clarsimp
-apply (rule_tac xs="a#xs" in suffix_eq_distinct_list)
-apply force
-apply assumption
-apply assumption
-apply clarsimp
-apply (metis append_eq_Cons_conv list.set_intros(1))
-apply (case_tac pre2)
-apply (thin_tac " (\<And>pre1 pre2 ys. distinct xs \<Longrightarrow> ys \<noteq> [] \<Longrightarrow> pre1 @ ys @ suf1 = xs \<Longrightarrow> pre2 @ ys @ suf2 = xs \<Longrightarrow> pre1 = pre2 \<and> suf1 = suf2)")
-apply clarsimp
-apply (metis append_eq_Cons_conv list.set_intros(1))
-apply (erule_tac x=list in meta_allE, erule_tac x=lista in meta_allE, erule_tac x=ys in meta_allE)
-apply clarsimp
-done
-
-(* node_total_order_total: "{e1, e2} \<subseteq> set (carriers i) \<Longrightarrow> e1 \<noteq> e2 \<Longrightarrow> (e1 \<sqsubset>\<^sup>i e2) \<or> (e2 \<sqsubset>\<^sup>i e1)" *)
 
 lemma (in finite_event_structure) node_total_order_trans: "e1 \<sqsubset>\<^sup>i e2 \<Longrightarrow> e2 \<sqsubset>\<^sup>i e3 \<Longrightarrow> e1 \<sqsubset>\<^sup>i e3"
   apply (clarsimp simp add: carriers_compatible)
@@ -107,10 +51,105 @@ lemma (in finite_event_structure) node_total_order_irrefl: "e1 \<in> set (carrie
   apply (metis Un_iff carriers_distinct distinct_append distinct_set_notin list.set_intros(1) set_append)
 done
 
-interpretation trivial_model: finite_event_structure "\<lambda>m. []" "\<lambda>e1 m e2. False" "\<lambda>e1 e2. False"
+definition (in finite_event_structure) prefix_of_carrier :: "'a event list \<Rightarrow> nat \<Rightarrow> bool" (infix "prefix of" 50) where
+  "xs prefix of i \<equiv> \<exists>ys. xs@ys = carriers i"
+
+definition (in finite_event_structure) node_deliver_messages :: "'a event list \<Rightarrow> 'a list" where
+  "node_deliver_messages cs \<equiv>
+    map (snd o snd) (List.filter (\<lambda>e. case e of (_, Broadcast, _) \<Rightarrow> False | _ \<Rightarrow> True) cs)"
+
+lemma (in finite_event_structure) node_deliver_messages_empty [simp]: "node_deliver_messages [] = []"
+  by (clarsimp simp: node_deliver_messages_def)
+
+lemma (in finite_event_structure) node_deliver_messages_append: "node_deliver_messages (xs@ys) = (node_deliver_messages xs)@(node_deliver_messages ys)"
+  by (clarsimp simp: node_deliver_messages_def)
+
+lemma (in finite_event_structure) carriers_head_lt:
+  assumes "y#ys = carriers i"
+  shows   "\<not>(x \<sqsubset>\<^sup>i y)"
+using assms
+  apply -
+  apply clarsimp
+  apply(subst (asm) carriers_compatible)
+  apply clarsimp
+  apply (subgoal_tac "xs @ x # ysa = [] \<and> zs = ys")
+  apply clarsimp
+  apply (rule_tac xs="carriers i" and ys="[y]" in pre_suf_eq_distinct_list)
+  using carriers_distinct apply auto
+done
+
+lemma (in finite_event_structure) prefix_of_ConsD [dest]: "x # xs prefix of i \<Longrightarrow> [x] prefix of i"
+  by (auto simp: prefix_of_carrier_def)
+
+lemma (in finite_event_structure) prefix_of_appendD [dest]: "xs @ ys prefix of i \<Longrightarrow> xs prefix of i"
+  by (auto simp: prefix_of_carrier_def)
+
+lemma (in finite_event_structure) prefix_distinct: "xs prefix of i \<Longrightarrow> distinct xs"
+  apply (clarsimp simp: prefix_of_carrier_def)
+  by (metis carriers_distinct distinct_append)
+
+lemma (in finite_event_structure) prefix_consistent: "xs prefix of i \<Longrightarrow> (a, b, c) \<in> set xs \<Longrightarrow> a = i"
+  apply (clarsimp simp: prefix_of_carrier_def)
+  by (metis Un_iff carriers_message_consistent set_append)
+
+lemma (in finite_event_structure) prefix_to_carriers [intro]: "xs prefix of i \<Longrightarrow> x \<in> set xs \<Longrightarrow> x \<in> set (carriers i)"
+  apply (clarsimp simp: prefix_of_carrier_def)
+  by (metis Un_iff set_append)
+
+lemma (in finite_event_structure) prefix_msg_in_carrier:
+  shows "es prefix of i \<Longrightarrow> m \<in> set (node_deliver_messages es) \<Longrightarrow> (i, Deliver, m) \<in> set (carriers i)"
+  apply (clarsimp simp: node_deliver_messages_def)
+  apply (case_tac aa; clarsimp)
+  apply (subgoal_tac "a=i", clarsimp)
+  apply force
+  using prefix_consistent apply simp
+done
+
+lemma (in finite_event_structure) local_order_prefix_closed:
+  "x \<sqsubset>\<^sup>i y \<Longrightarrow> xs prefix of i \<Longrightarrow> y \<in> set xs \<Longrightarrow> x \<in> set xs"
+  apply (frule prefix_distinct)
+  apply (insert carriers_distinct[where i=i])
+  apply (clarsimp simp: carriers_compatible prefix_of_carrier_def)
+  apply (frule split_list)
+  apply clarsimp
+  apply (subgoal_tac "ysb = xsa @ x # ysa \<and> zsa @ ys = zs")
+  apply clarsimp
+  apply (rule_tac xs="carriers i" and ys="[y]" in pre_suf_eq_distinct_list)
+  apply clarsimp
+  apply clarsimp
+  apply clarsimp
+  apply clarsimp
+done
+
+lemma (in finite_event_structure) local_order_prefix_closed_last:
+  assumes "x \<sqsubset>\<^sup>i y"
+          "xs@[y] prefix of i"
+  shows   "x \<in> set xs"
+using assms
+  apply -
+  apply(frule local_order_prefix_closed, assumption, force)
+  apply clarsimp
+  apply(simp add: node_total_order_irrefl prefix_to_carriers)
+done
+
+subsection\<open>Causal Network\<close>
+
+locale network = finite_event_structure +
+  (* Broadcast/Deliver interaction *)
+  assumes broadcast_before_delivery: "(i, Broadcast, m) \<in> set (carriers i) \<Longrightarrow> (i, Broadcast, m) \<sqsubset>\<^sup>G (j, Deliver, m)"
+  assumes no_message_lost: "(i, Broadcast, m) \<in> set (carriers i) \<Longrightarrow> (j, Deliver, m) \<in> set (carriers j)"
+  assumes delivery_has_a_cause: "(i, Deliver, m) \<in> set (carriers i) \<Longrightarrow> \<exists>j. (j, Broadcast, m) \<in> set (carriers j)"
+  assumes delivery_fifo_order: "{(j, Deliver, m1), (j, Deliver, m2)} \<subseteq> set (carriers j) \<Longrightarrow> (i, Broadcast, m1) \<sqsubset>\<^sup>i (i, Broadcast, m2) \<Longrightarrow> (j, Deliver, m1) \<sqsubset>\<^sup>j (j, Deliver, m2)"
+  assumes broadcast_fifo_order: "{(i, Broadcast, m1), (i, Broadcast, m2)} \<subseteq> set (carriers i) \<Longrightarrow> (j, Deliver, m1) \<sqsubset>\<^sup>j (j, Deliver, m2) \<Longrightarrow> (i, Broadcast, m1) \<sqsubset>\<^sup>i (i, Broadcast, m2)" 
+  assumes broadcast_causal: "{(j, Deliver, m1), (j, Deliver, m2)} \<subseteq> set (carriers j) \<Longrightarrow> (i, Deliver, m1) \<sqsubset>\<^sup>i (i, Broadcast, m2) \<Longrightarrow> (j, Deliver, m1) \<sqsubset>\<^sup>j (j, Deliver, m2)"
+  assumes broadcasts_unique: "i \<noteq> j \<Longrightarrow> (i, Broadcast, m) \<in> set (carriers i) \<Longrightarrow> \<not> (j, Broadcast, m) \<in> set (carriers j)"
+
+subsection\<open>Trivial models\<close>
+
+interpretation trivial_model: network "\<lambda>m. []" "\<lambda>e1 m e2. False" "\<lambda>e1 e2. False"
   by standard auto
 
-interpretation non_trivial_model: finite_event_structure
+interpretation non_trivial_model: network
   "\<lambda>m. if m = 0 then [(0, Broadcast, id), (0, Deliver, id)] else [(m, Deliver, id)]"
   "\<lambda>e1 m e2. m = 0 \<and> e1 = (0, Broadcast, id) \<and> e2 = (0, Deliver, id)"
   "\<lambda>e1 e2. (\<exists>m. e1 = (0, Broadcast, id) \<and> e2 = (m, Deliver, id))"
@@ -125,13 +164,19 @@ interpretation non_trivial_model: finite_event_structure
   apply(case_tac xs; case_tac ys; case_tac zs; clarsimp)
   by standard (case_tac "i = 0"; force)+
 
-context finite_event_structure begin
+subsection\<open>Connecting network with happens before locale.\<close>
 
-definition hb :: "('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> bool" where
+locale network_with_ops = network carriers
+  for carriers :: "nat \<Rightarrow> (nat \<times> event_type \<times> 'a) list" +
+  fixes interp :: "'a \<Rightarrow> 'b \<Rightarrow> 'b"
+
+context network_with_ops begin
+
+definition hb :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
   "hb m1 m2 \<equiv> (\<exists>i. ((i, Broadcast, m1) \<sqsubset>\<^sup>i (i, Broadcast, m2) \<or>
                   (i, Deliver, m1) \<sqsubset>\<^sup>i (i, Broadcast, m2)))"
 
-definition weak_hb :: "('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> bool" where
+definition weak_hb :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
   "weak_hb m1 m2 \<equiv> hb m1 m2 \<or> m1 = m2"
 
 sublocale hb: happens_before weak_hb hb
@@ -213,47 +258,5 @@ next
 qed
 
 end
-
-fun merge :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> 'a list" where
-  "merge cmp []     ys     = ys" |
-  "merge cmp xs     []     = xs" |
-  "merge cmp (x#xs) (y#ys) =
-     (if cmp x y then
-        x#merge cmp xs (y#ys)
-      else
-        y#merge cmp (x#xs) ys)"
-
-function (sequential) qsort :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> 'a list" where
-  "qsort cmp []      = []" |
-  "qsort cmp [x]     = [x]" |
-  "qsort cmp (x#xs)  =
-     (let ls = List.filter (\<lambda>y. cmp x y) xs;
-          rs = List.filter (\<lambda>y. cmp y x) xs
-      in (qsort cmp ls) @ [x] @ (qsort cmp rs))"
-by pat_completeness auto
-
-termination qsort
-  apply(relation "measure (\<lambda>(cmp, xs). size xs)")
-  apply auto
-  apply(simp_all add: le_imp_less_Suc)
-  using le_imp_less_Suc less_Suc_eq apply auto
-done
-
-lemma qsort_set_mem_preserve:
-  shows "(\<forall>x \<in> set xs. \<forall>y \<in> set xs. cmp x y \<or> cmp y x) \<longrightarrow> set xs = set (qsort cmp xs)"
-  apply(induction rule: qsort.induct[where P="\<lambda>cmp xs. (\<forall>x \<in> set xs. \<forall>y \<in> set xs. cmp x y \<or> cmp y x) \<longrightarrow> set xs = set (qsort cmp xs)"])
-  apply auto
-done
-  
-definition (in finite_event_structure) ordered_node_operations :: "'a event list \<Rightarrow> ('a \<Rightarrow> 'a) list" where
-  "ordered_node_operations cs \<equiv>
-    map (snd o snd) (
-     List.filter (\<lambda>e. case e of (_, Broadcast, _) \<Rightarrow> False | _ \<Rightarrow> True) cs)"
-
-lemma (in finite_event_structure) [simp]: "ordered_node_operations [] = []"
-  by (clarsimp simp: ordered_node_operations_def)
-
-lemma (in finite_event_structure) ordered_nodes_opers_append: "ordered_node_operations (xs@ys) = (ordered_node_operations xs)@(ordered_node_operations ys)"
-  by (clarsimp simp: ordered_node_operations_def)
 
 end

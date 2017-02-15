@@ -1,53 +1,21 @@
 theory
   Convergence
 imports
-  Main
+  Util
 begin
 
-section\<open>Network events to...\<close>
-
-lemma distinct_set_notin:
-  assumes "distinct (x#xs)"
-  shows   "x \<notin> set xs"
-using assms by(induction xs, auto)
-
-lemma set_insert_inject:
-  assumes "a \<notin> set xs"
-          "a \<notin> set ys" 
-          "set (a#xs) = set (a#ys)"
-  shows   "set xs = set ys"
-using assms by (induction xs arbitrary: ys) fastforce+
-
-lemma remove1_head:
-  shows "remove1 x (x#xs) = xs"
-  by(induction xs, auto)
-
-lemma set_membership_equality_technicalD [dest]:
-  assumes "{x} \<union> (set xs) = {y} \<union> (set ys)"
-  shows "x = y \<or> y \<in> set xs"
-using assms by(induction xs, auto)
-
-lemma set_equality_technical:
-  assumes "{x} \<union> (set xs) = {y} \<union> (set ys)"
-          "x \<notin> set xs" "y \<notin> set ys" "y \<in> set xs"
-  shows "{x} \<union> (set xs - {y}) = set ys"
-using assms by (induction xs) auto
-
-lemma fold_comp_eq:
-  shows "fold op \<circ> xs x = fold op \<circ> xs id \<circ> x"
-  apply(induction xs rule: rev_induct)
-  apply auto
-done
+section\<open>Convergence Theorem\<close>
 
 subsection\<open>Happens before relations and consistency\<close>
 
 locale happens_before = preorder hb_weak hb
-    for hb_weak :: "('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> bool" and hb :: "('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> bool"
+  for hb_weak :: "'a \<Rightarrow> 'a \<Rightarrow> bool" and hb :: "'a \<Rightarrow> 'a \<Rightarrow> bool" +
+  fixes interp :: "'a \<Rightarrow> 'b \<Rightarrow> 'b" ("\<langle>_\<rangle>" [100] 100)
 
-abbreviation (in happens_before) (input) concurrent :: "('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> bool" where
+abbreviation (in happens_before) (input) concurrent :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
   "concurrent s1 s2 \<equiv> \<not> (hb s1 s2) \<and> \<not> (hb s2 s1)"
 
-definition (in happens_before) concurrent_set :: "('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a) list \<Rightarrow> bool" where
+definition (in happens_before) concurrent_set :: "'a \<Rightarrow> 'a list \<Rightarrow> bool" where
   "concurrent_set x xs \<equiv> \<forall>y \<in> set xs. concurrent x y"
 
 lemma (in happens_before) concurrent_set_empty [simp, intro!]:
@@ -66,8 +34,8 @@ lemma (in happens_before) concurrent_set_Cons_Snoc [simp]:
   "concurrent_set a (xs@[x]) = concurrent_set a (x#xs)"
   by (auto simp: concurrent_set_def)
 
-definition (in happens_before) concurrent_elems_commute :: "('a \<Rightarrow> 'a) list \<Rightarrow> bool" where
-  "concurrent_elems_commute xs \<equiv> (\<forall>x y. {x, y} \<subseteq> set xs \<and> concurrent x y \<longrightarrow> x \<circ> y = y \<circ> x)"
+definition (in happens_before) concurrent_elems_commute :: "'a list \<Rightarrow> bool" where
+  "concurrent_elems_commute xs \<equiv> (\<forall>x y. {x, y} \<subseteq> set xs \<and> concurrent x y \<longrightarrow> \<langle>x\<rangle> \<circ> \<langle>y\<rangle> = \<langle>y\<rangle> \<circ> \<langle>x\<rangle>)"
 
 lemma (in happens_before) concurrent_elems_commute_ConsD [dest]:
   assumes "concurrent_elems_commute (x # xs)"
@@ -76,7 +44,7 @@ using assms by (auto simp: concurrent_elems_commute_def)
 
 lemma (in happens_before) concurrent_elems_commute_ConsD2 [dest]:
   assumes "concurrent_elems_commute (x # y # xs)"
-  shows   "concurrent_elems_commute (x # xs) \<and> (concurrent x y \<longrightarrow> x \<circ> y = y \<circ> x)"
+  shows   "concurrent_elems_commute (x # xs) \<and> (concurrent x y \<longrightarrow> \<langle>x\<rangle> \<circ> \<langle>y\<rangle> = \<langle>y\<rangle> \<circ> \<langle>x\<rangle>)"
 using assms by (auto simp: concurrent_elems_commute_def)
 
 lemma (in happens_before) concurrent_elems_commute_Cons_eq [simp]:
@@ -88,7 +56,7 @@ lemma (in happens_before) concurrent_elems_commute_subset [intro]:
   shows   "concurrent_elems_commute xs"
 using assms by (auto simp: concurrent_elems_commute_def)
 
-inductive (in happens_before) hb_consistent :: "('a \<Rightarrow> 'a) list \<Rightarrow> bool" where
+inductive (in happens_before) hb_consistent :: "'a list \<Rightarrow> bool" where
   [intro!]: "hb_consistent []" |
   [intro!]: "\<lbrakk> hb_consistent xs; \<forall>x \<in> set xs. hb x y \<or> \<not> hb y x \<rbrakk> \<Longrightarrow> hb_consistent (xs @ [y])"
 
@@ -136,7 +104,7 @@ using hb_consistent.intros by fastforce
 lemma (in happens_before) fold_concurrent_rearrange:
   assumes "concurrent_set x xs"
           "concurrent_elems_commute (x#xs)"
-  shows "x \<circ> fold (op \<circ>) xs id = fold (op \<circ>) xs id \<circ> x"
+  shows "\<langle>x\<rangle> \<circ> fold (op \<circ>) (map interp xs) id = fold (op \<circ>) (map interp xs) id \<circ> \<langle>x\<rangle>"
 using assms
   apply(induction xs rule: rev_induct, clarsimp)
   apply clarsimp
@@ -146,7 +114,7 @@ done
 lemma (in happens_before) fold_concurrent_rearrange':
   assumes "concurrent_set x xs"
           "concurrent_elems_commute (x#xs)"
-  shows "fold (op \<circ>) (x#xs) id = fold (op \<circ>) (xs@[x]) id"
+  shows "fold (op \<circ>) (map interp (x#xs)) id = fold (op \<circ>) (map interp (xs@[x])) id"
 using assms
   apply clarsimp
   apply(subst fold_concurrent_rearrange, clarsimp, clarsimp)
@@ -204,7 +172,6 @@ using assms proof (induction arbitrary: xs rule: hb_consistent.induct, simp)
     by auto
 qed
 
-
 lemma (in happens_before) hb_consistent_append [intro!]:
   assumes "hb_consistent suffix"
           "hb_consistent prefix"
@@ -212,7 +179,7 @@ lemma (in happens_before) hb_consistent_append [intro!]:
   shows "hb_consistent (prefix @ suffix)"
 using assms by (induction rule: hb_consistent.induct) force+
 
-abbreviation (in happens_before) porder :: "('a \<Rightarrow> 'a) \<Rightarrow> ('a \<Rightarrow> 'a) \<Rightarrow> bool" where
+abbreviation (in happens_before) porder :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
   "porder x y \<equiv> hb x y \<or> concurrent x y"
 
 lemma (in happens_before) hb_consistent_append_porder:
@@ -229,7 +196,7 @@ theorem (in happens_before) convergence:
           "distinct ys"
           "hb_consistent xs"
           "hb_consistent ys"
-  shows   "fold (op \<circ>) xs id = fold (op \<circ>) ys id"
+  shows   "fold (op \<circ>) (map interp xs) id = fold (op \<circ>) (map interp ys) id"
 using assms proof(induction xs arbitrary: ys rule: rev_induct, simp)
   fix x xs ys
   assume IH: "(\<And>ys. set xs = set ys \<Longrightarrow>
@@ -237,7 +204,7 @@ using assms proof(induction xs arbitrary: ys rule: rev_induct, simp)
                      distinct xs \<Longrightarrow> distinct ys \<Longrightarrow>
                      hb_consistent xs \<Longrightarrow>
                      hb_consistent ys \<Longrightarrow> 
-               fold op \<circ> xs id = fold op \<circ> ys id)"
+               fold op \<circ> (map interp xs) id = fold op \<circ> (map interp ys) id)"
    assume assms: "set (xs @ [x]) = set ys"
                  "concurrent_elems_commute (xs @ [x])"
                  "distinct (xs @ [x])"      "distinct ys"
@@ -259,15 +226,29 @@ using assms proof(induction xs arbitrary: ys rule: rev_induct, simp)
         apply fastforce+
       done
   }
-  ultimately have IH': "fold op \<circ> xs id = fold op \<circ> (prefix@suffix) id"
+  ultimately have IH': "fold op \<circ> (map interp xs) id = fold op \<circ> (map interp (prefix@suffix)) id"
     using ys_split assms by (fastforce intro!: IH)
 
   have "concurrent_elems_commute (x # suffix)"
     using ys_split assms concurrent_elems_commute_subset by auto
-  have conc: "fold op \<circ> (suffix @ [x]) id = fold op \<circ> (x # suffix) id"
+  have conc: "fold op \<circ> (map interp (suffix @ [x])) id = fold op \<circ> (map interp (x # suffix)) id"
     using ys_split assms by (subst fold_concurrent_rearrange') auto
-  show "fold op \<circ> (xs @ [x]) id = fold op \<circ> ys id"
-    using ys_split fold_append by (metis IH' conc fold_comp_eq o_apply)
+  show "fold op \<circ> (map interp (xs @ [x])) id = fold op \<circ> (map interp ys) id"
+    apply (insert ys_split)
+    apply clarify
+    apply (subst map_append) back
+    apply (subst fold_append)
+    apply (subst o_apply)
+    apply (subst fold_comp_eq) back
+    apply (subst conc[symmetric])
+    apply (subst map_append)
+    apply (subst fold_append)
+    apply (subst o_apply)
+    apply (subst fold_comp_eq)
+    apply (subst IH')
+    apply clarsimp
+    apply (metis fold_comp_eq o_assoc)
+  done
 qed
 
 corollary (in happens_before) convergence_point:
@@ -277,7 +258,7 @@ corollary (in happens_before) convergence_point:
           "distinct ys"
           "hb_consistent xs"
           "hb_consistent ys"
-  shows   "fold (op \<circ>) xs id a = fold (op \<circ>) ys id a"
+  shows   "fold (op \<circ>) (map interp xs) id a = fold (op \<circ>) (map interp ys) id a"
 using assms by (simp add: convergence)
 
 end

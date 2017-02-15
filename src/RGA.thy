@@ -1,129 +1,27 @@
 theory
-  Application
+  RGA
 imports
   Causal_CRDT
   Ordered_List
 begin
 
-definition Insert :: "('id, 'v) elt \<Rightarrow> 'id option \<Rightarrow> ('id::{linorder}, 'v) elt list \<Rightarrow> ('id, 'v) elt list" where
-  "Insert e n \<equiv> (\<lambda>xs. the (insert xs e n))"
+datatype ('id, 'v) operation =
+  Insert "('id, 'v) elt" "'id option" |
+  Delete "'id"
 
-definition Delete :: "'id \<Rightarrow> ('id::{linorder}, 'v) elt list \<Rightarrow> ('id, 'v) elt list" where
-  "Delete n \<equiv> (\<lambda>xs. the (delete xs n))"
+fun interpret_opers :: "('id::linorder, 'v) operation \<Rightarrow> ('id, 'v) elt list \<Rightarrow> ('id, 'v) elt list" where
+  "interpret_opers (Insert e n) = (\<lambda>xs. the (insert xs e n))" |
+  "interpret_opers (Delete n)   = (\<lambda>xs. the (delete xs n))"
 
-locale example = finite_event_structure carriers for
-  carriers :: "nat \<Rightarrow> ((('id::{linorder}, 'v) elt) list) event list" +
+(* Replicated Growable Array Network *)
+locale rga = network_with_ops _ _ _ interpret_opers +
   assumes insert_flag: "(i, Broadcast, Insert e n) \<in> set (carriers i) \<Longrightarrow> snd (snd e) = False"
   assumes allowed_insert: "(i, Broadcast, Insert e n) \<in> set (carriers i) \<Longrightarrow> n = None \<or> 
                             (\<exists>n' n'' v b. n = Some n' \<and> (i, Deliver, Insert (n', v, b) n'') \<sqsubset>\<^sup>i (i, Broadcast, Insert e n))"
   assumes insert_id_unique: "id1 = id2 \<Longrightarrow> (i, Broadcast, Insert (id1, v1, b1) n1) \<in> set (carriers i) \<Longrightarrow> (j, Broadcast, Insert (id2, v2, b2) n2) \<in> set (carriers j) \<Longrightarrow> v1 = v2 \<and> n1 = n2"
   assumes allowed_delete: "(i, Broadcast, Delete x) \<in> set (carriers i) \<Longrightarrow> (\<exists>n' v b. (i, Deliver, Insert (x, v, b) n') \<sqsubset>\<^sup>i (i, Broadcast, Delete x))"
-  assumes insert_or_delete: "(j, f, m) \<in> set (carriers j) \<Longrightarrow> (\<exists>x. m = Delete x) \<or> (\<exists>x y. m = Insert x y)"
 
-definition (in example) apply_operations :: "(nat \<times> event_type \<times> (('id \<times> 'v \<times> bool) list \<Rightarrow> ('id \<times> 'v \<times> bool) list)) list \<Rightarrow> ('id \<times> 'v \<times> bool) list" where
-  "apply_operations opers \<equiv> (fold (op \<circ>) (ordered_node_operations opers) id) []"
-
-definition (in example) prefix_of_carrier :: "((('id::{linorder}, 'v) elt) list) event list \<Rightarrow> nat \<Rightarrow> bool" (infix "prefix of" 50) where
-  "xs prefix of i \<equiv> \<exists>ys. xs@ys = carriers i"
-
-lemma (in finite_event_structure) carriers_head_lt:
-  assumes "y#ys = carriers i"
-  shows   "\<not>(x \<sqsubset>\<^sup>i y)"
-using assms
-  apply -
-  apply clarsimp
-  apply(subst (asm) carriers_compatible)
-  apply clarsimp
-  apply (subgoal_tac "xs @ x # ysa = [] \<and> zs = ys")
-  apply clarsimp
-  apply (rule_tac xs="carriers i" and ys="[y]" in pre_suf_eq_distinct_list)
-  using carriers_distinct apply auto
-done
-
-lemma (in example) [dest]: "xs @ ys prefix of i \<Longrightarrow> xs prefix of i"
-  by (auto simp: prefix_of_carrier_def)
-
-lemma (in example) prefix_distinct: "xs prefix of i \<Longrightarrow> distinct xs"
-  apply (clarsimp simp: prefix_of_carrier_def)
-by (metis carriers_distinct distinct_append)
-
-lemma (in example) prefix_consistent: "xs prefix of i \<Longrightarrow> (a, b, c) \<in> set xs \<Longrightarrow> a = i"
-  apply (clarsimp simp: prefix_of_carrier_def)
-by (metis Un_iff carriers_message_consistent set_append)
-
-lemma (in example) prefix_to_carriers [intro]: "xs prefix of i \<Longrightarrow> x \<in> set xs \<Longrightarrow> x \<in> set (carriers i)"
-  apply (clarsimp simp: prefix_of_carrier_def)
-by (metis Un_iff set_append)
-
-lemma (in example) prefix_events_option: "xs prefix of i \<Longrightarrow> e \<in> set xs \<Longrightarrow> (\<exists>m x. e = (i, m, Delete x)) \<or> (\<exists>m x y. e = (i, m, Insert x y))"
-  apply (case_tac e)
-  apply (subgoal_tac "a=i")
-  apply (subgoal_tac "(i, b, c) \<in> set (carriers i)")
-  apply (drule insert_or_delete)
-  apply force
-  apply (clarsimp)
-  apply force
-  apply (rule prefix_consistent)
-  apply auto
-done
-
-lemma (in example) prefix_opers_option: "xs prefix of i \<Longrightarrow> oper \<in> set (ordered_node_operations xs) \<Longrightarrow> (\<exists>x. oper = Delete x) \<or> (\<exists>x y. oper = Insert x y)"
-  apply (rule_tac j=i and f=Deliver in insert_or_delete)
-  apply (clarsimp simp: ordered_node_operations_def)
-  apply (case_tac aa; clarsimp)
-  apply (subgoal_tac "a=i")
-  apply force
-  apply (rule prefix_consistent)
-  apply auto
-done
-
-lemma (in example) prefix_opers_option':
-  "xs prefix of i \<Longrightarrow> (i, Deliver, oper) \<in> set xs \<Longrightarrow>
-    (\<exists>x. oper = Delete x) \<or> (\<exists>x y. oper = Insert x y)"
-  apply(drule_tac oper=oper in prefix_opers_option)
-  apply(clarsimp simp add: ordered_node_operations_def)
-  apply force
-  apply force
-done
-
-lemma (in example) prefix_opers_in_carrier:
-  shows "es prefix of i \<Longrightarrow> f \<in> set (ordered_node_operations es) \<Longrightarrow> (i, Deliver, f) \<in> set (carriers i)"
-  apply (clarsimp simp: ordered_node_operations_def)
-  apply (case_tac aa; clarsimp)
-  apply (subgoal_tac "a=i", clarsimp)
-  apply force
-  using prefix_consistent apply simp
-done
-
-lemma (in example) local_order_prefix_closed:
-  "x \<sqsubset>\<^sup>i y \<Longrightarrow> xs prefix of i \<Longrightarrow> y \<in> set xs \<Longrightarrow> x \<in> set xs"
-  apply (frule prefix_distinct)
-  apply (insert carriers_distinct[where i=i])
-  apply (clarsimp simp: carriers_compatible prefix_of_carrier_def)
-  apply (frule split_list)
-  apply clarsimp
-  apply (subgoal_tac "ysb = xsa @ x # ysa \<and> zsa @ ys = zs")
-  apply clarsimp
-  apply (rule_tac xs="carriers i" and ys="[y]" in pre_suf_eq_distinct_list)
-  apply clarsimp
-  apply clarsimp
-  apply clarsimp
-  apply clarsimp
-done
-
-lemma (in example) local_order_prefix_closed_last:
-  assumes "x \<sqsubset>\<^sup>i y"
-          "xs@[y] prefix of i"
-  shows   "x \<in> set xs"
-using assms
-  apply -
-  apply(frule local_order_prefix_closed, assumption, force)
-  apply clarsimp
-  apply(simp add: node_total_order_irrefl prefix_to_carriers)
-done
-
-  
-lemma (in example) allowed_delete_deliver:
+lemma (in rga) allowed_delete_deliver:
   assumes "(i, Deliver, Delete x) \<in> set (carriers i)"
   shows "\<exists>n' v b. (i, Deliver, Insert (x, v, b) n') \<sqsubset>\<^sup>i (i, Deliver, Delete x)"
 using assms apply -
@@ -142,50 +40,7 @@ using assms apply -
   apply force
 done
 
-lemma (in example) delete_is_not_prefix:
-  shows "\<not> ([(i, Deliver, Delete n)] prefix of i)"
-  apply (clarsimp simp: prefix_of_carrier_def)
-  apply(subgoal_tac "(i, Deliver, Delete n) \<in> set (carriers i)")
-  apply(drule allowed_delete_deliver)
-  apply clarsimp
-  using carriers_head_lt apply force
-by (metis list.set_intros(1))
-
-lemma (in example)
-  shows "set xs \<subseteq> set (carriers i) \<Longrightarrow> (i, Deliver, Insert (n, v, b) n') \<in> set xs \<Longrightarrow> n \<in> fst ` set (apply_operations xs)"
-apply (induct xs rule: rev_induct)
-apply clarsimp
-apply clarsimp
-apply (erule disjE)
-apply clarsimp
-defer
-apply clarsimp
-oops
-
-lemma (in example) delete_donot_fail:
-  assumes "(xs @ [(i, Deliver, Delete n)]) prefix of i"
-  shows   "n \<in> set (map fst (apply_operations xs))"
-using assms
-apply (subgoal_tac "(i, Deliver, Delete n) \<in> set (carriers i)")
-apply (drule allowed_delete_deliver)
-apply clarsimp
-apply (drule local_order_prefix_closed)
-apply assumption
-apply clarsimp
-apply clarsimp
-apply (erule disjE)
-defer
-
-apply (induct xs rule: rev_induct)
-apply clarsimp
-using delete_is_not_prefix apply simp
-apply clarsimp
-apply (clarsimp simp: Delete_def)
-oops
-
-
-  
-lemma (in example) allowed_insert_deliver:
+lemma (in rga) allowed_insert_deliver:
   assumes "(i, Deliver, Insert e n) \<in> set (carriers i)"
   shows   "n = None \<or> (\<exists>n' n'' v b. n = Some n' \<and> (i, Deliver, Insert (n', v, b) n'') \<sqsubset>\<^sup>i (i, Deliver, Insert e n))"
 using assms
@@ -205,7 +60,7 @@ using assms
   apply force
 done
 
-lemma (in example) insert_no_failure_lift:
+lemma (in rga) allowed_insert_deliver_in_set:
   assumes "(es@[(i, Deliver, Insert e m)]) prefix of i"
   shows   "m = None \<or> (\<exists>m' n v b. m = Some m' \<and> (i, Deliver, Insert (m', v, b) n) \<in> set es)"
 using assms
@@ -220,17 +75,149 @@ using assms
   apply force
 done
 
-lemma (in example)
-  shows "es @ [(i, Deliver, Insert e n)] prefix of i \<Longrightarrow>
-    xs = apply_operations es \<Longrightarrow> \<exists>ys. Ordered_List.insert xs e n = Some ys"
-  apply(drule insert_no_failure_lift)
-  apply clarsimp
-  apply(erule disjE)
-  apply clarsimp
-  apply clarsimp
-  apply
+lemma (in rga) allowed_insert_Some_deliver:
+  assumes "(es@[(i, Deliver, Insert e (Some m))]) prefix of i"
+  shows   "\<exists>n v b. (i, Deliver, Insert (m, v, b) n) \<in> set es"
+  using assms allowed_insert_deliver_in_set[where es=es and i=i and e=e and m="Some m"] by force
 
-lemma (in example) 
+lemma (in rga) delete_is_not_first_msg:
+  shows "\<not> ([(i, Deliver, Delete n)] prefix of i)"
+  apply (clarsimp simp: prefix_of_carrier_def)
+  apply(subgoal_tac "(i, Deliver, Delete n) \<in> set (carriers i)")
+  apply(drule allowed_delete_deliver)
+  apply clarsimp
+  using carriers_head_lt apply force
+  apply (metis list.set_intros(1))
+done
+
+lemma (in rga) insert_Some_is_not_first_msg:
+  shows "\<not> ([(i, Deliver, Insert e (Some n))] prefix of i)"
+  by (clarsimp, insert allowed_insert_deliver_in_set[where es="[]" and i=i and e=e and m="Some n"], force)
+
+definition (in rga) apply_operations :: "('a, 'b) operation event list \<Rightarrow> ('a, 'b) elt list" where
+  "apply_operations es \<equiv> (fold (op \<circ>) (map interpret_opers (node_deliver_messages es)) id) []"
+
+lemma (in rga) apply_operations_empty[simp]: "apply_operations [] = []"
+  by (auto simp: apply_operations_def)
+
+lemma (in rga) apply_operations_Broadcast [simp]: "apply_operations (xs @ [(i, Broadcast, m)]) = apply_operations xs"
+  by (auto simp: apply_operations_def node_deliver_messages_def)
+
+lemma (in rga) apply_operations_Deliver [simp]: "apply_operations (xs @ [(i, Deliver, m)]) = interpret_opers m (apply_operations xs)"
+  by (auto simp: apply_operations_def node_deliver_messages_def)
+
+lemma (in rga) insert_same_set:
+  assumes "es @ es' @ [(i, Deliver, Insert e (Some a))] prefix of i"
+          "(i, Deliver, Insert (a, v, b) n) \<in> set es"
+  shows   "\<exists>v b. (a, v, b) \<in> set (apply_operations es)"
+using assms
+apply (induct es arbitrary: es' e a rule: rev_induct)
+apply clarsimp
+apply clarsimp
+apply (case_tac aa)
+apply clarsimp
+apply (erule_tac x="(a, Broadcast, ba) # es'" in meta_allE)
+apply clarsimp
+apply clarsimp
+
+apply (case_tac ba)
+apply clarsimp
+
+apply (case_tac x12)
+apply clarsimp
+defer
+
+apply clarsimp
+apply (erule disjE)
+defer
+apply (erule_tac x="[]" in meta_allE)
+apply (erule_tac x="aa" in meta_allE)
+apply (erule_tac x="ae" in meta_allE)
+apply (erule_tac x="bb" in meta_allE)
+apply (erule_tac x="af" in meta_allE)
+apply clarsimp
+apply (subgoal_tac "a=i")
+prefer 2
+apply (rule prefix_consistent, assumption, force)
+apply clarsimp
+apply (subgoal_tac "xs @ [(i, Deliver, Insert (aa, ae, bb) (Some af))] prefix of i")
+apply clarsimp
+prefer 2
+  apply (rule prefix_of_appendD)
+  apply fastforce
+
+sorry
+
+
+lemma (in rga)
+  assumes "es @ [(i, Deliver, Insert e n)] prefix of i"
+  shows "\<exists>ys. Ordered_List.insert (apply_operations es) e n = Some ys"
+using assms apply -
+apply (frule allowed_insert_deliver_in_set)
+apply (case_tac n)
+apply clarsimp
+apply clarsimp
+apply (rule insert_no_failure)
+apply clarsimp
+using insert_same_set apply metis
+done
+
+lemma (in rga)
+  assumes "es @ es' @ [(i, Deliver, Insert e n)] prefix of i"
+          "\<forall>m. n = Some m \<longrightarrow> (\<forall>n v b. (i, Deliver, Insert (m, v, b) n) \<notin> set es')"
+  shows "\<exists>ys. Ordered_List.insert (apply_operations es) e n = Some ys \<and> e \<in> set ys"
+using assms
+  apply (induct es arbitrary: es' e n rule: rev_induct)
+  apply (case_tac n)
+    apply force
+    apply clarsimp
+    apply (clarsimp dest!: allowed_insert_Some_deliver)
+
+  apply clarsimp
+  apply (case_tac aa)
+    apply clarsimp
+    apply (erule_tac x="(a, Broadcast, b) # es'" in meta_allE)
+    apply clarsimp
+
+  apply clarsimp
+  apply (subgoal_tac "a=i")
+  prefer 2
+  apply (rule prefix_consistent, assumption, force)
+
+  apply clarsimp
+  apply (case_tac b)
+  apply clarsimp
+    apply (erule_tac x="[]" in meta_allE)
+    apply (erule_tac x="a" in meta_allE)
+    apply (erule_tac x="aa" in meta_allE)
+    apply (erule_tac x="bb" in meta_allE)
+    apply (erule_tac x="x12" in meta_allE)
+    apply clarsimp
+    apply (subgoal_tac "xs @ [(i, Deliver, Insert (a, aa, bb) x12)] prefix of i")
+prefer 2
+    apply (rule prefix_of_appendD)
+    apply fastforce
+
+    apply clarsimp
+
+    apply (case_tac n)
+    apply clarsimp
+    using el_inserted apply force
+    apply clarsimp
+    apply (insert insert_no_failure)
+    apply (erule_tac x="Some ad" in meta_allE)
+    apply (erule_tac x="ys" in meta_allE)
+    apply (erule_tac x="(ab, ac, ba)" in meta_allE)
+    apply clarsimp
+    apply (subgoal_tac "\<exists>v b. (ad, v, b) \<in> set ys")
+    prefer 2
+
+
+    
+    
+
+
+lemma (in rga) 
   assumes "fst e1 = fst e2"
           "(i, Broadcast, Insert e1 n1) \<in> set (carriers i)"
           "(j, Broadcast, Insert e2 n2) \<in> set (carriers j)"
@@ -242,7 +229,7 @@ lemma (in example)
   by (metis insert_flag snd_conv insert_id_unique)
 
 
-lemma (in example) insert_id_unique_node:
+lemma (in rga) insert_id_unique_node:
   assumes "fst e1 = fst e2" 
           "(i, Broadcast, Insert e1 n1) \<in> set (carriers i)"
           "(j, Broadcast, Insert e2 n2) \<in> set (carriers j)"
@@ -251,7 +238,7 @@ lemma (in example) insert_id_unique_node:
   by (smt insert_flag prod.collapse)
 
 
-lemma (in example) insert_commute_assms:
+lemma (in rga) insert_commute_assms:
   assumes "{(i, Deliver, Insert e n), (i, Deliver, Insert e' n')} \<subseteq> set (carriers i)"
      and  "hb.concurrent (Insert e n) (Insert e' n')"
  shows    "n = None \<or> n \<noteq> Some (fst e')"
@@ -269,9 +256,9 @@ apply clarsimp
 apply (subgoal_tac "(j, Deliver, Insert (a, v, ba) n'') = (j, Deliver, Insert (a, b, c) n')")
 apply clarsimp
 using insert_id_unique 
-by (smt delivery_has_a_cause example.insert_flag example_axioms insert_subset local_order_carrier_closed prod.sel(2))
+by (smt delivery_has_a_cause rga.insert_flag rga_axioms insert_subset local_order_carrier_closed prod.sel(2))
 
-lemma (in example)
+lemma (in rga)
   assumes "(i, Deliver, Insert e n) \<in> set (carriers i)"
  shows    "n = None \<or> n \<noteq> Some (fst e)"
 using assms
@@ -293,7 +280,7 @@ apply assumption+
 oops
 
 
-lemma (in example)
+lemma (in rga)
   assumes "{(i, Deliver, Insert e n), (i, Deliver, Delete n')} \<subseteq> set (carriers i)"
      and  "hb.concurrent (Insert e n) (Delete n')"
  shows    "n' \<noteq> fst e"
@@ -312,7 +299,7 @@ apply (case_tac e)
 apply clarsimp
 apply (subgoal_tac "j = ja")
 apply clarsimp
-apply (smt delivery_has_a_cause example.insert_flag example_axioms insert_id_unique insert_subset local_order_carrier_closed prod.sel(2))
+apply (smt delivery_has_a_cause rga.insert_flag rga_axioms insert_id_unique insert_subset local_order_carrier_closed prod.sel(2))
 using insert_id_unique_node
 by (smt delivery_has_a_cause insert_flag insert_id_unique insert_subset local_order_carrier_closed prod.sel(2))
 
@@ -323,7 +310,7 @@ lemma prefix_set_mem:
   shows   "x \<in> set zs"
 using assms by auto
 
-lemma (in example) apply_operations_singleton:
+lemma (in rga) apply_operations_singleton:
   assumes "es = apply_operations [oper]"
           "oper#ys = carriers i"
   shows   "\<exists>j e m. oper = (i, e, Insert j m) \<and> (e = Broadcast \<longrightarrow> es = []) \<and> (e = Deliver \<longrightarrow> es = [j])"
@@ -367,16 +354,16 @@ prefer 3
   apply (metis list.set_intros(1))+
 done
 
-lemma (in example) apply_operations_singleton_Broadcast:
+lemma (in rga) apply_operations_singleton_Broadcast:
   shows "apply_operations (xs @ [(i, Broadcast, f)]) = apply_operations xs"
 by(clarsimp simp add: apply_operations_def ordered_node_operations_def)
 
-lemma (in example) apply_operations_singleton_Deliver:
+lemma (in rga) apply_operations_singleton_Deliver:
   shows "apply_operations (xs @ [(i, Deliver, f)]) = f (apply_operations xs)"
   apply(clarsimp simp add: apply_operations_def ordered_node_operations_def)
 done
 
-lemma (in example) insert_no_failure_lift:
+lemma (in rga) insert_no_failure_lift:
   assumes "(es@es'@[(i, Deliver, Insert e m)]) prefix of i"
           "\<not> (\<exists>n' n'' v b. m = Some n' \<and> (i, Deliver, Insert (n', v, b) n'') \<in> set es')"
   shows   "m = None \<or> (\<exists>m'. m = Some m' \<and> m' \<in> fst ` set (apply_operations es))"
@@ -430,7 +417,7 @@ prefer 2
   apply clarsimp
 oops
 
-lemma (in example)
+lemma (in rga)
   shows "es @ es' @ [(i, Deliver, Insert e (Some m'))] prefix of i \<Longrightarrow> 
     (i, Deliver, Insert (m', v, b) n) \<in> set es \<Longrightarrow> m' \<in> fst ` set (apply_operations es)"
   apply(induction es arbitrary: es' rule: rev_induct)
@@ -443,7 +430,7 @@ lemma (in example)
   apply(subst apply_operations_singleton_Deliver)
   apply(subst Insert_def)
 
-lemma (in example) ordered_node_operations_distinct:
+lemma (in rga) ordered_node_operations_distinct:
   assumes "xs prefix of i"
   shows "distinct (ordered_node_operations xs)"
 using assms
@@ -473,7 +460,7 @@ using assms
   apply force
 done
 
-lemma (in example)
+lemma (in rga)
   assumes "\<exists>v b. (m, v, b) \<in> set (apply_operations xs)"
   shows "map fst (Delete m (apply_operations xs)) = map fst (apply_operations xs)"
 using assms
@@ -484,7 +471,7 @@ using assms
   apply(unfold Delete_def)
 oops
 
-lemma (in example) deliver_delete_neq_head:
+lemma (in rga) deliver_delete_neq_head:
   shows "carriers i \<noteq> (i, Deliver, Delete e)#ys"
   apply clarsimp
   apply(subgoal_tac "(i, Deliver, Delete e) \<in> set (carriers i)")
@@ -504,14 +491,14 @@ lemma (in example) deliver_delete_neq_head:
   apply force
 done
 
-lemma (in example)
+lemma (in rga)
   "apply_operations (xs @ [(i, m, f)]) = apply_operations xs \<or> apply_operations (xs @ [(i, m, f)]) = f (apply_operations xs)"
   by (case_tac m) (auto simp: apply_operations_singleton_Broadcast apply_operations_singleton_Deliver)
 
-lemma (in example) [simp]: "apply_operations [] = []"
+lemma (in rga) [simp]: "apply_operations [] = []"
   by (auto simp: apply_operations_def)
 
-lemma (in example) 
+lemma (in rga) 
   assumes "xs prefix of i"
   shows "(apply_operations xs) = [] \<longleftrightarrow> (xs = [] \<or> (\<forall>i m f. (i, m, f) \<in> set xs \<longrightarrow> m = Broadcast))"
   using assms apply -
@@ -533,7 +520,7 @@ lemma (in example)
   apply clarsimp
 oops
 
-lemma (in example)
+lemma (in rga)
   assumes "es@[(i, Deliver, Insert e n)] prefix of i"
           "xs = apply_operations es"
   shows   "\<exists>ys zs. Insert e n xs = ys@[e]@zs \<and> xs = ys@zs"
@@ -548,7 +535,7 @@ using assms
   apply(erule disjE, clarsimp)
   apply clarsimp
 
-lemma (in example)
+lemma (in rga)
   shows "es prefix of i \<Longrightarrow>
          distinct (map fst (apply_operations es))"
   apply(induction es rule: rev_induct)
@@ -564,7 +551,7 @@ lemma (in example)
 defer
   apply(clarsimp simp add: apply_operations_singleton_Deliver)
 
-lemma (in example) delete_no_failure_technical:
+lemma (in rga) delete_no_failure_technical:
   assumes "es @ es' @ [(i, Deliver, Delete n)] prefix of i" "\<forall>v b n'. (i, Deliver, Insert (n, v, b) n') \<notin> set es'"
   shows   "delete (apply_operations es) n = Some ys"
 using assms
@@ -607,17 +594,17 @@ apply (clarsimp simp: Delete_def)
 
 oops
 
-lemma (in example) delete_no_failure:
+lemma (in rga) delete_no_failure:
   assumes "es @ [(i, Deliver, Delete n)] prefix of i"
   shows   "\<exists>ys. delete (apply_operations es) n = Some ys"
 using assms delete_no_failure_technical[where es'="[]"] by force
 
-lemma (in example) insert_no_failure:
+lemma (in rga) insert_no_failure:
   assumes "es @ [(i, Deliver, Insert e n)] prefix of i"
   shows   "\<exists>ys. insert (apply_operations es) e n = Some ys"
 oops
 
-lemma (in example) id_preserve_by_delete:
+lemma (in rga) id_preserve_by_delete:
   assumes "xs @ [(i, Deliver, Delete n)] prefix of i"
   shows   "map fst (Delete n (apply_operations xs)) = map fst (apply_operations xs)"
   using assms
@@ -628,7 +615,7 @@ lemma (in example) id_preserve_by_delete:
   apply force
 done
 
-lemma (in example) id_preserve_by_insert:
+lemma (in rga) id_preserve_by_insert:
   assumes "xs @ [(i, Deliver, Insert e n)] prefix of i"
   shows   "set (map fst (Insert e n (apply_operations xs))) = set (map fst (apply_operations xs)) \<union> {fst e}"
   using assms
@@ -637,7 +624,7 @@ lemma (in example) id_preserve_by_insert:
   apply (rule insert_no_failure)
   
   
-lemma (in example)
+lemma (in rga)
   assumes "xs prefix of i" "x \<in> set (map fst (apply_operations xs))"
   shows   "x \<in> set (map fst (Insert e n (apply_operations xs)))"
 using assms
@@ -672,7 +659,7 @@ using assms
   
 oops
 
-lemma (in example)
+lemma (in rga)
   "es prefix of i \<Longrightarrow> Insert e n \<in> set (ordered_node_operations es) \<Longrightarrow> \<exists>v b. (fst e, v, b) \<in> set (apply_operations es)"
 apply (induct es rule: rev_induct)
 apply clarsimp
@@ -685,7 +672,7 @@ apply clarsimp
 find_theorems "apply_operations (?xs @ [(?a, ?aa, ?b)])"
 oops
 
-lemma (in example)
+lemma (in rga)
   assumes "\<exists>ys. xs@(i, Deliver, Delete e)#ys = carriers i"
   shows   "\<exists>v b. (e, v, b) \<in> set (apply_operations xs)"
 using assms
@@ -702,7 +689,7 @@ oops
   using deliver_delete_neq_head
 *)
 
-lemma (in example) Insert_Insert_commute:
+lemma (in rga) Insert_Insert_commute:
   assumes "es prefix of i"
           "{Insert e n, Insert e' n'} \<subseteq> set (ordered_node_operations es)"
           "hb.concurrent (Insert e n) (Insert e' n')"
@@ -758,7 +745,7 @@ apply simp
 defer
 oops
 
-corollary (in example) hb_consistent_prefix:
+corollary (in rga) hb_consistent_prefix:
   assumes "xs prefix of i"
   shows   "hb.hb_consistent (ordered_node_operations xs)"
 using assms
@@ -781,15 +768,15 @@ apply (metis Cons_eq_appendI append_assoc)
 apply force
 done
 
-lemma (in example) Delete_Delete_commute:
+lemma (in rga) Delete_Delete_commute:
   shows "Delete xa \<circ> Delete xb = Delete xb \<circ> Delete xa"
 oops
 
-lemma (in example) Delete_Insert_commute:
+lemma (in rga) Delete_Insert_commute:
   shows "Delete xa \<circ> Insert x ya = Insert x ya \<circ> Delete xa"
 oops
 
-lemma (in example) concurrent_operations_commute:
+lemma (in rga) concurrent_operations_commute:
   assumes "xs prefix of i"
   shows "hb.concurrent_elems_commute (ordered_node_operations xs)"
 using assms
@@ -805,7 +792,7 @@ using assms
   using Insert_Insert_commute apply blast
 done
 
-lemma (in example)
+lemma (in rga)
   assumes "distinct (map fst xs)"
   shows   "distinct (map fst ((Delete n) xs)) \<or> xs = []"
 using assms
@@ -822,7 +809,7 @@ apply clarsimp
 apply (clarsimp simp: Delete_def)
 oops
 
-corollary (in example) main_result_of_paper:
+corollary (in rga) main_result_of_paper:
   assumes "set (ordered_node_operations xs) = set (ordered_node_operations ys)"
           "xs prefix of i"
           "ys prefix of j"

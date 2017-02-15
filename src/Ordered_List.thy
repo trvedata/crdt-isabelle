@@ -1,7 +1,6 @@
 theory
   Ordered_List
 imports
-  Main
   "~~/src/HOL/Library/Monad_Syntax"
 begin
 
@@ -85,6 +84,11 @@ using assms
     apply clarsimp
     apply(force simp add: insert_body_commutes)
   done
+
+lemma el_inserted: "e \<in> set (insert_body xs e)"
+  apply (induct xs arbitrary: e)
+  apply auto
+done
 
 lemma insert_no_failure:
   assumes "i = None \<or> (\<exists>i'. i = Some i' \<and> (\<exists>v b. (i', v, b) \<in> set xs))"
