@@ -118,7 +118,14 @@ lemma insert_Some_not_empty: "insert xs e (Some i) \<noteq> Some []"
   apply clarsimp
 done
 
-lemma insert_body_preserve_element:
+lemma insert_body_preserve_element [simp]:
+  shows  "fst ` set (insert_body xs e) = fst ` set xs \<union> {fst e}"
+  apply (induct xs)
+  apply clarsimp
+  apply clarsimp
+  by (simp add: insert_commute)
+
+lemma insert_body_preserve_element2:
   shows  "set (map fst xs) \<union> {fst e} = set (map fst (insert_body xs e))"
   apply (induct xs)
   apply clarsimp
@@ -126,6 +133,31 @@ lemma insert_body_preserve_element:
   by (simp add: insert_commute)
 
 lemma insert_preserve_element:
+  assumes "\<exists>ys. insert xs e i = Some ys"
+  shows   "fst ` set (the (insert xs e i)) = fst ` set xs \<union> {fst e}"
+using assms
+  apply (induct xs)
+  apply clarsimp
+    apply (cases i)
+    apply clarsimp
+    apply clarsimp
+  apply clarsimp
+  apply (cases i)
+    apply clarsimp
+    apply (simp add: insert_commute)
+    apply clarsimp
+    apply (case_tac "a=ab")
+    apply clarsimp
+    using insert_body_preserve_element
+    apply (metis Un_commute Un_insert_left insert_is_Un list.set_map)
+    apply clarsimp
+    apply (case_tac "insert xs e (Some ab)")
+      apply clarsimp
+      apply clarsimp
+      apply (simp add: insert_commute)
+done
+
+lemma insert_preserve_element2:
   assumes "\<exists>ys. insert xs e i = Some ys"
   shows   "set (map fst (the (insert xs e i))) = set (map fst xs) \<union> {fst e}"
 using assms
@@ -311,6 +343,17 @@ fun delete :: "('id::{linorder}, 'v) elt list \<Rightarrow> 'id \<rightharpoonup
            })"
 
 lemma delete_element_preserve:
+  assumes "delete xs i = Some ys"
+  shows   "fst ` set xs = fst `set ys"
+using assms
+  apply(induction xs arbitrary: ys)
+  apply simp
+  apply(case_tac a; clarsimp)
+  apply(case_tac "aaa=i"; clarsimp)
+  apply(case_tac "delete xs i"; clarsimp)
+done
+
+lemma delete_element_preserve2:
   assumes "delete xs i = Some ys"
   shows   "map fst xs = map fst ys"
 using assms

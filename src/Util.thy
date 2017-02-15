@@ -230,4 +230,10 @@ apply clarsimp
 apply force
 done
 
+lemma prefix_set_mem:
+  assumes "xs@ys = zs"
+          "x \<in> set ys"
+  shows   "x \<in> set zs"
+using assms by auto
+
 end
