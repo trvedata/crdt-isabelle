@@ -39,7 +39,7 @@ inductive (in happens_before) concurrent_elems_commute :: "'a list \<Rightarrow>
   [intro!]: "concurrent_elems_commute []" |
   [intro]: "\<lbrakk> concurrent_elems_commute ops;
      \<forall>x \<in> set ops. concurrent x y \<longrightarrow> (\<exists>ops1 ops2 s. ops = ops1@x#ops2 \<and>
-     s = fold (op \<circ>) (map interp ops1) id initial_state \<and>
+     s = fold (op \<circ>) (map interp (ops1)) id initial_state \<and>
      (\<langle>x\<rangle> \<circ> \<langle>y\<rangle>) s = (\<langle>y\<rangle> \<circ> \<langle>x\<rangle>) s)
    \<rbrakk> \<Longrightarrow> concurrent_elems_commute (ops@[y])"
 
@@ -56,7 +56,6 @@ inductive (in happens_before) concurrent_elems_commute :: "'a list \<Rightarrow>
 
 inductive_cases (in happens_before) concurrent_elems_commute_elim [elim]:
   "concurrent_elems_commute []"
-  "concurrent_elems_commute [x]"
   "concurrent_elems_commute (xs@[x])"
   "concurrent_elems_commute xs"
 
@@ -253,21 +252,218 @@ lemma (in happens_before) " concurrent x x"
 
 by simp
 
-lemma (in happens_before) foo:
-  shows "concurrent_elems_commute ops \<Longrightarrow>
-    concurrent_set x suffix \<Longrightarrow>
-    set (xs @ [x]) = set (prefix @ x # suffix) \<Longrightarrow>
-    ops = xs @ [x] \<Longrightarrow>
-    distinct (xs @ [x]) \<Longrightarrow>
-    distinct (prefix @ x # suffix) \<Longrightarrow> hb_consistent (xs @ [x]) \<Longrightarrow> hb_consistent(prefix @ x # suffix) \<Longrightarrow>
-    fold op \<circ> (map interp (prefix @ suffix @ [x])) id initial_state = fold op \<circ> (map interp (prefix @ x # suffix)) id initial_state"
+lemma (in happens_before) concurrent_elems_commute_append_D [dest]:
+  assumes "concurrent_elems_commute (xs@[x])"
+  shows   "concurrent_elems_commute xs"
 using assms
-  apply(induction arbitrary: prefix suffix x xs rule: concurrent_elems_commute.induct)
+  apply -
+  apply(erule concurrent_elems_commute_elim)
+  apply force
+done
+
+lemma "concurrent_elems_commute (xs @[x]) \<Longrightarrow> concurrent_elems_commute (xs)"
+oops
+
+lemma (in happens_before) concurrent_elems_commute_singleton [intro!]: "concurrent_elems_commute [x]"
+sorry
+
+lemma (in happens_before) "concurrent_elems_commute (xs@[a,b]) \<Longrightarrow> concurrent a b \<Longrightarrow> concurrent_elems_commute (xs@[b,a])"
+apply (induct xs rule: rev_induct)
+apply clarsimp
+apply (erule concurrent_elems_commute_elim)
+apply clarsimp
+apply clarsimp
+apply (subgoal_tac "ops1 = [] \<and> ops2 = []")
+apply clarify
+apply (subgoal_tac "fold op \<circ> (map interp []) id initial_state = initial_state")
+apply simp
+apply (subgoal_tac "concurrent_elems_commute ([b]@[a])")
+apply force
+apply (rule concurrent_elems_commute.intros)
+apply force
+apply clarsimp
+apply (rule_tac x="[]" in exI)
+apply clarsimp
+apply clarsimp
+apply (metis Nil_is_append_conv butlast.simps(2) butlast_append list.distinct(1))
+apply clarsimp
+apply (erule concurrent_elems_commute_elim)
+apply force
+apply clarsimp
+apply (subgoal_tac "ops1 = xs @ [x]  \<and> ops2 = []")
+apply clarify
+apply (erule_tac x=a in ballE)
+apply (erule impE) back
+apply force
+apply (erule exE)
+apply (erule conjE)+
+apply (erule exE)
+
+apply (thin_tac "xs @ [x, a] = (xs @ [x]) @ [a]")
+apply (subgoal_tac "concurrent_elems_commute ((xs @ [x, b]) @ [a])")
+apply simp
+apply (rule concurrent_elems_commute.intros)
+apply clarsimp
+oops
+
+
+oops
+
+lemma (in happens_before) goo:
+shows "concurrent_elems_commute (prefix @ xs @ [xa, x]) \<Longrightarrow>
+             hb_consistent (prefix @ x # xs @ [xa]) \<Longrightarrow>
+             distinct (prefix @ x # xs @ [xa]) \<Longrightarrow>
+             concurrent_set x xs \<Longrightarrow>
+             concurrent x xa \<Longrightarrow> concurrent_elems_commute (prefix @ xs @ [x])"
+apply (erule concurrent_elems_commute_elim)
+apply force
+apply clarsimp
+  apply (subgoal_tac "prefix@xs = ops1 \<and> [] = ops2")
+prefer 2
+apply (rule_tac ys="[xa]" and xs = "ops1 @ xa # ops2" in pre_suf_eq_distinct_list)
+prefer 3
+apply force
+apply (subgoal_tac "distinct (prefix @ xs @ [xa])")
+apply force
+apply (thin_tac "prefix @ xs @ [xa] = ops1 @ xa # ops2")
+apply clarsimp
+apply clarsimp
+apply clarsimp
+apply clarsimp
+
+sorry
+
+
+lemma (in happens_before) foo:
+  shows "concurrent_elems_commute (prefix@suffix@[x]) \<Longrightarrow>
+    concurrent_set x suffix \<Longrightarrow> 
+    distinct (prefix @ x # suffix) \<Longrightarrow>
+    hb_consistent(prefix @ x # suffix) \<Longrightarrow>
+    fold op \<circ> (map interp (prefix @ suffix @ [x])) id initial_state =
+    fold op \<circ> (map interp (prefix @ x # suffix)) id initial_state"
+using assms
+  apply(induction suffix arbitrary: rule: rev_induct)
+  apply clarsimp
+  apply clarsimp
+  apply (subgoal_tac "concurrent_elems_commute (prefix @ xs @ [x]) \<and>
+                    x \<notin> set xs \<and> x \<notin> set prefix \<and>
+                    hb_consistent (prefix @ x # xs)")
+apply clarsimp
+  apply (subgoal_tac "(\<langle>x\<rangle>) ((\<langle>xa\<rangle>) (fold op \<circ> (map interp xs) (fold op \<circ> (map interp prefix) id) initial_state)) = (\<langle>xa\<rangle>) ((\<langle>x\<rangle>) (fold op \<circ> (map interp xs) (fold op \<circ> (map interp prefix) id) initial_state))")
+apply force
+  apply(subgoal_tac "concurrent_elems_commute (prefix @ (xs @ [xa]) @ [x])")
+  apply(erule concurrent_elems_commute_elim)
+  apply force
+  apply (erule_tac x=xa in ballE)
+  apply(subgoal_tac "x = y \<and> ops = prefix @ xs @ [xa]")
+  apply clarsimp
+  apply (subgoal_tac "prefix@xs = ops1 \<and> [] = ops2")
+apply clarify
+apply (metis comp_apply fold_append map_append)
+apply (rule_tac ys="[xa]" and xs = "ops1 @ xa # ops2" in pre_suf_eq_distinct_list)
+prefer 3
+apply force
+apply (subgoal_tac "distinct (prefix @ xs @ [xa])")
+apply force
+apply (thin_tac "prefix @ xs @ [xa] = ops1 @ xa # ops2")
+apply clarsimp
+apply clarsimp
+apply clarsimp
+apply clarsimp
+apply clarsimp
+apply clarsimp
+apply (rule conjI)
+defer
+apply (rule conjI)
+apply force
+apply (rule conjI)
+apply force
+
+apply (metis append_Cons hb_consistent_elim(4))
+apply (rule goo, auto)
+done
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  apply(erule_tac x="x" in meta_allE)
+  apply(subst (asm) append_assoc[symmetric])
+  apply(frule concurrent_elems_commute_append_D)
+  apply clarsimp  
+
+
+lemma (in happens_before) foo:
+  shows "concurrent_elems_commute (prefix@suffix@[x]) \<Longrightarrow>
+    concurrent_set x suffix \<Longrightarrow>
+    distinct (prefix @ x # suffix) \<Longrightarrow>
+    hb_consistent(prefix @ x # suffix) \<Longrightarrow>
+    fold op \<circ> (map interp (prefix @ suffix @ [x])) id initial_state =
+    fold op \<circ> (map interp (prefix @ x # suffix)) id initial_state"
+using assms
+  apply(induction suffix arbitrary: x rule: rev_induct)
+  apply clarsimp
+  apply clarsimp
+  apply(subgoal_tac "concurrent_elems_commute (prefix @ (xs @ [x]) @ [xa])")
+  apply(erule concurrent_elems_commute_elim)
+  apply force
+  apply(subgoal_tac "x = y \<and> ops = prefix @ xs @ [xa]")
+  apply clarsimp
+  apply(erule_tac x="x" in meta_allE)
+  apply(subst (asm) append_assoc[symmetric])
+  apply(frule concurrent_elems_commute_append_D)
+  apply clarsimp  
+
+
+
+
+
+
+
+
+  apply(induction suf1 arbitrary: suf2 rule: rev_induct)
+  apply clarsimp
+  apply clarsimp
+  apply(erule_tac x="xa#suf2" in meta_allE)
+  apply clarsimp
+  apply(subgoal_tac "concurrent x xa")
+  apply(erule concurrent_elems_commute_elim)
+  apply clarsimp
+  apply(subgoal_tac "xa \<in> set xs")
+  apply(erule_tac x=xa in ballE)
+  apply clarsimp
+
+
+
+  apply(induction arbitrary: prefix suffix rule: concurrent_elems_commute.induct)
+  apply clarsimp
   apply clarsimp
 
 apply (subgoal_tac "y = x \<and> ops = xs")
 prefer 2
+
 apply simp
+apply(subgoal_tac "ops = prefix@suffix")
+apply clarsimp
+apply(erule_tac x="prefix" in meta_allE)
+apply(erule_tac x="suffix" in meta_allE)
+apply(erule_tac x=x in meta_allE)
+
+
+
+
 apply (subgoal_tac "ops = [] \<or> (\<exists>ox os. ops = os @ [ox])")
 apply (erule disjE)
 apply clarsimp
@@ -279,10 +475,11 @@ apply (erule exE)+
 apply (subgoal_tac "ox \<in> set prefix \<or> ox \<in> set suffix")
 apply (erule disjE)
 
-apply (erule_tac x="prefix" in meta_allE)
+apply (erule_tac x="remove1 ox prefix" in meta_allE)
 apply (erule_tac x=suffix in meta_allE)
 apply (erule_tac x=x in meta_allE)
-apply (erule_tac x=xs in meta_allE)
+apply (erule_tac x="os@[ox]" in meta_allE)
+apply clarsimp
 
 
 
