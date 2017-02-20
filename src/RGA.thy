@@ -361,7 +361,7 @@ lemma (in rga) Insert_Insert_commute:
   assumes "es prefix of i"
           "{Insert e n, Insert e' n'} \<subseteq> set (node_deliver_messages es)"
           "hb.concurrent (Insert e n) (Insert e' n')"
-  shows   "\<langle>Insert e n\<rangle> \<circ> \<langle>Insert e' n'\<rangle> = \<langle>Insert e' n'\<rangle> \<circ> \<langle>Insert e n\<rangle>"
+  shows   "(\<langle>Insert e n\<rangle> \<circ> \<langle>Insert e' n'\<rangle>) x = (\<langle>Insert e' n'\<rangle> \<circ> \<langle>Insert e n\<rangle>) x"
 using assms
 apply clarsimp
 apply (rule ext)
@@ -448,7 +448,9 @@ lemma (in rga) concurrent_operations_commute:
   shows "hb.concurrent_elems_commute (node_deliver_messages xs)"
 using assms
   apply (auto simp: hb.concurrent_elems_commute_def)
-  apply (frule_tac i=i in prefix_opers_option[rotated])
+  apply(case_tac x; case_tac y; clarsimp)
+find_theorems name: prefix
+  apply (frule_tac i=i in prefix_msgs_option[rotated])
   apply clarsimp
   apply (frule_tac i=i in prefix_opers_option[rotated]) back
   apply clarsimp
@@ -477,10 +479,11 @@ apply (clarsimp simp: Delete_def)
 oops
 
 corollary (in rga) main_result_of_paper:
-  assumes "set (ordered_node_operations xs) = set (ordered_node_operations ys)"
+  assumes "set (node_deliver_messages xs) = set (node_deliver_messages ys)"
           "xs prefix of i"
           "ys prefix of j"
   shows  "apply_operations xs = apply_operations ys"
-using assms by (auto simp: apply_operations_def intro: hb.convergence_point concurrent_operations_commute ordered_node_operations_distinct hb_consistent_prefix)
+using assms by (auto simp: apply_operations_def intro: hb.convergence_point
+    concurrent_operations_commute ordered_node_operations_distinct hb_consistent_prefix)
 
 end
