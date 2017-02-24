@@ -320,7 +320,7 @@ lemma (in rga) insert_commute_assms:
      and  "hb.concurrent (Insert e n) (Insert e' n')"
  shows    "n = None \<or> n \<noteq> Some (fst e')"
 using assms
-apply (clarsimp simp: hb_def)
+apply (clarsimp simp: hb_def hb.concurrent_def)
 apply (case_tac e')
 apply clarsimp
 apply (frule delivery_has_a_cause)
@@ -340,7 +340,7 @@ lemma (in rga)
      and  "hb.concurrent (Insert e n) (Delete n')"
  shows    "n' \<noteq> fst e"
 using assms
-apply (clarsimp simp: hb_def)
+apply (clarsimp simp: hb_def hb.concurrent_def)
 apply (drule delivery_has_a_cause)
 apply (drule delivery_has_a_cause)
 apply clarsimp
@@ -437,9 +437,15 @@ apply (metis Cons_eq_appendI append_assoc)
 apply force
 done
 
+lemma (in rga) "xs prefix of i \<Longrightarrow>
+       y \<in> set (node_deliver_messages xs) \<Longrightarrow>
+       hb.valid (node_deliver_messages xs) y ss \<Longrightarrow> P"
+apply (clarsimp simp: hb.valid_def)
+oops
+
 lemma (in rga) concurrent_operations_commute:
   assumes "xs prefix of i"
-  shows "hb.concurrent_elems_commute (node_deliver_messages xs)"
+  shows "hb.concurrent_ops_commute (node_deliver_messages xs)"
 using assms
 apply (induct xs rule: rev_induct)
 apply simp
@@ -449,8 +455,10 @@ apply (case_tac aa)
 apply (clarsimp simp: node_deliver_messages_append)
 apply force
 apply (clarsimp simp: node_deliver_messages_append)
-apply (rule hb.concurrent_elems_commute_SnocI)
+apply (rule hb.concurrent_ops_commute_SnocI)
 apply force
+apply (drule node_deliver_messages_distinct)
+apply (clarsimp simp: node_deliver_messages_append)
 apply clarsimp
 
 sorry
