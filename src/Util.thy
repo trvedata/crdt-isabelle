@@ -87,6 +87,9 @@ lemma pre_suf_eq_distinct_list: "distinct xs \<Longrightarrow> ys \<noteq> [] \<
   apply clarsimp
 done
 
+lemma pre_suf_eq_distinct_list2: "distinct (pre1@ys@suf1) \<Longrightarrow> ys \<noteq> [] \<Longrightarrow> pre1@ys@suf1 = pre2@ys@suf2 \<Longrightarrow> pre1 = pre2 \<and> suf1 = suf2"
+  by (rule pre_suf_eq_distinct_list, assumption, assumption, force, force)
+
 fun merge :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> 'a list" where
   "merge cmp []     ys     = ys" |
   "merge cmp xs     []     = xs" |

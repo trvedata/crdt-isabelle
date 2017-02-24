@@ -64,6 +64,12 @@ lemma (in finite_event_structure) node_deliver_messages_empty [simp]: "node_deli
 lemma (in finite_event_structure) node_deliver_messages_append: "node_deliver_messages (xs@ys) = (node_deliver_messages xs)@(node_deliver_messages ys)"
   by (clarsimp simp: node_deliver_messages_def)
 
+lemma (in finite_event_structure) node_deliver_messages_Broadcast [simp]: "node_deliver_messages ([(a, Broadcast, b)]) = []"
+  by (clarsimp simp: node_deliver_messages_def)
+
+lemma (in finite_event_structure) node_deliver_messages_Deliver [simp]: "node_deliver_messages ([(a, Deliver, b)]) = [b]"
+  by (clarsimp simp: node_deliver_messages_def)
+
 lemma (in finite_event_structure) carriers_head_lt:
   assumes "y#ys = carriers i"
   shows   "\<not>(x \<sqsubset>\<^sup>i y)"
@@ -169,6 +175,7 @@ subsection\<open>Connecting network with happens before locale.\<close>
 locale network_with_ops = network carriers
   for carriers :: "nat \<Rightarrow> (nat \<times> event_type \<times> 'a) list" +
   fixes interp :: "'a \<Rightarrow> 'b \<Rightarrow> 'b"
+  and initial_state :: 'b
 
 context network_with_ops begin
 
