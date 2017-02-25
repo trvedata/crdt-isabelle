@@ -9,18 +9,18 @@ datatype ('id, 'v) operation =
   Insert "('id, 'v) elt" "'id option" |
   Delete "'id"
 
-fun interpret_opers :: "('id::linorder, 'v) operation \<Rightarrow> ('id, 'v) elt list \<Rightarrow> ('id, 'v) elt list" ("\<langle>_\<rangle>" [100] 100) where
-  "interpret_opers (Insert e n) = (\<lambda>xs. the (insert xs e n))" |
-  "interpret_opers (Delete n)   = (\<lambda>xs. the (delete xs n))"
+fun interpret_opers :: "('id::linorder, 'v) operation \<Rightarrow> ('id, 'v) elt list option \<Rightarrow> ('id, 'v) elt list option" ("\<langle>_\<rangle>" [0] 1000) where
+  "interpret_opers _            None       = None" |
+  "interpret_opers (Insert e n) (Some xs)  = insert xs e n" |
+  "interpret_opers (Delete n)   (Some xs)  = delete xs n"
 
 (* Replicated Growable Array Network *)
-locale rga = network_with_ops _ _ _ interpret_opers "[]" +
+locale rga = network_with_ops _ _ _ interpret_opers "Some []" +
   assumes insert_flag: "(i, Broadcast, Insert e n) \<in> set (carriers i) \<Longrightarrow> snd (snd e) = False"
   assumes allowed_insert: "(i, Broadcast, Insert e n) \<in> set (carriers i) \<Longrightarrow> n = None \<or> 
                             (\<exists>n' n'' v b. n = Some n' \<and> (i, Deliver, Insert (n', v, b) n'') \<sqsubset>\<^sup>i (i, Broadcast, Insert e n))"
   assumes insert_id_unique: "id1 = id2 \<Longrightarrow> (i, Broadcast, Insert (id1, v1, b1) n1) \<in> set (carriers i) \<Longrightarrow> (j, Broadcast, Insert (id2, v2, b2) n2) \<in> set (carriers j) \<Longrightarrow> v1 = v2 \<and> n1 = n2"
   assumes allowed_delete: "(i, Broadcast, Delete x) \<in> set (carriers i) \<Longrightarrow> (\<exists>n' v b. (i, Deliver, Insert (x, v, b) n') \<sqsubset>\<^sup>i (i, Broadcast, Delete x))"
-
 
 
 lemma (in rga) allowed_delete_deliver:
@@ -109,10 +109,10 @@ lemma (in rga) insert_Some_is_not_first_msg:
   shows "\<not> ([(i, Deliver, Insert e (Some n))] prefix of i)"
   by (clarsimp, insert allowed_insert_deliver_in_set[where es="[]" and i=i and e=e and m="Some n"], force)
 
-definition (in rga) apply_operations :: "('a, 'b) operation event list \<Rightarrow> ('a, 'b) elt list" where
-  "apply_operations es \<equiv> (fold (op \<circ>) (map interpret_opers (node_deliver_messages es)) id) []"
+definition (in rga) apply_operations :: "('a, 'b) operation event list \<Rightarrow> ('a, 'b) elt list option" where
+  "apply_operations es \<equiv> (fold (op \<circ>) (map interpret_opers (node_deliver_messages es)) id) (Some [])"
 
-lemma (in rga) apply_operations_empty[simp]: "apply_operations [] = []"
+lemma (in rga) apply_operations_empty[simp]: "apply_operations [] = Some []"
   by (auto simp: apply_operations_def)
 
 lemma (in rga) apply_operations_Broadcast [simp]: "apply_operations (xs @ [(i, Broadcast, m)]) = apply_operations xs"
@@ -152,13 +152,22 @@ lemma (in rga) idx_in_elem_inserted [intro]: "(i, Deliver, Insert (m, v, b) n) \
   by (induct xs) (auto simp: index_elem_inserted_def filter_deliver_inserts_def)
 
 lemma (in rga) apply_opers_idx_elems:
-  assumes "es prefix of i"
-  shows   "fst ` set (apply_operations es) = set (index_elem_inserted (filter_deliver_inserts es))"
-using assms apply (induct es rule: rev_induct)
+  assumes "es prefix of i" "apply_operations es = Some xs"
+  shows   "fst ` set xs = set (index_elem_inserted (filter_deliver_inserts es))"
+using assms apply (induct es arbitrary: xs rule: rev_induct)
 apply clarsimp
 apply clarsimp
 apply (case_tac aa)
+apply (erule_tac x=xsa in meta_allE)
 apply force
+apply clarsimp
+apply (subgoal_tac "apply_operations xs = None \<or> (\<exists>ys. apply_operations xs = Some ys)")
+prefer 2
+apply force
+apply (erule disjE)
+apply force
+apply (erule exE)
+apply (erule_tac x=ys in meta_allE)
 apply clarsimp
 apply (case_tac b)
 apply clarsimp
@@ -169,15 +178,19 @@ apply (erule disjE)
 apply clarsimp
 apply force
 apply clarsimp
+(*
 apply (subgoal_tac "\<exists>ys. insert (apply_operations xs) (aa, ab, ba) (Some m') = Some ys")
 prefer 2
 apply (rule insert_no_failure)
 apply clarsimp
+*)
 apply (subgoal_tac "m' \<in> set (index_elem_inserted (filter_deliver_inserts xs))")
-prefer 2
+prefer 2                        
 apply force
+(*
 apply force
-apply (frule insert_preserve_element)
+*)
+apply (frule insert_preserve_element')
 apply clarsimp
 apply force
 apply (rule prefix_consistent)
@@ -188,75 +201,25 @@ apply (subgoal_tac "a=i")
 apply clarsimp
 apply (frule allowed_delete_deliver_in_set)
 apply clarsimp
+(*
 apply (subgoal_tac "\<exists>ys. delete (apply_operations xs) x2 = Some ys")
 apply clarsimp
+*)
 apply (frule delete_element_preserve)
 apply clarsimp
 apply (subgoal_tac "xs prefix of i")
 apply force
 apply force
+(*
 apply (rule delete_no_failure)
 apply force
+*)
 apply (rule prefix_consistent)
 apply assumption
 apply force
 done
 
-context rga begin
-
-lemma ioo: "i \<in> set (index_elem_inserted (filter_deliver_inserts es)) \<Longrightarrow> i \<in> set (index_elem_inserted (filter_deliver_inserts (es@es')))"
-by clarsimp
-
-
-inductive cond :: "('a, 'b) operation \<Rightarrow> ('a, 'b) operation list \<Rightarrow> bool" where
-  [intro!]: "cond (Insert e None) xs" |
-  [intro]: "xs = node_deliver_messages es \<Longrightarrow> i \<in> set (index_elem_inserted (filter_deliver_inserts es)) \<Longrightarrow> cond (Insert e (Some i)) xs" |
-  [intro]: "xs = node_deliver_messages es \<Longrightarrow> i \<in> set (index_elem_inserted (filter_deliver_inserts es)) \<Longrightarrow> cond (Delete i) xs"
-
-lemma ex_node_deliver_msg: "\<exists>es. xs = node_deliver_messages es"
-apply (induct xs)
-apply (rule_tac x="[]"in exI)
-apply force
-apply clarsimp
-apply (rule_tac x="(0, Deliver, a)#es" in exI)
-apply (auto simp: node_deliver_messages_def)
-done
-
-lemma boo: "cond x xs \<Longrightarrow> cond x (xs @ ys)"
-apply (induct rule: cond.induct)
-apply force
-apply (subgoal_tac "\<exists>es'. ys = node_deliver_messages es'")
-apply clarsimp
-apply (rule cond.intros)
-apply (rule node_deliver_messages_append[symmetric])
-apply force
-using ex_node_deliver_msg apply force
-apply (subgoal_tac "\<exists>es'. ys = node_deliver_messages es'")
-apply clarsimp
-apply (rule cond.intros)
-apply (rule node_deliver_messages_append[symmetric])
-apply force
-using ex_node_deliver_msg apply force
-done
-
-lemma "hb.hb_consistent (xs @ [x]) \<Longrightarrow> cond x xs"
-apply (erule hb.hb_consistent_elim)
-apply (simp add: hb_def)
-apply (case_tac x)
-apply (rename_tac e idx)
-apply (case_tac idx)
-apply force
-apply clarsimp
-apply (insert ex_node_deliver_msg[where xs=xs])
-apply clarsimp
-apply (rule cond.intros)
-apply force
-sorry
-
-
-
-end
-
+(*
 lemma (in rga) insert_in_apply_set:
   assumes "es @ [(i, Deliver, Insert e (Some a))] prefix of i"
           "(i, Deliver, Insert (a, v, b) n) \<in> set es"
@@ -295,7 +258,7 @@ lemma (in rga) delete_no_failure:
   apply force
   apply force
 done
-
+*)
 lemma (in rga) 
   assumes "fst e1 = fst e2"
           "(i, Broadcast, Insert e1 n1) \<in> set (carriers i)"
@@ -447,19 +410,11 @@ lemma (in rga) concurrent_operations_commute:
   assumes "xs prefix of i"
   shows "hb.concurrent_ops_commute (node_deliver_messages xs)"
 using assms
-apply (induct xs rule: rev_induct)
-apply simp
-apply force
-apply clarsimp
-apply (case_tac aa)
-apply (clarsimp simp: node_deliver_messages_append)
-apply force
-apply (clarsimp simp: node_deliver_messages_append)
-apply (rule hb.concurrent_ops_commute_SnocI)
-apply force
-apply (drule node_deliver_messages_distinct)
-apply (clarsimp simp: node_deliver_messages_append)
-apply clarsimp
+apply (clarsimp simp: hb.concurrent_ops_commute_def)
+apply (rule ext)
+apply (case_tac xa; clarsimp)
+apply (case_tac "\<langle>y\<rangle> (Some a)"; clarsimp)
+apply (case_tac "\<langle>x\<rangle> (Some a)"; clarsimp)
 
 sorry
 
@@ -470,7 +425,7 @@ corollary (in rga) main_result_of_paper:
   shows  "apply_operations xs = apply_operations ys"
 using assms 
   apply (unfold apply_operations_def)
-  apply (rule hb.convergence)
+  apply (rule hb.convergence')
   apply assumption
   apply (rule concurrent_operations_commute, assumption)+
   apply (rule node_deliver_messages_distinct, assumption)+

@@ -178,139 +178,6 @@ lemma hb_consistent_append_porder:
 using assms by (induction ys arbitrary: xs rule: rev_induct) force+
 
 (*************************************************************************)
-subsection\<open>Valid Operation\<close>
-(*************************************************************************)
-
-(* Assumming xs is a list of operations where x is can be applied,
-   then ss is a prefix of xs which guarantees the validity of x. *) 
-definition valid :: "'a list \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> bool" where
-  "valid xs x ss \<equiv> \<exists>ss1 ys zs. xs = ss1@ys@x#zs \<and> concurrent_set x ys \<and> (\<exists>ss2. ss = ss1@ss2 \<and> concurrent_set x ss2)"
-
-lemma [intro!]: "valid (xs@[x]) x xs"
-  apply (clarsimp simp: valid_def)
-  apply (rule_tac x=xs in exI, auto)
-done
-
-lemma [intro!]: "valid (xs@[x]@ys) x xs"
-  apply (clarsimp simp: valid_def)
-  apply (rule_tac x=xs in exI, auto)
-done
-
-lemma valid_concurrent_pair: "valid [y,x] x ss \<Longrightarrow> x \<parallel> y \<Longrightarrow> valid [x] x ss"
-  apply (clarsimp simp: valid_def)
-  apply (case_tac zs rule: rev_cases; clarsimp)
-  apply (case_tac ys rule: rev_cases; clarsimp)
-  apply ((rule_tac x="[]" in exI)+, force)+
-  apply (case_tac ysa rule: rev_cases; clarsimp)
-  apply ((rule_tac x="[]" in exI)+, force)+
-done
-
-lemma valid_concurrent_Snoc_pair: "x \<parallel> y \<Longrightarrow> valid (xs@[y,x]) x ss \<Longrightarrow> valid (xs@[x]) x ss"
-  apply (clarsimp simp: valid_def)
-  apply (case_tac zs rule: rev_cases; clarsimp)
-  apply (case_tac ys rule: rev_cases; clarsimp)
-  apply (rule_tac x=xs in exI, rule_tac x="[]" in exI, force, force)
-  apply (case_tac ysa rule: rev_cases, auto)
-done
-
-lemma valid_concurrent_set: "valid (xs@ys@[x]) x ss \<Longrightarrow> concurrent_set x ys \<Longrightarrow> valid (xs@[x]) x ss"
-  apply (induct ys rule: rev_induct; clarsimp)
-  apply (subgoal_tac "valid ((xs @ xsa) @ [x]) x ss", clarsimp)
-  apply (rule_tac y=xa in valid_concurrent_Snoc_pair, auto)
-done
-
-lemma valid_append [intro]: "valid xs x ys \<Longrightarrow> valid (xs@zs) x ys"
-  by (force simp: valid_def)
-
-lemma validE [elim]: "valid (xs@[x]) x ss \<Longrightarrow> distinct (x#xs) \<Longrightarrow> (\<And>ys ss1 ss2. xs = ss1@ys \<Longrightarrow> concurrent_set x ys \<Longrightarrow> ss = ss1@ss2 \<Longrightarrow> concurrent_set x ss2 \<Longrightarrow> G) \<Longrightarrow> G "
-  apply (clarsimp simp: valid_def)
-  apply (subgoal_tac "xs = ss1 @ ys \<and> zs = []", clarsimp)
-  apply (metis append_assoc append_same_eq distinct.simps(2) distinct1_rotate distinct_append last.simps last_appendR last_in_set list.discI rotate1.simps(2))
-done
-
-lemma validI [intro]: "distinct (xs@[x]) \<Longrightarrow> valid (ss@[x]) x ss \<Longrightarrow> xs=ss@ys \<Longrightarrow> concurrent_set x ys \<Longrightarrow> valid (xs@[x]) x ss"
-  by (force simp: valid_def)
-
-lemma valid_concurrent [intro]: "distinct (xs@[y,x]) \<Longrightarrow> x \<parallel> y \<Longrightarrow> valid (xs@[y,x]) x xs"
-  apply (subgoal_tac "valid ((xs @ [y]) @ [x]) x xs", force)
-  apply (rule validI, force+)
-done
-
-lemma valid_singletonE [elim!]: "valid [x] y ss \<Longrightarrow> (x = y \<Longrightarrow> concurrent_set x ss \<Longrightarrow> G) \<Longrightarrow> G"
-  by (clarsimp simp: valid_def Cons_eq_append_conv)
-
-lemma valid_concurrent_add_pair: "valid [x] x ss \<Longrightarrow> x \<parallel> y \<Longrightarrow> valid [y, x] x ss"
-  apply (clarsimp simp: valid_def)
-  apply (case_tac zs rule: rev_cases; clarsimp)
-  apply (rule_tac x="[]" in exI, rule_tac x="[y]" in exI, force)
-done
-
-lemma valid_concurrent_add_Snoc_pair: "valid (xs@[x]) x ss \<Longrightarrow> x \<parallel> y \<Longrightarrow> valid (xs@[y, x]) x ss"
-  apply (clarsimp simp: valid_def)
-  apply (case_tac zs rule: rev_cases; clarsimp)
-  apply (rule_tac x=ss1 in exI, rule_tac x="ys@[y]" in exI, force)
-  apply (rule_tac x=ss1 in exI, rule_tac x="ys" in exI, force)
-done
-
-lemma valid_concurrent_set_add: "valid (xs@[x]) x ss \<Longrightarrow> concurrent_set x ys \<Longrightarrow> valid (xs@ys@[x]) x ss"
-  apply (clarsimp simp: valid_def)
-  apply (case_tac zs rule: rev_cases; clarsimp)
-  apply (rule_tac x=ss1 in exI, rule_tac x="ysa@ys" in exI, force)
-  apply (rule_tac x=ss1 in exI, rule_tac x="ysa" in exI, force)
-done
-
-lemma valid_concurrent_set_add2: "distinct (xs@[x]) \<Longrightarrow> valid (xs@[x]) x ss \<Longrightarrow> concurrent_set x ys \<Longrightarrow> valid (xs@x#ys) x ss"
-  apply (clarsimp simp: valid_def)
-  apply (subgoal_tac "xs = ss1 @ ysa \<and> [] = zs")
-  apply (rule_tac x=ss1 in exI)
-  apply (rule_tac x=ysa in exI)
-  apply clarsimp
-  apply (rule_tac ys="[x]" in pre_suf_eq_distinct_list2)
-  apply (thin_tac "xs @ [x] = ss1 @ ysa @ x # zs")
-  apply force
-  apply force
-  apply force
-done
-
-lemma valid_SnocD [dest]: "valid (xs@[x]) y ss \<Longrightarrow> distinct (xs@[x]) \<Longrightarrow> y \<in> set xs \<Longrightarrow> valid xs y ss"
-  apply (clarsimp simp: valid_def)
-  apply (case_tac zs rule: rev_cases)
-  apply auto
-done
-
-lemma valid_appendD [dest]: "valid (xs@ys) y ss \<Longrightarrow> distinct (xs@ys) \<Longrightarrow> y \<in> set xs \<Longrightarrow> valid xs y ss"
-  apply (clarsimp simp: valid_def)
-  apply (subgoal_tac "\<exists>xs1 xs2. xs=xs1@y#xs2")
-  apply clarsimp
-  apply (subgoal_tac "xs1 = ss1 @ ysa \<and> xs2 @ ys = zs")
-  apply clarsimp
-  apply force
-  apply (rule_tac ys="[y]" in pre_suf_eq_distinct_list2)
-  apply (thin_tac "xs1 @ y # xs2 @ ys = ss1 @ ysa @ y # zs")
-  apply force
-  apply force
-  apply force
-by (meson split_list_first)
-
-lemma valid_in_setD [dest]: "valid xs y ss \<Longrightarrow> y \<in> set xs"
-  by (clarsimp simp: valid_def)
-
-lemma valid_Snoc_pairD [dest]: "valid (xs @ [b, a]) x ss \<Longrightarrow> a \<noteq> x \<Longrightarrow> valid (xs @ [b]) x ss"
-  apply (clarsimp simp: valid_def)
-  apply (case_tac zs rule: rev_cases; clarsimp)
-  apply (case_tac ysa rule: rev_cases; force)
-done
-
-lemma valid_concurrent_setD [dest]: "valid (ss @ ys @ [x]) x ss \<Longrightarrow> distinct (ss@ys@[x]) \<Longrightarrow> concurrent_set x ys"
-apply (clarsimp simp: valid_def)
-apply (subgoal_tac "ss2@ys = ysa \<and> []=zs")
-apply (force simp: concurrent_set_def)
-apply (rule_tac ys="[x]" in pre_suf_eq_distinct_list2)
-apply (thin_tac "ss2 @ ys @ [x] = ysa @ x # zs")
-apply force+
-done
-
-(*************************************************************************)
 subsection\<open>Apply Operations\<close>
 (*************************************************************************)
 
@@ -329,9 +196,7 @@ subsection\<open>Concurrent Operations Commute\<close>
 
 definition concurrent_ops_commute :: "'a list \<Rightarrow> bool" where
   "concurrent_ops_commute xs \<equiv>
-    \<forall>x y. {x, y} \<subseteq> set xs \<longrightarrow> concurrent x y \<longrightarrow> 
-    (\<forall>ss. valid xs x ss \<longrightarrow> valid xs y ss \<longrightarrow> 
-      apply_operations (ss @ [x, y]) = apply_operations (ss @ [y, x]))"
+    \<forall>x y. {x, y} \<subseteq> set xs \<longrightarrow> concurrent x y \<longrightarrow> \<langle>x\<rangle>\<circ>\<langle>y\<rangle> = \<langle>y\<rangle>\<circ>\<langle>x\<rangle>"
 
 lemma concurrent_ops_commute_empty [intro!]: "concurrent_ops_commute []"
   by(auto simp: concurrent_ops_commute_def)
@@ -342,97 +207,36 @@ lemma concurrent_ops_commute_singleton [intro!]: "concurrent_ops_commute [x]"
 lemma concurrent_ops_commute_appendD [dest]: "concurrent_ops_commute (xs@ys) \<Longrightarrow> concurrent_ops_commute xs"
   by (auto simp: concurrent_ops_commute_def)
 
-lemma concurrent_ops_commute_dest:
-  assumes "concurrent_ops_commute xs"
-          "x \<parallel> y" "valid xs x ss" "valid xs y ss"
-    shows "apply_operations (ss @ [x, y]) = apply_operations (ss @ [y, x])"
-using assms by (auto simp: concurrent_ops_commute_def)
-
-lemma concurrent_ops_commute_SnocI [intro]:
-  assumes "concurrent_ops_commute xs" "distinct (xs@[x])"
-      and "\<forall>y \<in> set xs. concurrent x y \<longrightarrow> (\<forall>ss. valid (xs@[x]) x ss \<longrightarrow> valid (xs@[x]) y ss \<longrightarrow> apply_operations (ss @ [x, y]) = apply_operations (ss @ [y, x]))"
-    shows "concurrent_ops_commute (xs@[x])"
-  using assms
-  apply (subst concurrent_ops_commute_def; clarsimp)
-  apply (erule disjE, force)
-  apply (erule disjE, clarsimp)
-  apply (erule_tac x=xa in ballE; clarsimp simp: concurrent_comm)
-  apply (drule concurrent_ops_commute_dest, force)
-  apply (rule valid_SnocD, force, force, force)+
-  apply force
-done
-
-lemma concurrent_ops_commute_single_elim:
-  "concurrent_ops_commute (xs@[y,x]) \<Longrightarrow> distinct (xs@[y,x]) \<Longrightarrow> x \<parallel> y \<Longrightarrow> concurrent_ops_commute (xs@[x])"
-  apply (rule concurrent_ops_commute_SnocI, force, force, clarsimp)
-  apply (drule concurrent_ops_commute_dest) prefer 4 apply assumption
-  apply force
-  apply (rule valid_concurrent_add_Snoc_pair)
-  apply force
-  apply force
-  apply (rule valid_append)
-  apply (drule valid_SnocD) back
-  apply force+
-done
-
-
-lemma concurrent_ops_commute_rearrange_concurrent_set:
-  shows "distinct (x#xs@ys) \<Longrightarrow> concurrent_ops_commute (xs@x#ys) \<Longrightarrow> concurrent_set x ys \<Longrightarrow> concurrent_ops_commute (xs@ys@[x])"
-apply (clarsimp simp: concurrent_ops_commute_def)
-apply safe
-
-apply (erule_tac x=x in allE, erule_tac x=y in allE, clarsimp, erule_tac x=ss in allE)
-apply (erule impE)
-apply (rule valid_concurrent_set_add2)
-apply force
-apply (rule valid_concurrent_set)
-apply force
-apply force
-apply force
-apply (erule impE)
-apply (drule valid_appendD) back
-apply force
-apply force
-apply force
-apply force
-sorry
+lemma concurrent_ops_commute_rearrange: "concurrent_ops_commute (xs@x#ys) = concurrent_ops_commute (xs@ys@[x])"
+  by (clarsimp simp: concurrent_ops_commute_def)
 
 lemma concurrent_ops_commute_concurrent_set:
   assumes "concurrent_ops_commute (prefix@suffix@[x])"
           "concurrent_set x suffix"
           "distinct (prefix @ x # suffix)"
   shows   "apply_operations (prefix @ suffix @ [x]) = apply_operations (prefix @ x # suffix)"
-using assms
-  apply(induction suffix arbitrary: rule: rev_induct)
-  apply force
-  apply clarsimp
-  apply (subst (asm) append_assoc[symmetric])
-  apply (frule concurrent_ops_commute_single_elim)
-  apply force
-  apply force
-  apply clarsimp
-  apply (subgoal_tac "apply_operations (prefix @ xs @ [xa, x]) = apply_operations ((prefix @ x # xs) @ [xa])")
-  apply force
-  apply (subst apply_operations_Snoc)
-  apply (subgoal_tac "apply_operations (prefix @ xs @ [xa, x]) = \<langle>xa\<rangle> (apply_operations ((prefix @ xs) @ [x]))")
-  apply force
-  apply (subst apply_operations_Snoc[symmetric])
-  apply simp
-  apply (subgoal_tac "apply_operations ((prefix @ xs) @ [xa, x]) = apply_operations ((prefix @ xs) @ [x, xa])")
-  apply force
-  apply (rule concurrent_ops_commute_dest)
-  apply assumption
-  apply force
-  apply (subgoal_tac "valid ((prefix @ xs @ [xa]) @ [x]) xa (prefix @ xs)")
-  apply force
-  apply (rule valid_append)
-  apply (subst append_assoc[symmetric])
-  apply force
-  apply (subgoal_tac "valid ((prefix @ xs) @ [xa, x]) x (prefix @ xs)", force)
-  apply (rule valid_concurrent)
-  apply force
-  apply force
-done
+using assms proof(induction suffix arbitrary: rule: rev_induct, force)
+  fix a xs
+  assume IH: "concurrent_ops_commute (prefix @ xs @ [x]) \<Longrightarrow>
+              concurrent_set x xs \<Longrightarrow> distinct (prefix @ x # xs) \<Longrightarrow> 
+              apply_operations (prefix @ xs @ [x]) = apply_operations (prefix @ x # xs)"
+  assume assms: "concurrent_ops_commute (prefix @ (xs @ [a]) @ [x])"
+                "concurrent_set x (xs @ [a])" "distinct (prefix @ x # xs @ [a])"
+  hence ac_comm: "\<langle>a\<rangle> \<circ> \<langle>x\<rangle> = \<langle>x\<rangle> \<circ> \<langle>a\<rangle>"
+    by (clarsimp simp: concurrent_ops_commute_def) blast
+  have copc: "concurrent_ops_commute (prefix @ xs @ [x])"
+    using assms by (clarsimp simp: concurrent_ops_commute_def) blast
+  have "apply_operations ((prefix @ x # xs) @ [a]) = \<langle>a\<rangle> (apply_operations (prefix @ x # xs))"
+    by (simp del: append_assoc)
+  also have "... = \<langle>a\<rangle> (apply_operations (prefix @ xs @ [x]))"
+    using IH assms copc by auto
+  also have "... = \<langle>a\<rangle> (\<langle>x\<rangle> (apply_operations (prefix @ xs)))"
+    by (simp add: append_assoc[symmetric] del: append_assoc)
+  also have "... = \<langle>x\<rangle> (\<langle>a\<rangle> (apply_operations (prefix @ xs)))"
+    using ac_comm comp_eq_elim by blast
+  finally show "apply_operations (prefix @ (xs @ [a]) @ [x]) = apply_operations (prefix @ x # xs @ [a])"
+    by (metis Cons_eq_appendI append_assoc apply_operations_Snoc)
+qed
 
 (*************************************************************************)
 subsection\<open>Convergence Theorem\<close>
@@ -480,11 +284,7 @@ using assms proof(induction xs arbitrary: ys rule: rev_induct, simp)
       done
   }
   moreover have CPS: "concurrent_ops_commute (prefix @ suffix @ [x])"
-    using assms ys_split
-    apply -
-    apply (rule concurrent_ops_commute_rearrange_concurrent_set)
-    apply clarsimp+
-    done
+    using assms ys_split by (clarsimp simp: concurrent_ops_commute_def)
   moreover hence "concurrent_ops_commute (prefix @ suffix)"
     apply (subst (asm) append_assoc[symmetric])
     apply (force simp del: append_assoc)
@@ -508,5 +308,15 @@ using assms proof(induction xs arbitrary: ys rule: rev_induct, simp)
     using ys_split by (force simp: IH' conc[symmetric] append_assoc[symmetric] simp del: append_assoc)
 qed
 
+theorem  convergence':
+  assumes "set xs = set ys"
+          "concurrent_ops_commute xs"
+          "concurrent_ops_commute ys"
+          "distinct xs"
+          "distinct ys"
+          "hb_consistent xs"
+          "hb_consistent ys"
+  shows   "(fold (op \<circ>) (map interp xs) id) initial_state = (fold (op \<circ>) (map interp ys) id) initial_state"
+  using convergence apply_operations_def assms by metis
 end
 end

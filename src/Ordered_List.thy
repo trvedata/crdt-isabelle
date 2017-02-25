@@ -157,6 +157,15 @@ using assms
       apply (simp add: insert_commute)
 done
 
+lemma insert_preserve_element':
+  assumes "insert xs e i = Some ys"
+  shows   "fst ` set (the (insert xs e i)) = fst ` set xs \<union> {fst e}"
+using assms
+  apply -
+  apply (rule insert_preserve_element)
+apply force
+done
+
 lemma insert_preserve_element2:
   assumes "\<exists>ys. insert xs e i = Some ys"
   shows   "set (map fst (the (insert xs e i))) = set (map fst xs) \<union> {fst e}"
