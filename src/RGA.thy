@@ -219,11 +219,11 @@ apply assumption
 apply force
 done
 
-(*
+
 lemma (in rga) insert_in_apply_set:
   assumes "es @ [(i, Deliver, Insert e (Some a))] prefix of i"
-          "(i, Deliver, Insert (a, v, b) n) \<in> set es"
-  shows   "\<exists>v b. (a, v, b) \<in> set (apply_operations es)"
+          "(i, Deliver, Insert (a, v, b) n) \<in> set es" "apply_operations es = Some s"
+  shows   "\<exists>v b. (a, v, b) \<in> set s"
 using assms
 apply (case_tac e)
 apply clarsimp
@@ -231,11 +231,12 @@ apply (drule idx_in_elem_inserted)
 apply (subst (asm) apply_opers_idx_elems[symmetric])
 apply force
 apply force
+apply force
 done
 
 lemma (in rga) Insert_no_failure:
-  assumes "es @ [(i, Deliver, Insert e n)] prefix of i"
-  shows "\<exists>ys. insert (apply_operations es) e n = Some ys"
+  assumes "es @ [(i, Deliver, Insert e n)] prefix of i"  "apply_operations es = Some s"
+  shows "\<exists>ys. insert s e n = Some ys"
   using assms apply -
   apply (frule allowed_insert_deliver_in_set)
   apply (case_tac n)
@@ -247,8 +248,8 @@ lemma (in rga) Insert_no_failure:
 done
 
 lemma (in rga) delete_no_failure:
-  assumes "es @ [(i, Deliver, Delete n)] prefix of i"
-  shows   "\<exists>ys. delete (apply_operations es) n = Some ys"
+  assumes "es @ [(i, Deliver, Delete n)] prefix of i" "apply_operations es = Some s"
+  shows   "\<exists>ys. delete s n = Some ys"
   using assms apply -
   apply (frule allowed_delete_deliver_in_set)
   apply clarsimp
@@ -257,8 +258,9 @@ lemma (in rga) delete_no_failure:
   apply (subst (asm) apply_opers_idx_elems[symmetric])
   apply force
   apply force
+  apply force
 done
-*)
+
 lemma (in rga) 
   assumes "fst e1 = fst e2"
           "(i, Broadcast, Insert e1 n1) \<in> set (carriers i)"
@@ -269,6 +271,17 @@ lemma (in rga)
   apply (metis surjective_pairing insert_id_unique)
   apply (cases e1, cases e2; clarsimp)
   by (metis insert_flag snd_conv insert_id_unique)
+
+lemma (in rga) same_insert:
+  assumes "fst e1 = fst e2"
+          "xs prefix of i"
+          "(Insert e1 n1) \<in> set (node_deliver_messages xs)"
+          "(Insert e2 n2) \<in> set (node_deliver_messages xs)"
+  shows   "Insert e1 n1 = Insert e2 n2"
+  using assms
+  apply (subgoal_tac "e1 = e2")
+sorry
+
 
 lemma (in rga) insert_id_unique_node:
   assumes "fst e1 = fst e2" 
@@ -298,7 +311,22 @@ apply clarsimp
 using insert_id_unique 
 by (smt delivery_has_a_cause rga.insert_flag rga_axioms insert_subset local_order_carrier_closed prod.sel(2))
 
-lemma (in rga)
+lemma (in rga) Insert_Insert_concurrent: 
+  assumes "{(i, Deliver, Insert (n, v, b) k), (i, Deliver, Insert e (Some m))} \<subseteq> set (carriers i)"
+     and  "hb.concurrent (Insert (n, v, b) k) (Insert e (Some m))"
+ shows    "n \<noteq> m"
+using assms
+apply -
+apply (insert insert_commute_assms[of i e "Some m" "(n, v, b)" k])
+apply auto
+done
+
+lemma (in rga) insert_valid_assms:
+ assumes "{(i, Deliver, Insert e n)} \<subseteq> set (carriers i)"
+ shows    "n = None \<or> n \<noteq> Some (fst e)"
+sorry
+
+lemma (in rga) Insert_Delete_concurrent:
   assumes "{(i, Deliver, Insert e n), (i, Deliver, Delete n')} \<subseteq> set (carriers i)"
      and  "hb.concurrent (Insert e n) (Delete n')"
  shows    "n' \<noteq> fst e"
@@ -371,12 +399,6 @@ lemma (in rga) deliver_delete_neq_head:
   apply force
 done
 
-lemma (in rga)
-  assumes "es prefix of i"
-  shows  "distinct (map fst (apply_operations es))"
-  apply(induction es rule: rev_induct)
-oops
-
 corollary (in rga) hb_consistent_prefix:
   assumes "xs prefix of i"
   shows   "hb.hb_consistent (node_deliver_messages xs)"
@@ -400,11 +422,11 @@ apply (metis Cons_eq_appendI append_assoc)
 apply force
 done
 
-lemma (in rga) "xs prefix of i \<Longrightarrow>
-       y \<in> set (node_deliver_messages xs) \<Longrightarrow>
-       hb.valid (node_deliver_messages xs) y ss \<Longrightarrow> P"
-apply (clarsimp simp: hb.valid_def)
-oops
+lemma (in rga) rewrite: "\<langle>x\<rangle> (\<langle>y\<rangle> (Some xs)) = do { ys \<leftarrow> \<langle>y\<rangle> (Some xs); \<langle>x\<rangle> (Some ys) }"
+apply (case_tac "\<langle>y\<rangle> (Some xs)")
+apply auto
+done
+
 
 lemma (in rga) concurrent_operations_commute:
   assumes "xs prefix of i"
@@ -412,11 +434,58 @@ lemma (in rga) concurrent_operations_commute:
 using assms
 apply (clarsimp simp: hb.concurrent_ops_commute_def)
 apply (rule ext)
-apply (case_tac xa; clarsimp)
-apply (case_tac "\<langle>y\<rangle> (Some a)"; clarsimp)
-apply (case_tac "\<langle>x\<rangle> (Some a)"; clarsimp)
+apply (case_tac xa)
+apply clarsimp
+apply simp
+apply (subst rewrite)+
+apply (case_tac x; case_tac y; clarsimp)
 
-sorry
+apply (case_tac "ac = aa")
+apply (subgoal_tac "(ac, ad, ba) = (aa, ab, b) \<and> x12a = x12")
+apply force
+defer
+
+apply (rule insert_commutes)
+apply simp
+prefer 2
+apply (subst (asm) hb.concurrent_comm)
+
+apply (rule insert_commute_assms)
+prefer 2
+apply (subst hb.concurrent_comm)
+apply assumption
+apply clarsimp
+apply (rule conjI)
+apply (rule prefix_msg_in_carrier, assumption, force)
+apply (rule prefix_msg_in_carrier, assumption, force)
+apply (rule insert_commute_assms)
+prefer 2
+apply (subst hb.concurrent_comm)
+apply assumption
+apply clarsimp
+apply (rule conjI)
+apply (rule prefix_msg_in_carrier, assumption, force)
+apply (rule prefix_msg_in_carrier, assumption, force)
+
+apply (rule insert_delete_commute[symmetric])
+apply (rule insert_valid_assms)
+using prefix_msg_in_carrier apply blast
+apply (rule Insert_Delete_concurrent)
+apply clarsimp
+using prefix_msg_in_carrier apply blast
+apply clarsimp
+
+apply (rule insert_delete_commute)
+apply (rule insert_valid_assms)
+using prefix_msg_in_carrier apply blast
+apply (rule Insert_Delete_concurrent)
+using prefix_msg_in_carrier apply blast
+apply clarsimp
+apply (subst (asm) hb.concurrent_comm)
+apply assumption
+apply (rule delete_commutes)
+using same_insert apply force
+done
 
 corollary (in rga) main_result_of_paper:
   assumes "set (node_deliver_messages xs) = set (node_deliver_messages ys)"

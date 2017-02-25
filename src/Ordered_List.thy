@@ -29,7 +29,7 @@ fun insert :: "('id::{linorder}, 'v) elt list \<Rightarrow> ('id, 'v) elt \<Righ
            })"
 
 lemma insert_body_commutes:
-  assumes "distinct (map fst (e1#e2#xs))"
+  assumes "distinct (map fst (e1#e2#[]))"
   shows   "insert_body (insert_body xs e1) e2 = insert_body (insert_body xs e2) e1"
 using assms
   apply(induction xs)
@@ -40,7 +40,7 @@ using assms
 done
 
 lemma insert_insert_body:
-  assumes "distinct (map fst (e1#e2#xs))" "i2 \<noteq> Some (fst e1)"
+  assumes "distinct (map fst (e1#e2#[]))" "i2 \<noteq> Some (fst e1)"
   shows   "insert (insert_body xs e1) e2 i2 = do { ys \<leftarrow> insert xs e2 i2; Some (insert_body ys e1) }"
 using assms
   apply(induction xs)
@@ -73,9 +73,6 @@ using assms by (cases "i2") clarsimp+
 lemma insert_insert_body_commute:
   assumes "a \<noteq> aa"
           "aa \<noteq> fst e2"
-          "aa \<notin> fst ` set xs"
-          "fst e2 \<notin> fst ` set xs"
-          "distinct (map fst xs)"
   shows   "insert (insert_body xs (aa, ba)) e2 (Some a) =
              insert xs e2 (Some a) \<bind> (\<lambda>y. Some (insert_body y (aa, ba)))"
 using assms
@@ -102,6 +99,40 @@ using assms
   apply force
   apply clarsimp
 done
+
+lemma insert_failure1:
+  assumes "insert xs e i = None"
+  shows   "i \<noteq> None"
+using assms
+apply (case_tac i)
+apply auto
+done
+
+lemma insert_failure2:
+  assumes "insert xs e (Some i) = None"
+  shows   "(\<forall>v b. (i, v, b) \<notin> set xs)"
+using assms
+apply clarsimp
+apply (induct xs)
+apply clarsimp
+apply clarsimp
+apply (case_tac "a=i")
+apply clarsimp
+apply clarsimp
+apply (case_tac "insert xs e (Some i)")
+apply clarsimp
+apply force
+apply clarsimp
+done
+
+lemma insert_failure3:
+  assumes "(\<forall>v b. (i, v, b) \<notin> set xs)"
+  shows   "insert xs e (Some i) = None"
+using assms
+apply (induct xs)
+apply clarsimp
+apply clarsimp
+by blast
 
 lemma insert_element_add_None: "insert xs e None = Some ys \<Longrightarrow> set (map fst xs) \<union> {fst e} = set (map fst ys)"
   apply (induct xs arbitrary: ys)
@@ -241,11 +272,12 @@ using assms
 done
 
 lemma insert_commutes:
-  assumes "distinct (map fst (e1#e2#xs))"
+  assumes "distinct (map fst (e1#e2#[]))"
           "i1 = None \<or> i1 \<noteq> Some (fst e2)"
           "i2 = None \<or> i2 \<noteq> Some (fst e1)"
   shows   "do { ys \<leftarrow> insert xs e1 i1; insert ys e2 i2 } =
              do { ys \<leftarrow> insert xs e2 i2; insert ys e1 i1 }"
+
 using assms
   apply(induction rule: insert.induct)
     apply clarsimp
@@ -285,6 +317,7 @@ using assms
               apply clarsimp
               apply(metis bind_assoc)
   done
+
 
 fun insert' :: "('id::{linorder}, 'v) elt list \<Rightarrow> ('id, 'v) elt \<Rightarrow> 'id option \<rightharpoonup> ('id::{linorder}, 'v) elt list" where
   "insert' [] e     None     = Some [e]" |
@@ -385,33 +418,64 @@ lemma delete_no_failure:
   apply clarsimp
 done
 
+lemma delete_failure:
+  assumes "delete xs i = None"
+  shows  "i \<notin> fst ` set xs"
+  using assms
+  apply (induct xs)
+  apply clarsimp
+  apply clarsimp
+  apply (case_tac "a=i")
+  apply clarsimp
+  apply clarsimp
+  apply (case_tac "delete xs i")
+  apply clarsimp
+  apply (simp add: Domain.intros fst_eq_Domain)
+  apply clarsimp
+done
+
+
+lemma delete_failure2:
+  assumes "i \<notin> fst ` set xs"
+  shows   "delete xs i = None"
+using assms
+apply (induct xs)
+apply clarsimp
+apply clarsimp
+done
+
+
 lemma delete_commutes:
   shows "do { ys \<leftarrow> delete xs i1; delete ys i2 } = do { ys \<leftarrow> delete xs i2; delete ys i1 }"
   apply(induction xs, simp)
   apply(case_tac "delete xs i1"; case_tac "delete xs i2"; clarsimp)
 done
 
+lemma delete_cons: "fst a \<noteq> i2 \<Longrightarrow> delete (a # xs) i2 = delete xs i2 \<bind> (\<lambda>t. Some (a # t))"
+apply (case_tac a)
+apply clarsimp
+done
+
 lemma insert_body_delete_commute:
   assumes "i2 \<noteq> fst e"
-          "fst x \<noteq> fst e"
-          "fst e \<notin> fst ` set xs"
-          "distinct (map fst xs)"
   shows   "delete (insert_body xs e) i2 \<bind> (\<lambda>t. Some (x # t)) =
             delete xs i2 \<bind> (\<lambda>y. Some (x # insert_body y e))"
 using assms
-  apply(induction xs arbitrary: x)
-  apply simp
+apply (induction xs arbitrary: x)
   apply(case_tac "e"; simp)
-  apply simp
-  apply(case_tac x; clarsimp)
-  apply(case_tac "a=i2"; clarsimp)
-  apply(case_tac "e"; clarsimp)
-  apply(case_tac "e"; clarsimp)
+apply simp
+apply clarsimp
+apply (rule conjI)
+apply clarsimp
+apply (case_tac e, simp)
+
+apply clarsimp
+apply (case_tac e)
+apply clarsimp
 done
 
 lemma insert_delete_commute:
-  assumes "distinct (map fst (e#xs))"
-          "i1 = None \<or> i1 \<noteq> Some (fst e)"
+  assumes "i1 = None \<or> i1 \<noteq> Some (fst e)"
           "i2 \<noteq> fst e"
   shows   "do { ys \<leftarrow> insert xs e i1; delete ys i2 } = do { ys \<leftarrow> delete xs i2; insert ys e i1 }"
 using assms
