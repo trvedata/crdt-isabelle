@@ -28,7 +28,6 @@ prefer 2
   using node_total_order_irrefl node_total_order_trans apply (meson insert_subset)
 defer
   apply(subgoal_tac "(i, Deliver, ba) \<sqsubset>\<^sup>i (i, Deliver, b)")
-  apply(erule_tac x=i in allE)
   apply(frule local_order_carrier_closed) back
   apply(drule broadcast_causal[rotated], force)
   using node_total_order_irrefl node_total_order_trans apply (meson insert_subset)

@@ -9,13 +9,12 @@ datatype ('id, 'v) operation =
   Insert "('id, 'v) elt" "'id option" |
   Delete "'id"
 
-fun interpret_opers :: "('id::linorder, 'v) operation \<Rightarrow> ('id, 'v) elt list option \<Rightarrow> ('id, 'v) elt list option" ("\<langle>_\<rangle>" [0] 1000) where
-  "interpret_opers _            None       = None" |
-  "interpret_opers (Insert e n) (Some xs)  = insert xs e n" |
-  "interpret_opers (Delete n)   (Some xs)  = delete xs n"
+fun interpret_opers :: "('id::linorder, 'v) operation \<Rightarrow> ('id, 'v) elt list \<rightharpoonup> ('id, 'v) elt list" ("\<langle>_\<rangle>" [0] 1000) where
+  "interpret_opers (Insert e n) xs  = insert xs e n" |
+  "interpret_opers (Delete n)   xs  = delete xs n"
 
 (* Replicated Growable Array Network *)
-locale rga = network_with_ops _ _ _ interpret_opers "Some []" +
+locale rga = network_with_ops _ _ _ interpret_opers +
   assumes insert_flag: "(i, Broadcast, Insert e n) \<in> set (carriers i) \<Longrightarrow> snd (snd e) = False"
   assumes allowed_insert: "(i, Broadcast, Insert e n) \<in> set (carriers i) \<Longrightarrow> n = None \<or> 
                             (\<exists>n' n'' v b. n = Some n' \<and> (i, Deliver, Insert (n', v, b) n'') \<sqsubset>\<^sup>i (i, Broadcast, Insert e n))"
@@ -109,17 +108,17 @@ lemma (in rga) insert_Some_is_not_first_msg:
   shows "\<not> ([(i, Deliver, Insert e (Some n))] prefix of i)"
   by (clarsimp, insert allowed_insert_deliver_in_set[where es="[]" and i=i and e=e and m="Some n"], force)
 
-definition (in rga) apply_operations :: "('a, 'b) operation event list \<Rightarrow> ('a, 'b) elt list option" where
-  "apply_operations es \<equiv> (fold (op \<circ>) (map interpret_opers (node_deliver_messages es)) id) (Some [])"
+abbreviation (in rga) apply_operations :: "('a, 'b) operation event list \<Rightarrow> ('a, 'b) elt list option" where
+  "apply_operations es \<equiv> hb.apply_operations (node_deliver_messages es) []"
 
-lemma (in rga) apply_operations_empty[simp]: "apply_operations [] = Some []"
-  by (auto simp: apply_operations_def)
+lemma (in rga) apply_operations_empty [simp]: "apply_operations [] = Some []"
+by auto
 
 lemma (in rga) apply_operations_Broadcast [simp]: "apply_operations (xs @ [(i, Broadcast, m)]) = apply_operations xs"
-  by (auto simp: apply_operations_def node_deliver_messages_def)
+by(auto simp add: node_deliver_messages_def)
 
-lemma (in rga) apply_operations_Deliver [simp]: "apply_operations (xs @ [(i, Deliver, m)]) = interpret_opers m (apply_operations xs)"
-  by (auto simp: apply_operations_def node_deliver_messages_def)
+lemma (in rga) apply_operations_Deliver [simp]: "apply_operations (xs @ [(i, Deliver, m)]) = (apply_operations xs \<bind> interpret_opers m)"
+by(auto simp add: node_deliver_messages_def hb.kleisli_def)
 
 definition filter_deliver_inserts :: "_" where
   "filter_deliver_inserts \<equiv> List.filter (\<lambda>e. case e of (_, Deliver, Insert _ _) \<Rightarrow> True | _ \<Rightarrow> False)"
@@ -440,11 +439,12 @@ apply (metis Cons_eq_appendI append_assoc)
 apply force
 done
 
-lemma (in rga) rewrite: "\<langle>x\<rangle> (\<langle>y\<rangle> (Some xs)) = do { ys \<leftarrow> \<langle>y\<rangle> (Some xs); \<langle>x\<rangle> (Some ys) }"
+(*
+lemma (in rga) rewrite: "\<langle>x\<rangle> \<rhd> (\<langle>y\<rangle> \<rhd> (Some xs)) = do { ys \<leftarrow> \<langle>y\<rangle> (Some xs); \<langle>x\<rangle> (Some ys) }"
 apply (case_tac "\<langle>y\<rangle> (Some xs)")
 apply auto
 done
-
+*)
 
 lemma (in rga) concurrent_operations_commute:
   assumes "xs prefix of i"
@@ -452,25 +452,21 @@ lemma (in rga) concurrent_operations_commute:
 using assms
 apply (clarsimp simp: hb.concurrent_ops_commute_def)
 apply (rule ext)
-apply (case_tac xa)
+apply(unfold hb.kleisli_def)
+apply (case_tac x; case_tac y)
 apply clarsimp
-apply simp
-apply (subst rewrite)+
-apply (case_tac x; case_tac y; clarsimp)
-
-apply (case_tac "ac = aa")
-apply (subgoal_tac "(ac, ad, ba) = (aa, ab, b) \<and> x12a = x12")
+apply (case_tac "a = ab")
+apply (subgoal_tac "(a, aa, b) = (ab, ac, ba) \<and> x12a = x12")
 apply force
 defer
-
+apply(subgoal_tac "Ordered_List.insert xa (a, aa, b) x12 \<bind> (\<lambda>x. Ordered_List.insert x (ab, ac, ba) x12a) = Ordered_List.insert xa (ab, ac, ba) x12a \<bind> (\<lambda>x. Ordered_List.insert x (a, aa, b) x12)")
+apply(metis (no_types, lifting) Option.bind_cong interpret_opers.simps(1))
 apply (rule insert_commutes)
 apply simp
 prefer 2
 apply (subst (asm) hb.concurrent_comm)
-
 apply (rule insert_commute_assms)
 prefer 2
-apply (subst hb.concurrent_comm)
 apply assumption
 apply clarsimp
 apply (rule conjI)
@@ -478,29 +474,34 @@ apply (rule prefix_msg_in_carrier, assumption, force)
 apply (rule prefix_msg_in_carrier, assumption, force)
 apply (rule insert_commute_assms)
 prefer 2
-apply (subst hb.concurrent_comm)
 apply assumption
 apply clarsimp
 apply (rule conjI)
 apply (rule prefix_msg_in_carrier, assumption, force)
 apply (rule prefix_msg_in_carrier, assumption, force)
-
-apply (rule insert_delete_commute[symmetric])
-apply (rule insert_valid_assms)
-using prefix_msg_in_carrier apply blast
-apply (rule Insert_Delete_concurrent)
-apply clarsimp
-using prefix_msg_in_carrier apply blast
-apply clarsimp
-
+apply(clarsimp simp del: delete.simps)
+apply(subgoal_tac "Ordered_List.insert xa (a, aa, b) x12 \<bind> (\<lambda>x. Ordered_List.delete x x2) = delete xa x2 \<bind> (\<lambda>x. Ordered_List.insert x (a, aa, b) x12)")
+apply(metis (no_types, lifting) Option.bind_cong interpret_opers.simps)
 apply (rule insert_delete_commute)
 apply (rule insert_valid_assms)
 using prefix_msg_in_carrier apply blast
 apply (rule Insert_Delete_concurrent)
-using prefix_msg_in_carrier apply blast
 apply clarsimp
+using prefix_msg_in_carrier apply blast
+apply(clarsimp)
+apply(clarsimp simp del: delete.simps)
+apply(subgoal_tac "delete xa x2 \<bind> (\<lambda>x. insert x (a, aa, b) x12) = Ordered_List.insert xa (a, aa, b) x12 \<bind> (\<lambda>x. delete x x2)")
+apply(metis (no_types, lifting) Option.bind_cong interpret_opers.simps)
+apply (rule insert_delete_commute[symmetric])
+apply (rule insert_valid_assms)
+using prefix_msg_in_carrier apply blast
+apply (rule Insert_Delete_concurrent)
+using prefix_msg_in_carrier apply blast
 apply (subst (asm) hb.concurrent_comm)
 apply assumption
+apply(clarsimp simp del: delete.simps)
+apply(subgoal_tac "delete xa x2 \<bind> (\<lambda>x. delete x x2a) = delete xa x2a \<bind> (\<lambda>x. delete x x2)")
+apply (metis (mono_tags, lifting) Option.bind_cong interpret_opers.simps(2))
 apply (rule delete_commutes)
 using same_insert apply force
 done
@@ -510,13 +511,6 @@ corollary (in rga) main_result_of_paper:
           "xs prefix of i"
           "ys prefix of j"
   shows  "apply_operations xs = apply_operations ys"
-using assms 
-  apply (unfold apply_operations_def)
-  apply (rule hb.convergence')
-  apply assumption
-  apply (rule concurrent_operations_commute, assumption)+
-  apply (rule node_deliver_messages_distinct, assumption)+
-  apply (rule hb_consistent_prefix, assumption)+
-done
+using assms by(auto intro: hb.convergence_ext concurrent_operations_commute node_deliver_messages_distinct hb_consistent_prefix)
 
 end

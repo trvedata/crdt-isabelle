@@ -174,8 +174,7 @@ subsection\<open>Connecting network with happens before locale.\<close>
 
 locale network_with_ops = network carriers
   for carriers :: "nat \<Rightarrow> (nat \<times> event_type \<times> 'a) list" +
-  fixes interp :: "'a \<Rightarrow> 'b \<Rightarrow> 'b"
-  and initial_state :: 'b
+  fixes interp :: "'a \<Rightarrow> 'b \<rightharpoonup> 'b"
 
 context network_with_ops begin
 

@@ -2,7 +2,7 @@ theory
   Convergence
 imports
   Util
-  "~~/src/HOL/Library/Permutation"
+  "~~/src/HOL/Library/Monad_Syntax"
 begin
 
 section\<open>Convergence Theorem\<close>
@@ -12,8 +12,7 @@ subsection\<open>Happens before relations and consistency\<close>
 locale happens_before = preorder hb_weak hb
   for hb_weak :: "'a \<Rightarrow> 'a \<Rightarrow> bool"  (infix "\<preceq>" 50)
   and hb :: "'a \<Rightarrow> 'a \<Rightarrow> bool"       (infix "\<prec>" 50) +
-  fixes interp :: "'a \<Rightarrow> 'b \<Rightarrow> 'b" ("\<langle>_\<rangle>" [0] 1000)
-    and initial_state :: "'b"
+  fixes interp :: "'a \<Rightarrow> 'b \<rightharpoonup> 'b" ("\<langle>_\<rangle>" [0] 1000)
 begin
 
 (*************************************************************************)
@@ -181,14 +180,26 @@ using assms by (induction ys arbitrary: xs rule: rev_induct) force+
 subsection\<open>Apply Operations\<close>
 (*************************************************************************)
 
-definition apply_operations :: "'a list \<Rightarrow> 'b" where
-  "apply_operations es \<equiv> (fold (op \<circ>) (map interp es) id) initial_state"
+definition kleisli :: "('b \<Rightarrow> 'b option) \<Rightarrow> ('b \<Rightarrow> 'b option) \<Rightarrow> ('b \<Rightarrow> 'b option)" (infixr "\<rhd>" 65) where
+  "f \<rhd> g \<equiv> \<lambda>x. f x \<bind> (\<lambda>fx. g fx)"
 
-lemma apply_operations_empty [simp]: "apply_operations [] = initial_state"
-  by (auto simp: apply_operations_def)
+lemma kleisli_comm_cong:
+  assumes "x \<rhd> y = y \<rhd> x"
+  shows   "z \<rhd> x \<rhd> y = z \<rhd> y \<rhd> x"
+using assms by(clarsimp simp add: kleisli_def)
 
-lemma apply_operations_Snoc [simp]: "apply_operations (xs@[x]) = \<langle>x\<rangle> (apply_operations xs)"
-  by (auto simp: apply_operations_def)
+lemma kleisli_assoc:
+  shows "(z \<rhd> x) \<rhd> y = z \<rhd> (x \<rhd> y)"
+by(auto simp add: kleisli_def)
+
+definition apply_operations :: "'a list \<Rightarrow> 'b \<rightharpoonup> 'b" where
+  "apply_operations es s \<equiv> (foldl (op \<rhd>) Some (map interp es)) s"
+
+lemma apply_operations_empty [simp]: "apply_operations [] s = Some s"
+by(auto simp: apply_operations_def)
+
+lemma apply_operations_Snoc [simp]: "apply_operations (xs@[x]) = (apply_operations xs) \<rhd> \<langle>x\<rangle>"
+by(auto simp add: apply_operations_def kleisli_def)
 
 (*************************************************************************)
 subsection\<open>Concurrent Operations Commute\<close>
@@ -196,7 +207,7 @@ subsection\<open>Concurrent Operations Commute\<close>
 
 definition concurrent_ops_commute :: "'a list \<Rightarrow> bool" where
   "concurrent_ops_commute xs \<equiv>
-    \<forall>x y. {x, y} \<subseteq> set xs \<longrightarrow> concurrent x y \<longrightarrow> \<langle>x\<rangle>\<circ>\<langle>y\<rangle> = \<langle>y\<rangle>\<circ>\<langle>x\<rangle>"
+    \<forall>x y. {x, y} \<subseteq> set xs \<longrightarrow> concurrent x y \<longrightarrow> \<langle>x\<rangle>\<rhd>\<langle>y\<rangle> = \<langle>y\<rangle>\<rhd>\<langle>x\<rangle>"
 
 lemma concurrent_ops_commute_empty [intro!]: "concurrent_ops_commute []"
   by(auto simp: concurrent_ops_commute_def)
@@ -222,20 +233,20 @@ using assms proof(induction suffix arbitrary: rule: rev_induct, force)
               apply_operations (prefix @ xs @ [x]) = apply_operations (prefix @ x # xs)"
   assume assms: "concurrent_ops_commute (prefix @ (xs @ [a]) @ [x])"
                 "concurrent_set x (xs @ [a])" "distinct (prefix @ x # xs @ [a])"
-  hence ac_comm: "\<langle>a\<rangle> \<circ> \<langle>x\<rangle> = \<langle>x\<rangle> \<circ> \<langle>a\<rangle>"
+  hence ac_comm: "\<langle>a\<rangle> \<rhd> \<langle>x\<rangle> = \<langle>x\<rangle> \<rhd> \<langle>a\<rangle>"
     by (clarsimp simp: concurrent_ops_commute_def) blast
   have copc: "concurrent_ops_commute (prefix @ xs @ [x])"
     using assms by (clarsimp simp: concurrent_ops_commute_def) blast
-  have "apply_operations ((prefix @ x # xs) @ [a]) = \<langle>a\<rangle> (apply_operations (prefix @ x # xs))"
+  have "apply_operations ((prefix @ x # xs) @ [a]) = (apply_operations (prefix @ x # xs)) \<rhd> \<langle>a\<rangle>"
     by (simp del: append_assoc)
-  also have "... = \<langle>a\<rangle> (apply_operations (prefix @ xs @ [x]))"
+  also have "... = (apply_operations (prefix @ xs @ [x])) \<rhd> \<langle>a\<rangle>"
     using IH assms copc by auto
-  also have "... = \<langle>a\<rangle> (\<langle>x\<rangle> (apply_operations (prefix @ xs)))"
+  also have "... = ((apply_operations (prefix @ xs)) \<rhd> \<langle>x\<rangle>) \<rhd> \<langle>a\<rangle>"
     by (simp add: append_assoc[symmetric] del: append_assoc)
-  also have "... = \<langle>x\<rangle> (\<langle>a\<rangle> (apply_operations (prefix @ xs)))"
-    using ac_comm comp_eq_elim by blast
+  also have "... = (apply_operations (prefix @ xs)) \<rhd> (\<langle>a\<rangle> \<rhd> \<langle>x\<rangle>)"
+    using ac_comm kleisli_comm_cong kleisli_assoc by simp
   finally show "apply_operations (prefix @ (xs @ [a]) @ [x]) = apply_operations (prefix @ x # xs @ [a])"
-    by (metis Cons_eq_appendI append_assoc apply_operations_Snoc)
+    by (metis Cons_eq_appendI append_assoc apply_operations_Snoc kleisli_assoc)
 qed
 
 (*************************************************************************)
@@ -308,7 +319,7 @@ using assms proof(induction xs arbitrary: ys rule: rev_induct, simp)
     using ys_split by (force simp: IH' conc[symmetric] append_assoc[symmetric] simp del: append_assoc)
 qed
 
-theorem  convergence':
+corollary convergence_ext:
   assumes "set xs = set ys"
           "concurrent_ops_commute xs"
           "concurrent_ops_commute ys"
@@ -316,7 +327,8 @@ theorem  convergence':
           "distinct ys"
           "hb_consistent xs"
           "hb_consistent ys"
-  shows   "(fold (op \<circ>) (map interp xs) id) initial_state = (fold (op \<circ>) (map interp ys) id) initial_state"
-  using convergence apply_operations_def assms by metis
+  shows   "apply_operations xs s = apply_operations ys s"
+  using convergence assms by metis
 end
+
 end
