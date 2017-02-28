@@ -282,37 +282,23 @@ using assms proof(induction xs arbitrary: ys rule: rev_induct, simp)
     using ys_split assms by(auto simp add: disjoint_insert(1) distinct.simps(2) distinct_append list.simps(15))
   moreover {
     have "hb_consistent prefix" "hb_consistent suffix"
-      using ys_split assms hb_consistent_append_D1 apply blast
-      using ys_split assms hb_consistent_append_D2 hb_consistent_append_elim_ConsD by blast
+      using ys_split assms hb_consistent_append_D2 hb_consistent_append_elim_ConsD by blast+
     hence "hb_consistent (prefix @ suffix)"
     using ys_split assms
-        apply clarsimp
-        apply(rule hb_consistent_append)
-        apply force apply force
-        apply(rule hb_consistent_append_porder)
-        apply(assumption) back
-        apply fastforce+
-      done
+      apply clarsimp
+      apply(rule hb_consistent_append, assumption, assumption)
+      apply(rule hb_consistent_append_porder)
+      apply assumption back
+      apply auto
+    done
   }
   moreover have CPS: "concurrent_ops_commute (prefix @ suffix @ [x])"
     using assms ys_split by (clarsimp simp: concurrent_ops_commute_def)
   moreover hence "concurrent_ops_commute (prefix @ suffix)"
-    apply (subst (asm) append_assoc[symmetric])
-    apply (force simp del: append_assoc)
-  done
+    by (force simp del: append_assoc simp add: append_assoc[symmetric])
   ultimately have IH': "apply_operations xs = apply_operations (prefix@suffix)"
-    using ys_split assms
-    apply -
-    apply(rule IH)
-    apply clarsimp
-    apply(metis Diff_insert_absorb Un_iff)
-    apply force
-    apply force
-    apply force
-    apply force
-    apply force
-    apply force
-  done
+    using ys_split assms by (clarsimp simp add: IH) (metis Diff_insert_absorb IH Un_iff 
+        \<open>distinct (prefix @ suffix)\<close> happens_before.concurrent_ops_commute_appendD happens_before_axioms set_append)
   hence conc: "apply_operations (prefix@suffix @ [x]) = apply_operations (prefix@x # suffix)"
     using ys_split assms CPS by(force intro!: concurrent_ops_commute_concurrent_set)
   show "apply_operations (xs @ [x]) = apply_operations ys"

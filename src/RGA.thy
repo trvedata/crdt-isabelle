@@ -189,7 +189,7 @@ apply force
 (*
 apply force
 *)
-apply (frule insert_preserve_element')
+apply (frule insert_preserve_indices')
 apply clarsimp
 apply force
 apply (rule prefix_consistent)
@@ -204,7 +204,7 @@ apply clarsimp
 apply (subgoal_tac "\<exists>ys. delete (apply_operations xs) x2 = Some ys")
 apply clarsimp
 *)
-apply (frule delete_element_preserve)
+apply (frule delete_preserve_indices)
 apply clarsimp
 apply (subgoal_tac "xs prefix of i")
 apply force
@@ -243,7 +243,7 @@ lemma (in rga) Insert_no_failure:
   apply clarsimp
   apply (rule insert_no_failure)
   apply clarsimp
-  using insert_in_apply_set apply metis
+  using insert_in_apply_set apply (metis idx_in_elem_inserted prefix_of_appendD rga.apply_opers_idx_elems rga_axioms)
 done
 
 lemma (in rga) delete_no_failure:
