@@ -261,16 +261,17 @@ lemma (in rga) delete_no_failure:
   apply force
 done
 
-lemma (in rga) 
+lemma (in rga) Insert_equal:
   assumes "fst e1 = fst e2"
           "(i, Broadcast, Insert e1 n1) \<in> set (carriers i)"
           "(j, Broadcast, Insert e2 n2) \<in> set (carriers j)"
   shows   "Insert e1 n1 = Insert e2 n2"
-  using assms
+using assms
   apply (subgoal_tac "e1 = e2")
   apply (metis surjective_pairing insert_id_unique)
   apply (cases e1, cases e2; clarsimp)
-  by (metis insert_flag snd_conv insert_id_unique)
+  apply (metis insert_flag snd_conv insert_id_unique)
+done
 
 lemma (in rga) same_insert:
   assumes "fst e1 = fst e2"
@@ -278,10 +279,18 @@ lemma (in rga) same_insert:
           "(Insert e1 n1) \<in> set (node_deliver_messages xs)"
           "(Insert e2 n2) \<in> set (node_deliver_messages xs)"
   shows   "Insert e1 n1 = Insert e2 n2"
-  using assms
-  apply (subgoal_tac "e1 = e2")
-sorry
-
+using assms
+  apply -
+  apply(subgoal_tac "(i, Deliver, Insert e1 n1) \<in> set (carriers i)")
+  apply(subgoal_tac "(i, Deliver, Insert e2 n2) \<in> set (carriers i)")
+  apply(subgoal_tac "\<exists>j. (j, Broadcast, Insert e1 n1) \<in> set (carriers j)")
+  apply(subgoal_tac "\<exists>j. (j, Broadcast, Insert e2 n2) \<in> set (carriers j)")
+  apply(erule exE)+
+  apply(rule Insert_equal, force, force, force) 
+  apply(simp add: delivery_has_a_cause)
+  apply(simp add: delivery_has_a_cause)
+  apply(simp add: node_deliver_messages_def prefix_msg_in_carrier)+
+done
 
 lemma (in rga) insert_id_unique_node:
   assumes "fst e1 = fst e2" 
@@ -322,9 +331,18 @@ apply auto
 done
 
 lemma (in rga) insert_valid_assms:
- assumes "{(i, Deliver, Insert e n)} \<subseteq> set (carriers i)"
+ assumes "(i, Deliver, Insert e n) \<in> set (carriers i)"
  shows    "n = None \<or> n \<noteq> Some (fst e)"
-sorry
+using assms
+  apply(subgoal_tac "\<exists>j. (j, Broadcast, Insert e n) \<in> set (carriers j)")
+  apply(erule exE)
+  apply(drule allowed_insert[rotated])
+  apply(erule disjE)
+  apply force
+  apply clarsimp
+  apply(metis Insert_equal broadcast_causal delivery_has_a_cause fst_conv insert_subset local_order_carrier_closed node_total_order_irrefl)
+  apply(simp add: delivery_has_a_cause)
+done
 
 lemma (in rga) Insert_Delete_concurrent:
   assumes "{(i, Deliver, Insert e n), (i, Deliver, Delete n')} \<subseteq> set (carriers i)"
