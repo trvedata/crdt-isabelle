@@ -99,4 +99,8 @@ using assms
   apply auto
 done
 
+lemma map_filter_append:
+  shows "List.map_filter P (xs @ ys) = List.map_filter P xs @ List.map_filter P ys"
+by(auto simp add: List.map_filter_def)
+
 end

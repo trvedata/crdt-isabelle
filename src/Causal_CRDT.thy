@@ -11,70 +11,43 @@ using assms
   apply -
   apply(induction cs rule: rev_induct)
   apply(unfold node_deliver_messages_def)
-  apply force
+  apply(simp add: hb.hb_consistent.intros(1) map_filter_simps(2))
+  apply(case_tac x; clarify)
+  apply(simp add: List.map_filter_def)
+  apply(subgoal_tac "(\<And>m n. m < length xs \<Longrightarrow> n < m \<Longrightarrow> xs ! n \<sqsubset>\<^sup>i xs ! m)")
   apply clarsimp
-  apply(case_tac aa; clarsimp)
-defer
+  apply(smt Suc_less_eq less_SucI less_trans_Suc nth_append)
+  apply(subst map_filter_append)
+  apply(clarsimp simp add: map_filter_def)
   apply(rule hb.hb_consistent.intros)
-prefer 2
+  apply(subgoal_tac "(\<And>m n. m < length xs \<Longrightarrow> n < m \<Longrightarrow> xs ! n \<sqsubset>\<^sup>i xs ! m)")
   apply clarsimp
-  apply(case_tac "ab"; clarsimp)
-  apply(unfold hb_def)
+  apply(smt Suc_less_eq less_SucI less_trans_Suc nth_append)
   apply clarsimp
-  apply(erule disjE)
-  apply(subgoal_tac "(i, Deliver, ba) \<sqsubset>\<^sup>i (i, Deliver, b)")
-  apply(frule local_order_carrier_closed) back
-  apply(drule delivery_fifo_order[rotated], force)
-  using node_total_order_irrefl node_total_order_trans apply (meson insert_subset)
-defer
-  apply(subgoal_tac "(i, Deliver, ba) \<sqsubset>\<^sup>i (i, Deliver, b)")
-  apply(frule local_order_carrier_closed) back
-  apply(drule broadcast_causal[rotated], force)
-  using node_total_order_irrefl node_total_order_trans apply (meson insert_subset)
-  apply(drule set_elem_nth)
-  apply(erule exE, erule conjE)
-  apply(erule_tac x="length xs" in meta_allE)
-  apply(erule_tac x="m" in meta_allE)
+  apply(case_tac x; clarsimp)
+  apply(drule set_elem_nth, erule exE, erule conjE)
+  apply(erule_tac x="length xs" in meta_allE, erule_tac x=m in meta_allE)
   apply clarsimp
   apply(subst (asm) nth_append, simp)
-  apply(frule local_order_carrier_closed) back
-  apply clarsimp
-  apply(drule carriers_message_consistent)+
-  apply clarsimp
-  apply(subgoal_tac "(\<And>m n. m < length xs \<Longrightarrow> n < m \<Longrightarrow> xs ! n \<sqsubset>\<^sup>i xs ! m)")
-  apply clarsimp
-  apply(erule_tac x=m in meta_allE)
-  apply(erule_tac x=n in meta_allE)
-  apply clarsimp
-  apply(subst (asm) nth_append, simp)+
-  apply(subgoal_tac "(\<And>m n. m < length xs \<Longrightarrow> n < m \<Longrightarrow> xs ! n \<sqsubset>\<^sup>i xs ! m)")
-  apply clarsimp
-  apply(erule_tac x=m in meta_allE)
-  apply(erule_tac x=n in meta_allE)
-  apply clarsimp
-  apply(subst (asm) nth_append, simp)+
-  apply(drule set_elem_nth)
-  apply(erule exE, erule conjE)
-  apply(erule_tac x="length xs" in meta_allE)
-  apply(erule_tac x="m" in meta_allE)
-  apply clarsimp
-  apply(frule local_order_carrier_closed) back
-  apply clarsimp
-  apply(drule carriers_message_consistent)+
-  apply clarsimp
+  apply(unfold hb_def, clarsimp)
+  apply(erule disjE)
+  apply(meson broadcast_fifo_order hb.less_asym hb_def insert_subset local_order_carrier_closed)
+  apply(meson broadcast_causal insert_subset node_histories.local_order_carrier_closed
+          node_histories_axioms node_total_order_irrefl node_total_order_trans)
 done
 
 corollary (in network_with_ops)
-  shows "hb.hb_consistent (node_deliver_messages (carriers i))"
-  apply(subgoal_tac "carriers i = [] \<or> (\<exists>c. carriers i = [c]) \<or> (length (carriers i) \<ge> 2)")
-  apply(erule disjE, clarsimp simp add: node_deliver_messages_def)
-  apply(erule disjE, clarsimp simp add: node_deliver_messages_def)
-  apply(case_tac aa; clarsimp)
-defer
-  apply(cases "carriers i"; clarsimp; case_tac "list"; clarsimp)
+  shows "hb.hb_consistent (node_deliver_messages (history i))"
+  apply(subgoal_tac "history i = [] \<or> (\<exists>c. history i = [c]) \<or> (length (history i) \<ge> 2)")
+  apply(erule disjE, clarsimp simp add: node_deliver_messages_def map_filter_def)
+  apply(erule disjE, clarsimp simp add: node_deliver_messages_def map_filter_def)
+  apply blast
+  apply(cases "history i"; clarsimp; case_tac "list"; clarsimp)
   apply(rule hb_consistent_technical[where i=i])
-  apply(subst carriers_compatible)
-  apply (rule horror_size3, simp+)
+  apply(subst history_order_def, clarsimp)
+  apply(metis list_nth_split One_nat_def Suc_le_mono cancel_comm_monoid_add_class.diff_cancel
+          le_imp_less_Suc length_Cons less_Suc_eq_le less_imp_diff_less nat.simps neq0_conv nth_Cons_pos)
+  apply(cases "history i"; clarsimp; case_tac "list"; clarsimp)
 done
 
 end

@@ -288,7 +288,7 @@ using assms
   apply(rule Insert_equal, force, force, force) 
   apply(simp add: delivery_has_a_cause)
   apply(simp add: delivery_has_a_cause)
-  apply(simp add: node_deliver_messages_def prefix_msg_in_carrier)+
+  apply(simp add: node_deliver_messages_def prefix_msg_in_history)+
 done
 
 lemma (in rga) insert_id_unique_node:
@@ -428,7 +428,7 @@ apply (erule disjE)
 apply clarsimp
 apply (erule disjE)
 apply clarsimp
-apply (drule horror_size3)
+apply (drule list_nth_split)
 apply assumption
 apply clarsimp
 apply clarsimp
@@ -470,33 +470,33 @@ prefer 2
 apply assumption
 apply clarsimp
 apply (rule conjI)
-apply (rule prefix_msg_in_carrier, assumption, force)
-apply (rule prefix_msg_in_carrier, assumption, force)
+apply (rule prefix_msg_in_history, assumption, force)
+apply (rule prefix_msg_in_history, assumption, force)
 apply (rule insert_commute_assms)
 prefer 2
 apply assumption
 apply clarsimp
 apply (rule conjI)
-apply (rule prefix_msg_in_carrier, assumption, force)
-apply (rule prefix_msg_in_carrier, assumption, force)
+apply (rule prefix_msg_in_history, assumption, force)
+apply (rule prefix_msg_in_history, assumption, force)
 apply(clarsimp simp del: delete.simps)
 apply(subgoal_tac "Ordered_List.insert xa (a, aa, b) x12 \<bind> (\<lambda>x. Ordered_List.delete x x2) = delete xa x2 \<bind> (\<lambda>x. Ordered_List.insert x (a, aa, b) x12)")
 apply(metis (no_types, lifting) Option.bind_cong interpret_opers.simps)
 apply (rule insert_delete_commute)
 apply (rule insert_valid_assms)
-using prefix_msg_in_carrier apply blast
+using prefix_msg_in_history apply blast
 apply (rule Insert_Delete_concurrent)
 apply clarsimp
-using prefix_msg_in_carrier apply blast
+using prefix_msg_in_history apply blast
 apply(clarsimp)
 apply(clarsimp simp del: delete.simps)
 apply(subgoal_tac "delete xa x2 \<bind> (\<lambda>x. insert x (a, aa, b) x12) = Ordered_List.insert xa (a, aa, b) x12 \<bind> (\<lambda>x. delete x x2)")
 apply(metis (no_types, lifting) Option.bind_cong interpret_opers.simps)
 apply (rule insert_delete_commute[symmetric])
 apply (rule insert_valid_assms)
-using prefix_msg_in_carrier apply blast
+using prefix_msg_in_history apply blast
 apply (rule Insert_Delete_concurrent)
-using prefix_msg_in_carrier apply blast
+using prefix_msg_in_history apply blast
 apply (subst (asm) hb.concurrent_comm)
 apply assumption
 apply(clarsimp simp del: delete.simps)
