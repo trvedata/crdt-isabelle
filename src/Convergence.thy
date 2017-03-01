@@ -2,7 +2,6 @@ theory
   Convergence
 imports
   Util
-  "~~/src/HOL/Library/Monad_Syntax"
 begin
 
 section\<open>Convergence Theorem\<close>
@@ -179,18 +178,6 @@ using assms by (induction ys arbitrary: xs rule: rev_induct) force+
 (*************************************************************************)
 subsection\<open>Apply Operations\<close>
 (*************************************************************************)
-
-definition kleisli :: "('b \<Rightarrow> 'b option) \<Rightarrow> ('b \<Rightarrow> 'b option) \<Rightarrow> ('b \<Rightarrow> 'b option)" (infixr "\<rhd>" 65) where
-  "f \<rhd> g \<equiv> \<lambda>x. f x \<bind> (\<lambda>fx. g fx)"
-
-lemma kleisli_comm_cong:
-  assumes "x \<rhd> y = y \<rhd> x"
-  shows   "z \<rhd> x \<rhd> y = z \<rhd> y \<rhd> x"
-using assms by(clarsimp simp add: kleisli_def)
-
-lemma kleisli_assoc:
-  shows "(z \<rhd> x) \<rhd> y = z \<rhd> (x \<rhd> y)"
-by(auto simp add: kleisli_def)
 
 definition apply_operations :: "'a list \<Rightarrow> 'b \<rightharpoonup> 'b" where
   "apply_operations es s \<equiv> (foldl (op \<rhd>) Some (map interp es)) s"

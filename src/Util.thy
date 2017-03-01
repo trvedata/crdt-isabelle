@@ -2,7 +2,24 @@ theory
   Util
 imports
   Main
+  "~~/src/HOL/Library/Monad_Syntax"
 begin
+
+section\<open>Kleisli arrow composition for the option monad\<close>
+
+definition kleisli :: "('b \<Rightarrow> 'b option) \<Rightarrow> ('b \<Rightarrow> 'b option) \<Rightarrow> ('b \<Rightarrow> 'b option)" (infixr "\<rhd>" 65) where
+  "f \<rhd> g \<equiv> \<lambda>x. f x \<bind> (\<lambda>fx. g fx)"
+
+lemma kleisli_comm_cong:
+  assumes "x \<rhd> y = y \<rhd> x"
+  shows   "z \<rhd> x \<rhd> y = z \<rhd> y \<rhd> x"
+using assms by(clarsimp simp add: kleisli_def)
+
+lemma kleisli_assoc:
+  shows "(z \<rhd> x) \<rhd> y = z \<rhd> (x \<rhd> y)"
+by(auto simp add: kleisli_def)
+
+section\<open>Technical set lemmas\<close>
 
 lemma distinct_set_notin [dest]:
   assumes "distinct (x#xs)"
@@ -52,6 +69,8 @@ lemma set_elem_nth:
   assumes "x \<in> set xs"
   shows   "\<exists>m. m < length xs \<and> xs ! m = x"
 using assms by(induction xs, simp) (meson in_set_conv_nth)
+
+section\<open>Technical list lemmas\<close>
 
 lemma list_nth_split_technical:
   assumes "m < length cs"
