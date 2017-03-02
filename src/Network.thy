@@ -249,7 +249,7 @@ done
 
 interpretation non_trivial_network: network "\<lambda>e1 e2. e1 = Broadcast id \<and> e2 = Deliver id"
                                             "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else [Deliver id]"
-  by standard (auto split: split_if_asm)
+  by standard (auto split: if_split_asm)
 
 end
   

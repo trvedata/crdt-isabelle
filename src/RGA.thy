@@ -4,7 +4,7 @@ imports
   Causal_CRDT
   Ordered_List
 begin
-
+  
 datatype ('id, 'v) operation =
   Insert "('id, 'v) elt" "'id option" |
   Delete "'id"
@@ -20,8 +20,7 @@ locale rga = network_with_ops _ _ interpret_opers +
                             (\<exists>n' n'' v b. n = Some n' \<and> Deliver (Insert (n', v, b) n'') \<sqsubset>\<^sup>i Broadcast (Insert e n))"
   assumes insert_id_unique: "id1 = id2 \<Longrightarrow> Broadcast (Insert (id1, v1, b1) n1) \<in> set (history i) \<Longrightarrow> Broadcast (Insert (id2, v2, b2) n2) \<in> set (history j) \<Longrightarrow> v1 = v2 \<and> n1 = n2"
   assumes allowed_delete: "Broadcast (Delete x) \<in> set (history i) \<Longrightarrow> (\<exists>n' v b. Deliver (Insert (x, v, b) n') \<sqsubset>\<^sup>i Broadcast (Delete x))"
-
-
+    
 lemma (in rga) allowed_delete_deliver:
   assumes "Deliver (Delete x) \<in> set (history i)"
     shows "\<exists>n' v b. Deliver (Insert (x, v, b) n') \<sqsubset>\<^sup>i Deliver (Delete x)"
