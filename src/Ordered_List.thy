@@ -49,11 +49,11 @@ lemma insert_None_index_neq_None [dest]:
   assumes "insert xs e i = None"
   shows   "i \<noteq> None"
 using assms by(cases i, auto)
-
+  
 lemma insert_Some_None_index_not_in [dest]:
   assumes "insert xs e (Some i) = None"
   shows   "i \<notin> fst ` set xs"
-using assms by(induction xs, auto split: split_if_asm bind_splits) 
+using assms by(induction xs, auto split: if_split_asm bind_splits) 
 
 lemma index_not_in_insert_Some_None [simp]:
   assumes "i \<notin> fst ` set xs"
@@ -68,7 +68,7 @@ using assms by(induction xs; force)
 lemma delete_None_index_not_in [dest]:
   assumes "delete xs i = None"
   shows  "i \<notin> fst ` set xs"
-using assms by(induction xs, auto split: split_if_asm bind_splits simp add: fst_eq_Domain)
+using assms by(induction xs, auto split: if_split_asm bind_splits simp add: fst_eq_Domain)
 
 lemma index_not_in_delete_None [simp]:
   assumes "i \<notin> fst ` set xs"
@@ -94,7 +94,7 @@ using assms insert_preserve_indices by blast
 lemma delete_preserve_indices:
   assumes "delete xs i = Some ys"
   shows   "fst ` set xs = fst ` set ys"
-using assms by(induction xs arbitrary: ys, simp) (case_tac a; auto split: split_if_asm bind_splits)
+using assms by(induction xs arbitrary: ys, simp) (case_tac a; auto split: if_split_asm bind_splits)
 
 section\<open>Commutativity of insert and delete\<close>
 
@@ -107,7 +107,7 @@ lemma insert_insert_body:
   assumes "fst e1 \<noteq> fst e2"
       and "i2 \<noteq> Some (fst e1)"
   shows   "insert (insert_body xs e1) e2 i2 = do { ys \<leftarrow> insert xs e2 i2; Some (insert_body ys e1) }"
-using assms by (induction xs; cases i2) (auto split: split_if_asm simp add: insert_body_commutes)
+using assms by (induction xs; cases i2) (auto split: if_split_asm simp add: insert_body_commutes)
 
 lemma insert_Nil_None:
   assumes "fst e1 \<noteq> fst e2"
@@ -183,19 +183,19 @@ qed
 
 lemma delete_commutes:
   shows "do { ys \<leftarrow> delete xs i1; delete ys i2 } = do { ys \<leftarrow> delete xs i2; delete ys i1 }"
-by(induction xs, auto split: bind_splits split_if_asm)
+by(induction xs, auto split: bind_splits if_split_asm)
 
 lemma insert_body_delete_commute:
   assumes "i2 \<noteq> fst e"
   shows   "delete (insert_body xs e) i2 \<bind> (\<lambda>t. Some (x#t)) =
             delete xs i2 \<bind> (\<lambda>y. Some (x#insert_body y e))"
-using assms by (induction xs arbitrary: x; cases e, auto split: bind_splits split_if_asm)
+using assms by (induction xs arbitrary: x; cases e, auto split: bind_splits if_split_asm)
 
 lemma insert_delete_commute:
   assumes "i1 = None \<or> i1 \<noteq> Some (fst e)"
           "i2 \<noteq> fst e"
   shows   "do { ys \<leftarrow> insert xs e i1; delete ys i2 } = do { ys \<leftarrow> delete xs i2; insert ys e i1 }"
-using assms by(induction xs; cases e; cases i1, auto split: bind_splits split_if_asm simp add: insert_body_delete_commute)
+using assms by(induction xs; cases e; cases i1, auto split: bind_splits if_split_asm simp add: insert_body_delete_commute)
 
 section\<open>Alternative definition of insert\<close>
 
@@ -222,7 +222,7 @@ fun insert' :: "('id::{linorder}, 'v) elt list \<Rightarrow> ('id, 'v) elt \<Rig
 lemma [elim!, dest]:
   assumes "insert' xs e None = None"
   shows   "False"
-using assms by(induction xs, auto split: split_if_asm option.split_asm)
+using assms by(induction xs, auto split: if_split_asm option.split_asm)
 
 lemma insert_body_insert':
   shows "insert' xs e None = Some (insert_body xs e)"
