@@ -118,7 +118,7 @@ lemma (in network) delivery_has_a_cause:
   assumes "Deliver m \<in> set (history i)"
   shows "\<exists>j. Broadcast m \<in> set (history j)"
   by (meson assms broadcast_before_delivery insert_subset local_order_carrier_closed)
-      
+
 inductive (in network) hb :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
   "\<lbrakk> Broadcast m1 \<sqsubset>\<^sup>i Broadcast m2 \<rbrakk> \<Longrightarrow> hb m1 m2" |
   "\<lbrakk> Deliver m1 \<sqsubset>\<^sup>i Broadcast m2 \<rbrakk> \<Longrightarrow> hb m1 m2" |
@@ -132,13 +132,15 @@ definition (in network) weak_hb :: "'a \<Rightarrow> 'a \<Rightarrow> bool" wher
 locale causal_network = network +
   assumes broadcast_causal: "{Deliver m2} \<subseteq> set (history j) \<Longrightarrow>
     hb m1 m2 \<Longrightarrow> Deliver m1 \<sqsubset>\<^sup>j Deliver m2"
-    
+      and immediate_local_delivery: "Broadcast m1 \<sqsubset>\<^sup>i Broadcast m2 \<Longrightarrow> Deliver m1 \<sqsubset>\<^sup>i Broadcast m2"
+
 lemma (in causal_network) broadcast_causal':
   assumes "{Deliver m2} \<subseteq> set (history j)"
       and "Deliver m1 \<sqsubset>\<^sup>i Broadcast m2"
     shows "Deliver m1 \<sqsubset>\<^sup>j Deliver m2"
   using assms by (meson causal_network.broadcast_causal causal_network_axioms hb.intros(2))
-    
+
+
 lemma (in causal_network) hb_antisym:
   assumes "hb x y"
       and "hb y x"
@@ -155,7 +157,7 @@ using assms proof(induction rule: hb.induct)
       by(metis broadcast_before_delivery broadcasts_unique insert_subset local_order_carrier_closed node_total_order_irrefl node_total_order_trans)
   next
     show "\<And>m2a. Broadcast m1 \<sqsubset>\<^sup>i Broadcast m2 \<Longrightarrow> hb m2 m2a \<Longrightarrow> hb m2a m1 \<Longrightarrow> False"
-      sorry
+      by (meson causal_network.broadcast_causal causal_network_axioms hb.intros(1) hb.intros(3) immediate_local_delivery insert_subset node_histories.local_order_carrier_closed node_histories_axioms node_total_order_irrefl)
   qed
 next
   fix m1 i m2
