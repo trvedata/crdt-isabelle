@@ -12,7 +12,7 @@ locale node_histories =
   fixes history :: "nat \<Rightarrow> 'a list"
   assumes histories_distinct [intro!, simp]: "distinct (history i)"
 
-definition (in node_histories) history_order :: "'a \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> bool" ("_\<sqsubset>\<^sup>__" [50,1000,50]50) where
+definition (in node_histories) history_order :: "'a \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> bool" ("_/ \<sqsubset>\<^sup>_/ _" [50,1000,50]50) where
   "x \<sqsubset>\<^sup>i z \<equiv> \<exists>xs ys zs. xs@x#ys@z#zs = history i"
 
 lemma (in node_histories) node_total_order_trans:
@@ -102,37 +102,83 @@ using assms
   apply(auto simp add: node_total_order_irrefl prefix_to_carriers)
 done
 
-subsection\<open>Global order\<close>
-
-locale global_order = node_histories history for history :: "nat \<Rightarrow> 'a list" +
-  fixes global_order :: "'a \<Rightarrow> 'a \<Rightarrow> bool" (infix "\<sqsubset>" 50)
-  assumes global_order_trans: "e1 \<sqsubset> e2 \<Longrightarrow> e2 \<sqsubset> e3 \<Longrightarrow> e1 \<sqsubset> e3"
-   and local_order_to_global: "e1 \<sqsubset>\<^sup>i e2 \<Longrightarrow> e1 \<sqsubset> e2"
-   and global_order_to_local: "{e1, e2} \<subseteq> set (history i) \<Longrightarrow> e1 \<sqsubset> e2 \<Longrightarrow> e1 \<sqsubset>\<^sup>i e2"
-
 subsection\<open>Networks\<close>
 
 datatype 'a event
   = Broadcast 'a
   | Deliver 'a
 
-locale network = global_order history global_order
-    for global_order :: "'a event \<Rightarrow> 'a event \<Rightarrow> bool" (infix "\<sqsubset>" 50) and history :: "nat \<Rightarrow> 'a event list" +
+locale network = node_histories history for history :: "nat \<Rightarrow> 'a event list" +
   (* Broadcast/Deliver interaction *)
-  assumes broadcast_before_delivery: "Broadcast m \<in> set (history i) \<Longrightarrow> (Broadcast m) \<sqsubset> (Deliver m)"
+  assumes broadcast_before_delivery: "Deliver m \<in> set (history i) \<Longrightarrow> \<exists>j. Broadcast m \<sqsubset>\<^sup>j Deliver m"
       and no_message_lost: "Broadcast m \<in> set (history i) \<Longrightarrow> Deliver m \<in> set (history j)"
-      and delivery_has_a_cause: "Deliver m \<in> set (history i) \<Longrightarrow> \<exists>j. Broadcast m \<in> set (history j)"
       and broadcasts_unique: "i \<noteq> j \<Longrightarrow> Broadcast m \<in> set (history i) \<Longrightarrow> Broadcast m \<notin> set (history j)"
+      
+lemma (in network) delivery_has_a_cause:
+  assumes "Deliver m \<in> set (history i)"
+  shows "\<exists>j. Broadcast m \<in> set (history j)"
+  by (meson assms broadcast_before_delivery insert_subset local_order_carrier_closed)
+      
+inductive (in network) hb :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
+  "\<lbrakk> Broadcast m1 \<sqsubset>\<^sup>i Broadcast m2 \<rbrakk> \<Longrightarrow> hb m1 m2" |
+  "\<lbrakk> Deliver m1 \<sqsubset>\<^sup>i Broadcast m2 \<rbrakk> \<Longrightarrow> hb m1 m2" |
+  "\<lbrakk> hb m1 m2; hb m2 m3 \<rbrakk> \<Longrightarrow> hb m1 m3"
+  
+inductive_cases (in network) hb_elim: "hb x y"
+        
+definition (in network) weak_hb :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
+  "weak_hb m1 m2 \<equiv> hb m1 m2 \<or> m1 = m2"
 
-locale fifo_network = network +
-  assumes delivery_fifo_order: "{Deliver m1, Deliver m2} \<subseteq> set (history j) \<Longrightarrow>
-      Broadcast m1 \<sqsubset>\<^sup>i Broadcast m2 \<Longrightarrow> Deliver m1 \<sqsubset>\<^sup>j Deliver m2"
-   and broadcast_fifo_order: "{Broadcast m1, Broadcast m2} \<subseteq> set (history i) \<Longrightarrow>
-      Deliver m1 \<sqsubset>\<^sup>j Deliver m2 \<Longrightarrow> Broadcast m1 \<sqsubset>\<^sup>i Broadcast m2"
-
-locale causal_network = fifo_network +
+locale causal_network = network +
   assumes broadcast_causal: "{Deliver m1, Deliver m2} \<subseteq> set (history j) \<Longrightarrow>
-    Deliver m1 \<sqsubset>\<^sup>i Broadcast m2 \<Longrightarrow> Deliver m1 \<sqsubset>\<^sup>j Deliver m2"
+    hb m1 m2 \<Longrightarrow> Deliver m1 \<sqsubset>\<^sup>j Deliver m2"
+    
+lemma (in causal_network) broadcast_causal':
+  assumes "{Deliver m1, Deliver m2} \<subseteq> set (history j)"
+      and "Deliver m1 \<sqsubset>\<^sup>i Broadcast m2"
+    shows "Deliver m1 \<sqsubset>\<^sup>j Deliver m2"
+  using assms by (meson causal_network.broadcast_causal causal_network_axioms hb.intros(2))
+    
+lemma (in causal_network) hb_antisym:
+  assumes "hb x y"
+      and "hb y x"
+  shows   "False"
+using assms proof(induction rule: hb.induct)
+  fix m1 i m2  
+  assume "hb m2 m1" and "Broadcast m1 \<sqsubset>\<^sup>i Broadcast m2"
+  thus False
+    apply - proof(erule hb_elim)
+    show "\<And>ia. Broadcast m1 \<sqsubset>\<^sup>i Broadcast m2 \<Longrightarrow> Broadcast m2 \<sqsubset>\<^sup>ia Broadcast m1 \<Longrightarrow> False"
+      by(metis broadcasts_unique insert_subset local_order_carrier_closed node_total_order_irrefl node_total_order_trans)
+  next
+    show "\<And>m1 i m2 ia. Deliver m1 \<sqsubset>\<^sup>i Broadcast m2 \<Longrightarrow> Broadcast m2 \<sqsubset>\<^sup>ia Broadcast m1 \<Longrightarrow> False"
+      by(metis broadcast_before_delivery broadcasts_unique insert_subset local_order_carrier_closed node_total_order_irrefl node_total_order_trans)
+  next
+    show "\<And>m2a. Broadcast m1 \<sqsubset>\<^sup>i Broadcast m2 \<Longrightarrow> hb m2 m2a \<Longrightarrow> hb m2a m1 \<Longrightarrow> False"
+      by (meson causal_network.broadcast_causal causal_network_axioms hb.intros(1) hb.intros(3) insert_subset local_order_carrier_closed no_message_lost node_histories.node_total_order_irrefl node_histories_axioms)
+  qed
+next
+  fix m1 i m2
+  assume "hb m2 m1"
+     and "Deliver m1 \<sqsubset>\<^sup>i Broadcast m2"
+  thus "False"
+    apply - proof(erule hb_elim)
+    show "\<And>ia. Deliver m1 \<sqsubset>\<^sup>i Broadcast m2 \<Longrightarrow> Broadcast m2 \<sqsubset>\<^sup>ia Broadcast m1 \<Longrightarrow> False"
+      by (metis broadcast_before_delivery broadcasts_unique insert_subset local_order_carrier_closed node_total_order_irrefl node_total_order_trans)
+  next
+    show "\<And>ia. Deliver m1 \<sqsubset>\<^sup>i Broadcast m2 \<Longrightarrow> Deliver m2 \<sqsubset>\<^sup>ia Broadcast m1 \<Longrightarrow> False"
+      by (meson causal_network.broadcast_causal causal_network_axioms hb.intros(2) hb.intros(3) insert_subset local_order_carrier_closed node_total_order_irrefl)
+  next
+    show "\<And>m2a. Deliver m1 \<sqsubset>\<^sup>i Broadcast m2 \<Longrightarrow> hb m2 m2a \<Longrightarrow> hb m2a m1 \<Longrightarrow> False"
+      by (meson broadcast_causal hb.intros(2) insert_subset local_order_carrier_closed network.hb.intros(3) network_axioms node_total_order_irrefl)
+  qed
+next
+  fix m1 m2 m3
+  assume "hb m1 m2" "hb m2 m3" "hb m3 m1"
+     and "(hb m2 m1 \<Longrightarrow> False)" "(hb m3 m2 \<Longrightarrow> False)"
+  thus "False"
+    using hb.intros(3) by blast
+qed
 
 definition (in network) node_deliver_messages :: "'a event list \<Rightarrow> 'a list" where
   "node_deliver_messages cs \<equiv> List.map_filter (\<lambda>e. case e of Deliver m \<Rightarrow> Some m | _ \<Rightarrow> None) cs"
@@ -162,13 +208,7 @@ using assms
   using prefix_to_carriers apply auto
 done
 
-definition (in network) hb :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
-  "hb m1 m2 \<equiv> (\<exists>i. Broadcast m1 \<sqsubset>\<^sup>i Broadcast m2 \<or> Deliver m1 \<sqsubset>\<^sup>i Broadcast m2)"
-
-definition (in network) weak_hb :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
-  "weak_hb m1 m2 \<equiv> hb m1 m2 \<or> m1 = m2"
-
-locale network_with_ops = causal_network _ history
+locale network_with_ops = causal_network history
   for history :: "nat \<Rightarrow> 'a event list" +
   fixes interp :: "'a \<Rightarrow> 'b \<rightharpoonup> 'b"
 
@@ -178,47 +218,16 @@ sublocale hb: happens_before weak_hb hb
 proof
   fix x y :: "'a"
   show "hb x y = (weak_hb x y \<and> \<not> weak_hb y x)"
-  proof(rule iffI; unfold hb_def weak_hb_def; clarsimp)
-    fix i :: "nat"
-    assume "Broadcast x \<sqsubset>\<^sup>i Broadcast y \<or> Deliver x \<sqsubset>\<^sup>i Broadcast y"
-    thus "(\<forall>i. \<not> Broadcast y \<sqsubset>\<^sup>i Broadcast x \<and> \<not> Deliver y \<sqsubset>\<^sup>i Broadcast x) \<and> y \<noteq> x"
-    proof
-      assume "Broadcast x \<sqsubset>\<^sup>i Broadcast y"
-      thus "(\<forall>i. \<not> Broadcast y \<sqsubset>\<^sup>i Broadcast x \<and> \<not> Deliver y \<sqsubset>\<^sup>i Broadcast x) \<and> y \<noteq> x"
-        by(metis global_order.global_order_trans global_order_axioms global_order_to_local
-            insert_subset local_order_carrier_closed local_order_to_global
-            network.broadcast_before_delivery network_axioms node_total_order_irrefl)
-    next
-      assume "Deliver x \<sqsubset>\<^sup>i Broadcast y"
-      thus "(\<forall>i. \<not> Broadcast y \<sqsubset>\<^sup>i Broadcast x \<and> \<not> Deliver y \<sqsubset>\<^sup>i Broadcast x) \<and> y \<noteq> x"  
-        by(meson broadcast_before_delivery global_order_to_local global_order_trans insert_subset
-            local_order_carrier_closed local_order_to_global node_total_order_irrefl)
-    qed
-  qed
+    unfolding weak_hb_def using hb_antisym by blast
 next
-  fix x :: "'a"
+  fix x
   show "weak_hb x x"
-    by(simp add: weak_hb_def)
+    using weak_hb_def by blast
 next
-  fix x y z :: "'a"
-  assume "weak_hb x y"
-     and "weak_hb y z"
-    thus "weak_hb x z"
-  proof(unfold weak_hb_def hb_def)
-    assume 1: "(\<exists>i. Broadcast x \<sqsubset>\<^sup>i Broadcast y \<or> Deliver x \<sqsubset>\<^sup>i Broadcast y) \<or> x = y"
-       and 2: "(\<exists>i. Broadcast y \<sqsubset>\<^sup>i Broadcast z \<or> Deliver y \<sqsubset>\<^sup>i Broadcast z) \<or> y = z"
-      show "(\<exists>i. Broadcast x \<sqsubset>\<^sup>i Broadcast z \<or> Deliver x \<sqsubset>\<^sup>i Broadcast z) \<or> x = z"
-    proof(rule disjE[OF 1]; rule disjE[OF 2]; clarsimp)
-      fix i j :: "nat"
-      assume "Broadcast x \<sqsubset>\<^sup>i Broadcast y \<or> Deliver x \<sqsubset>\<^sup>i Broadcast y"
-         and "Broadcast y \<sqsubset>\<^sup>j Broadcast z \<or> Deliver y \<sqsubset>\<^sup>j Broadcast z"
-         and "x \<noteq> z"
-       thus "\<exists>i. Broadcast x \<sqsubset>\<^sup>i Broadcast z \<or> Deliver x \<sqsubset>\<^sup>i Broadcast z" 
-         by(smt broadcasts_unique delivery_fifo_order delivery_has_a_cause global_order_to_local
-              insert_subset local_order_carrier_closed local_order_to_global
-              network.broadcast_before_delivery network_axioms no_message_lost node_total_order_trans)
-    qed
-  qed
+  fix x y z
+  assume "weak_hb x y" "weak_hb y z"
+  thus "weak_hb x z"
+    using weak_hb_def by (metis network.hb.intros(3) network_axioms)
 qed
 
 end
@@ -228,28 +237,19 @@ section\<open>Example instantiations and interpretations\<close>
 interpretation trivial_node_histories: node_histories "\<lambda>m. []"
   by standard auto
 
-interpretation trivial_global_order: global_order "\<lambda>m. []" "\<lambda>e1 e2. False"
-  by standard (auto simp add: trivial_node_histories.history_order_def)
-
-interpretation trivial_network: network "\<lambda>e1 e2. False" "\<lambda>m. []"
+interpretation trivial_network: network "\<lambda>m. []"
   by standard auto
 
 interpretation non_trivial_node_histories: node_histories "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else [Deliver id]"
   by standard auto
 
-interpretation non_trivial_global_order: global_order "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else [Deliver id]"
-                                                      "\<lambda>e1 e2. e1 = Broadcast id \<and> e2 = Deliver id"
+interpretation non_trivial_network: network "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else [Deliver id]"
   apply standard
-  apply(auto simp add: non_trivial_node_histories.history_order_def)
-  apply(metis (no_types, lifting) append_is_Nil_conv butlast.simps(2) butlast_append append_Cons neq_Nil_conv append_Nil last_snoc)
-  apply(metis (no_types, lifting) append_is_Nil_conv butlast.simps(2) butlast_append append_Cons neq_Nil_conv append_Nil last_snoc)
-  apply(simp add: append_eq_Cons_conv)
-  using distinct_set_notin apply fastforce
-done
-
-interpretation non_trivial_network: network "\<lambda>e1 e2. e1 = Broadcast id \<and> e2 = Deliver id"
-                                            "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else [Deliver id]"
-  by standard (auto split: if_split_asm)
-
+    apply(auto split: if_split_asm)
+    apply(rule_tac x=0 in exI)
+   apply (metis append.left_neutral non_trivial_node_histories.history_order_def)
+    apply(rule_tac x=0 in exI)
+  apply (metis append.left_neutral non_trivial_node_histories.history_order_def)
+    done
 end
   

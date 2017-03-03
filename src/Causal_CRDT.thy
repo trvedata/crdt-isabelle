@@ -29,12 +29,8 @@ using assms
   apply(erule_tac x="length xs" in meta_allE, erule_tac x=m in meta_allE)
   apply clarsimp
   apply(subst (asm) nth_append, simp)
-  apply(unfold hb_def, clarsimp)
-  apply(erule disjE)
-  apply(meson broadcast_fifo_order hb.less_asym hb_def insert_subset local_order_carrier_closed)
-  apply(meson broadcast_causal insert_subset node_histories.local_order_carrier_closed
-          node_histories_axioms node_total_order_irrefl node_total_order_trans)
-done
+  apply(meson causal_network.broadcast_causal causal_network_axioms insert_subset node_histories.local_order_carrier_closed node_histories_axioms node_total_order_irrefl node_total_order_trans)
+  done
 
 corollary (in network_with_ops)
   shows "hb.hb_consistent (node_deliver_messages (history i))"

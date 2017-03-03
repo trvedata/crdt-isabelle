@@ -14,7 +14,7 @@ fun interpret_opers :: "('id::linorder, 'v) operation \<Rightarrow> ('id, 'v) el
   "interpret_opers (Delete n)   xs  = delete xs n"
 
 (* Replicated Growable Array Network *)
-locale rga = network_with_ops _ _ interpret_opers +
+locale rga = network_with_ops _ interpret_opers +
   assumes insert_flag: "Broadcast (Insert e n) \<in> set (history i) \<Longrightarrow> snd (snd e) = False"
   assumes allowed_insert: "Broadcast (Insert e n) \<in> set (history i) \<Longrightarrow> n = None \<or> 
                             (\<exists>n' n'' v b. n = Some n' \<and> Deliver (Insert (n', v, b) n'') \<sqsubset>\<^sup>i Broadcast (Insert e n))"
@@ -36,7 +36,7 @@ using assms
   apply(drule delivery_has_a_cause) back
   apply clarsimp
   apply(frule no_message_lost[where j=i]) back
-  apply(drule broadcast_causal[rotated, where j=i])
+  apply(drule broadcast_causal'[rotated, where j=i])
   apply force
   apply force
 done
@@ -62,7 +62,7 @@ using assms
   apply(frule delivery_has_a_cause) back
   apply clarsimp
   apply(frule no_message_lost[where j=i]) back
-  apply(drule broadcast_causal[rotated, where j=i])
+  apply(drule broadcast_causal'[rotated, where j=i])
   apply auto
 done
 
@@ -204,7 +204,7 @@ lemma (in rga) insert_commute_assms:
       and "hb.concurrent (Insert e n) (Insert e' n')"
     shows "n = None \<or> n \<noteq> Some (fst e')"
 using assms
-  apply(clarsimp simp: hb_def hb.concurrent_def)
+  apply(clarsimp simp: hb.concurrent_def)
   apply(case_tac e')
   apply clarsimp
   apply(frule delivery_has_a_cause)
@@ -212,12 +212,8 @@ using assms
   apply clarsimp
   apply(frule allowed_insert)
   apply clarsimp
-  apply(erule_tac x=j in allE) back
-  apply clarsimp
-  apply(subgoal_tac "(j, Deliver, Insert (a, v, ba) n'') = (j, Deliver, Insert (a, b, c) n')")
-  apply clarsimp
-  using insert_id_unique apply (smt delivery_has_a_cause rga.insert_flag rga_axioms insert_subset local_order_carrier_closed prod.sel(2))
-done
+  apply(metis Insert_equal delivery_has_a_cause fst_conv hb.intros(2) insert_subset local_order_carrier_closed)
+  done
 
 lemma (in rga) Insert_Insert_concurrent:
   assumes "{Deliver (Insert e k), Deliver (Insert e' (Some m))} \<subseteq> set (history i)"
@@ -234,7 +230,7 @@ lemma (in rga) Insert_Delete_concurrent:
   assumes "{Deliver (Insert e n), Deliver (Delete n')} \<subseteq> set (history i)"
       and "hb.concurrent (Insert e n) (Delete n')"
     shows "n' \<noteq> fst e"
-using assms by(metis Insert_equal allowed_delete delivery_has_a_cause fst_conv hb.concurrent_def hb_def insert_subset local_order_carrier_closed)
+by (metis assms Insert_equal allowed_delete delivery_has_a_cause fst_conv hb.concurrent_def hb.intros(2) insert_subset local_order_carrier_closed)
 
 lemma (in rga) node_deliver_messages_distinct:
   assumes "xs prefix of i"
