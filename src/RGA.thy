@@ -24,22 +24,7 @@ locale rga = network_with_ops _ interpret_opers +
 lemma (in rga) allowed_delete_deliver:
   assumes "Deliver (Delete x) \<in> set (history i)"
     shows "\<exists>n' v b. Deliver (Insert (x, v, b) n') \<sqsubset>\<^sup>i Deliver (Delete x)"
-using assms
-  apply -
-  apply(drule delivery_has_a_cause)
-  apply clarsimp
-  apply(frule no_message_lost[where j=i])
-  apply(drule allowed_delete)
-  apply clarsimp
-  apply(frule local_order_carrier_closed)
-  apply clarsimp
-  apply(drule delivery_has_a_cause) back
-  apply clarsimp
-  apply(frule no_message_lost[where j=i]) back
-  apply(drule broadcast_causal'[rotated, where j=i])
-  apply force
-  apply force
-done
+  using assms by (meson allowed_delete bot_least broadcast_causal' delivery_has_a_cause insert_subset)
 
 lemma (in rga) allowed_delete_deliver_in_set:
   assumes "(es@[Deliver (Delete m)]) prefix of i"

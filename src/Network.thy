@@ -111,7 +111,7 @@ datatype 'a event
 locale network = node_histories history for history :: "nat \<Rightarrow> 'a event list" +
   (* Broadcast/Deliver interaction *)
   assumes broadcast_before_delivery: "Deliver m \<in> set (history i) \<Longrightarrow> \<exists>j. Broadcast m \<sqsubset>\<^sup>j Deliver m"
-      and no_message_lost: "Broadcast m \<in> set (history i) \<Longrightarrow> Deliver m \<in> set (history j)"
+      (*and no_message_lost: "Broadcast m \<in> set (history i) \<Longrightarrow> Deliver m \<in> set (history j)"*)
       and broadcasts_unique: "i \<noteq> j \<Longrightarrow> Broadcast m \<in> set (history i) \<Longrightarrow> Broadcast m \<notin> set (history j)"
       
 lemma (in network) delivery_has_a_cause:
@@ -130,11 +130,11 @@ definition (in network) weak_hb :: "'a \<Rightarrow> 'a \<Rightarrow> bool" wher
   "weak_hb m1 m2 \<equiv> hb m1 m2 \<or> m1 = m2"
 
 locale causal_network = network +
-  assumes broadcast_causal: "{Deliver m1, Deliver m2} \<subseteq> set (history j) \<Longrightarrow>
+  assumes broadcast_causal: "{Deliver m2} \<subseteq> set (history j) \<Longrightarrow>
     hb m1 m2 \<Longrightarrow> Deliver m1 \<sqsubset>\<^sup>j Deliver m2"
     
 lemma (in causal_network) broadcast_causal':
-  assumes "{Deliver m1, Deliver m2} \<subseteq> set (history j)"
+  assumes "{Deliver m2} \<subseteq> set (history j)"
       and "Deliver m1 \<sqsubset>\<^sup>i Broadcast m2"
     shows "Deliver m1 \<sqsubset>\<^sup>j Deliver m2"
   using assms by (meson causal_network.broadcast_causal causal_network_axioms hb.intros(2))
@@ -151,11 +151,11 @@ using assms proof(induction rule: hb.induct)
     show "\<And>ia. Broadcast m1 \<sqsubset>\<^sup>i Broadcast m2 \<Longrightarrow> Broadcast m2 \<sqsubset>\<^sup>ia Broadcast m1 \<Longrightarrow> False"
       by(metis broadcasts_unique insert_subset local_order_carrier_closed node_total_order_irrefl node_total_order_trans)
   next
-    show "\<And>m1 i m2 ia. Deliver m1 \<sqsubset>\<^sup>i Broadcast m2 \<Longrightarrow> Broadcast m2 \<sqsubset>\<^sup>ia Broadcast m1 \<Longrightarrow> False"
+    show "\<And>ia. Broadcast m1 \<sqsubset>\<^sup>i Broadcast m2 \<Longrightarrow> Deliver m2 \<sqsubset>\<^sup>ia Broadcast m1 \<Longrightarrow> False"
       by(metis broadcast_before_delivery broadcasts_unique insert_subset local_order_carrier_closed node_total_order_irrefl node_total_order_trans)
   next
     show "\<And>m2a. Broadcast m1 \<sqsubset>\<^sup>i Broadcast m2 \<Longrightarrow> hb m2 m2a \<Longrightarrow> hb m2a m1 \<Longrightarrow> False"
-      by (meson causal_network.broadcast_causal causal_network_axioms hb.intros(1) hb.intros(3) insert_subset local_order_carrier_closed no_message_lost node_histories.node_total_order_irrefl node_histories_axioms)
+      sorry
   qed
 next
   fix m1 i m2
