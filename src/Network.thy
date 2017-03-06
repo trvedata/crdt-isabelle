@@ -144,14 +144,14 @@ definition (in network) weak_hb :: "'a \<Rightarrow> 'a \<Rightarrow> bool" wher
   "weak_hb m1 m2 \<equiv> hb m1 m2 \<or> m1 = m2"
 
 locale causal_network = network +
-  assumes broadcast_causal: "Deliver m2 \<in> set (history j) \<Longrightarrow> hb m1 m2 \<Longrightarrow> Deliver m1 \<sqsubset>\<^sup>j Deliver m2"
+  assumes causal_delivery: "Deliver m2 \<in> set (history j) \<Longrightarrow> hb m1 m2 \<Longrightarrow> Deliver m1 \<sqsubset>\<^sup>j Deliver m2"
     and immediate_local_delivery: "Broadcast m1 \<sqsubset>\<^sup>i Broadcast m2 \<Longrightarrow> Deliver m1 \<sqsubset>\<^sup>i Broadcast m2"
 
-lemma (in causal_network) broadcast_causal':
+lemma (in causal_network) causal_broadcast:
   assumes "Deliver m2 \<in> set (history j)"
       and "Deliver m1 \<sqsubset>\<^sup>i Broadcast m2"
     shows "Deliver m1 \<sqsubset>\<^sup>j Deliver m2"
-  using assms broadcast_causal hb.intros(2) by blast
+  using assms causal_delivery hb.intros(2) by blast
 
 lemma (in causal_network) hb_broadcast_exists1:
   assumes "hb m1 m2"
@@ -182,7 +182,7 @@ lemma (in causal_network) hb_has_a_reason:
   apply(case_tac "Deliver m2 \<in> set (history i)")
   apply(subgoal_tac "Deliver m1 \<in> set (history i)")
   apply blast
-  using broadcast_causal local_order_carrier_closed apply blast
+  using causal_delivery local_order_carrier_closed apply blast
   apply(subgoal_tac "Broadcast m2 \<in> set (history i)")
   apply blast+
 done
@@ -212,7 +212,7 @@ lemma (in causal_network) hb_irrefl:
   using assms
   apply(induction rule: hb.induct)
   using node_total_order_antisym apply auto[1]
-  apply(meson broadcast_causal' insert_subset local_order_carrier_closed
+  apply(meson causal_broadcast insert_subset local_order_carrier_closed
         node_total_order_irrefl)
   apply(subgoal_tac "\<exists>i. Broadcast m3 \<in> set (history i)")
   apply(subgoal_tac "\<exists>j. Broadcast m2 \<in> set (history j)")
@@ -221,11 +221,11 @@ lemma (in causal_network) hb_irrefl:
   apply(simp add: hb_broadcast_exists2)
   apply(clarsimp)
   apply(case_tac "Deliver m2 \<in> set (history i)")
-  apply(meson broadcast_causal hb.intros(3) insert_subset local_order_carrier_closed
+  apply(meson causal_delivery hb.intros(3) insert_subset local_order_carrier_closed
         network.broadcast_before_delivery network_axioms node_total_order_irrefl)
   apply(case_tac "i = j")
   apply(subgoal_tac "Broadcast m2 \<sqsubset>\<^sup>i Broadcast m3 \<or> Broadcast m3 \<sqsubset>\<^sup>i Broadcast m2")
-  apply(meson broadcast_causal immediate_local_delivery insert_subset
+  apply(meson causal_delivery immediate_local_delivery insert_subset
         local_order_carrier_closed)
   apply(simp add: node_order_is_total)
   apply(simp add: hb_cross_node_delivery)
@@ -275,13 +275,13 @@ next
         by (meson \<open>Broadcast m2 \<sqsubset>\<^sup>i Broadcast m3 \<or> Broadcast m3 \<sqsubset>\<^sup>i Broadcast m2\<close> a2
             hb.intros(1) hb_irrefl immediate_local_delivery network.hb.intros(3) network_axioms)
       ultimately show "Deliver m1 \<sqsubset>\<^sup>i Broadcast m3"
-        using \<open>Deliver m1 \<sqsubset>\<^sup>i Broadcast m2\<close> \<open>Deliver m2 \<in> set (history i)\<close> broadcast_causal'
+        using \<open>Deliver m1 \<sqsubset>\<^sup>i Broadcast m2\<close> \<open>Deliver m2 \<in> set (history i)\<close> causal_broadcast
           node_total_order_trans by blast
     next
       case False
       moreover have "Deliver m2 \<in> set (history i)" using False a2 a5 hb_has_a_reason by blast
       ultimately show "Deliver m1 \<sqsubset>\<^sup>i Broadcast m3"
-      using False IH2 a1 a5 broadcast_causal node_total_order_trans by blast
+      using False IH2 a1 a5 causal_delivery node_total_order_trans by blast
     qed
   qed
 
@@ -336,10 +336,10 @@ next
       by (metis broadcast_before_delivery broadcasts_unique insert_subset local_order_carrier_closed node_total_order_irrefl node_total_order_trans)
   next
     show "\<And>ia. Deliver m1 \<sqsubset>\<^sup>i Broadcast m2 \<Longrightarrow> Deliver m2 \<sqsubset>\<^sup>ia Broadcast m1 \<Longrightarrow> False"
-      by (meson causal_network.broadcast_causal causal_network_axioms hb.intros(2) hb.intros(3) insert_subset local_order_carrier_closed node_total_order_irrefl)
+      by (meson causal_network.causal_delivery causal_network_axioms hb.intros(2) hb.intros(3) insert_subset local_order_carrier_closed node_total_order_irrefl)
   next
     show "\<And>m2a. Deliver m1 \<sqsubset>\<^sup>i Broadcast m2 \<Longrightarrow> hb m2 m2a \<Longrightarrow> hb m2a m1 \<Longrightarrow> False"
-      by (meson broadcast_causal hb.intros(2) insert_subset local_order_carrier_closed network.hb.intros(3) network_axioms node_total_order_irrefl)
+      by (meson causal_delivery hb.intros(2) insert_subset local_order_carrier_closed network.hb.intros(3) network_axioms node_total_order_irrefl)
   qed
 next
   fix m1 m2 m3
