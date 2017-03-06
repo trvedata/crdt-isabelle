@@ -97,6 +97,30 @@ using assms
   apply(subgoal_tac "m-1 < length list", subgoal_tac "n<m-1", clarsimp)
   apply(rule_tac x="a#xs" in exI, rule_tac x="ys" in exI, rule_tac x="zs" in exI)
   apply auto
+  done
+
+lemma list_split_two_elems:
+  assumes "distinct cs"
+      and "x \<in> set cs"
+      and "y \<in> set cs"
+      and "x \<noteq> y"
+    shows "\<exists>pre mid suf. cs = pre @ x # mid @ y # suf \<or> cs = pre @ y # mid @ x # suf"
+  using assms
+  apply(subgoal_tac "\<exists>xi. xi < length cs \<and> x = cs ! xi")
+  defer
+  using set_elem_nth apply fastforce
+  apply(subgoal_tac "\<exists>yi. yi < length cs \<and> y = cs ! yi")
+  defer
+  using set_elem_nth apply fastforce
+  apply clarsimp
+  apply(subgoal_tac "xi \<noteq> yi")
+  defer
+  apply blast
+  apply(case_tac "xi < yi")
+  apply(metis list_nth_split One_nat_def less_Suc_eq linorder_neqE_nat not_less_zero)
+  apply(subgoal_tac "yi < xi")
+  apply(metis list_nth_split One_nat_def less_Suc_eq linorder_neqE_nat not_less_zero)
+  using linorder_neqE_nat apply blast
 done
 
 lemma map_filter_append:

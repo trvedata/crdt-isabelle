@@ -39,6 +39,20 @@ lemma (in node_histories) node_total_order_irrefl:
 by(clarsimp simp add: history_order_def)
   (metis Un_iff histories_distinct distinct_append distinct_set_notin list.set_intros(1) set_append)
 
+lemma (in node_histories) node_total_order_antisym:
+  assumes "e1 \<sqsubset>\<^sup>i e2"
+      and "e2 \<sqsubset>\<^sup>i e1"
+    shows "False"
+  using assms node_total_order_irrefl node_total_order_trans by blast
+
+lemma (in node_histories) node_order_is_total:
+  assumes "e1 \<in> set (history i)"
+      and "e2 \<in> set (history i)"
+      and "e1 \<noteq> e2"
+    shows "e1 \<sqsubset>\<^sup>i e2 \<or> e2 \<sqsubset>\<^sup>i e1"
+  using assms unfolding history_order_def
+  by (metis list_split_two_elems histories_distinct)
+
 definition (in node_histories) prefix_of_node_history :: "'a list \<Rightarrow> nat \<Rightarrow> bool" (infix "prefix of" 50) where
   "xs prefix of i \<equiv> \<exists>ys. xs@ys = history i"
 
