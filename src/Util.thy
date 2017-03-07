@@ -123,6 +123,26 @@ lemma list_split_two_elems:
   using linorder_neqE_nat apply blast
 done
 
+lemma split_list_unique_prefix:
+  assumes "x \<in> set xs"
+  shows "\<exists>pre suf. xs = pre @ x # suf \<and> (\<forall>y \<in> set pre. x \<noteq> y)"
+using assms
+  apply(induction xs)
+  apply clarsimp
+  apply(case_tac "a = x")
+  apply(rule_tac x="[]" in exI)
+  apply(rule_tac x="xs" in exI)
+  apply force
+  apply(subgoal_tac "x \<in> set xs")
+  apply clarsimp
+  apply(rule_tac x="a # pre" in exI)
+  apply(rule conjI)
+  apply(rule_tac x="suf" in exI)
+  apply force
+  apply auto[1]
+  apply simp
+done
+
 lemma map_filter_append:
   shows "List.map_filter P (xs @ ys) = List.map_filter P xs @ List.map_filter P ys"
 by(auto simp add: List.map_filter_def)
