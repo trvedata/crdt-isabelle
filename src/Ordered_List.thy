@@ -1,6 +1,7 @@
 theory
   Ordered_List
 imports
+  Util
   "~~/src/HOL/Library/Monad_Syntax"
 begin
 
@@ -255,34 +256,12 @@ lemma insert_body_contains_new_elem:
   apply clarsimp
   done
 
-(*lemma insert_after_ref:
-  shows "\<exists>p s. suf = p@s \<and> insert (pre @ ref # suf) e (Some (fst ref)) =
-           Some(pre @ ref # p @ e # s)"
-  apply(induction pre)
-   apply clarsimp
-  using insert_body_contains_new_elem apply blast
-  apply(clarsimp split: if_split_asm)
-  apply(rule conjI, clarsimp)
-   apply (insert insert_body_contains_new_elem)
-   apply (erule_tac x="p @ s" in meta_allE)
-   apply (erule_tac x=e in meta_allE)
-    apply (erule exE)+
-    apply clarsimp
-  apply(induction suf)
-   apply(rule_tac x="[]" in exI)+
-   apply clarsimp
-   apply(induction pre)
-    apply force
-   apply (clarsimp split: if_split_asm)
-      apply force
-    apply(unfold insert_def)*)
-    
-
 lemma insert_between_elements:
-  assumes "xs = pre @ ref # suf"
-      and "\<forall> i' \<in> fst ` set xs. i' < fst e"
+  assumes "xs = pre@ref#suf"
+      and "distinct (map fst xs)"
+      and "\<And>i'. i' \<in> fst ` set xs \<Longrightarrow> i' < fst e"
     shows "insert xs e (Some (fst ref)) = Some (pre @ ref # e # suf)"
-using assms
+  using assms
   apply(induction xs arbitrary: pre ref suf)
   apply force
   apply(clarsimp)
@@ -290,12 +269,70 @@ using assms
   apply(clarsimp)
   apply(case_tac suf)
   apply force
-  apply force
-  apply(erule_tac x=list in meta_allE)
-  apply(erule_tac x=ab in meta_allE)
-  apply(erule_tac x=ac in meta_allE)
-  apply(erule_tac x=ba in meta_allE)
-  apply(erule_tac x=suf in meta_allE)
+   apply force
   apply clarsimp
-  oops
+  done
+    
+lemma insert_position_element_technical:
+  assumes "\<forall>x\<in>set as. a \<noteq> fst x"
+    and "insert_body (cs @ ds) e = cs @ e # ds"
+  shows "insert (as @ (a, aa, b) # cs @ ds) e (Some a) = Some (as @ (a, aa, b) # cs @ e # ds)"
+  using assms
+  apply(induction as arbitrary: cs ds)
+   apply simp
+  apply clarsimp
+  done
+    
+
+lemma obtain_first_nth:
+  assumes "x \<in> set xs"
+  shows "\<exists>pre suf. xs = pre@x#suf \<and> (\<forall>y \<in> set pre. y \<noteq> x)"
+  using assms
+  apply(induction xs arbitrary:x)
+   apply clarsimp
+  apply clarsimp
+  apply(erule disjE)
+   apply clarsimp
+   apply(rule_tac x="[]" in exI, clarsimp, rule_tac x="xs" in exI)
+  apply(erule_tac x=x in meta_allE, erule meta_impE, assumption)
+  apply(erule exE, erule conjE, erule exE)
+  apply clarify
+    sorry
+    
+lemma insert_preserves_order:
+  assumes "i = None \<or> (\<exists>i'. i = Some i' \<and> i' \<in> fst ` set xs)"
+    shows "\<exists>pre suf. xs = pre@suf \<and> insert (pre@suf) e i = Some (pre @ e # suf)"
+  using assms
+  apply -
+  apply(erule disjE)
+   apply clarsimp
+    using insert_body_contains_new_elem apply metis
+    apply(erule exE, clarsimp)
+    apply(subgoal_tac "\<exists>as bs. xs = as@(a,aa,b)#bs \<and> (\<forall>x \<in> set as. a \<noteq> fst x)")
+     apply clarsimp
+     apply(subgoal_tac "\<exists>cs ds. insert_body bs e = cs@e#ds \<and> cs@ds = bs")
+      apply clarsimp
+      apply(rule_tac x="as@(a,aa,b)#cs" in exI)
+      apply(rule_tac x="ds" in exI)
+      apply clarsimp
+    apply(subgoal_tac "\<exists>idx<length xs. fst (xs ! idx) = a")
+       apply clarsimp
+       apply(rule insert_position_element_technical, force, force)
+      apply (metis fst_conv in_set_conv_decomp in_set_conv_nth)
+    using insert_body_contains_new_elem apply metis
+    apply clarsimp
+    apply(subgoal_tac "xs \<noteq> [] \<and> (\<exists>idx<length xs. xs ! idx = (a, aa, b) \<and> (\<forall>idx'<idx. fst (xs ! idx') \<noteq> a))")
+     apply clarsimp
+     apply(drule list_nth_split_technical[rotated], assumption)
+     apply clarsimp
+     apply(rule_tac x=xsa in exI, clarsimp)
+     apply(subgoal_tac "\<exists>idx''<idx. xsa!idx'' = (ab, ac, ba)")
+      apply clarsimp
+      apply (metis fst_conv le_less_trans linorder_not_less nth_append nth_append_length)
+     apply(subst (asm) in_set_conv_nth, clarsimp, rule_tac x=ia in exI)
+     apply(subgoal_tac "idx > length xsa")
+      apply simp
+      
+      
+    
 end
