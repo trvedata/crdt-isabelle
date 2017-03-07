@@ -12,6 +12,10 @@ locale node_histories =
   fixes history :: "nat \<Rightarrow> 'a list"
   assumes histories_distinct [intro!, simp]: "distinct (history i)"
 
+lemma (in node_histories) history_finite:
+  shows "finite (set (history i))"
+by auto
+    
 definition (in node_histories) history_order :: "'a \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> bool" ("_/ \<sqsubset>\<^sup>_/ _" [50,1000,50]50) where
   "x \<sqsubset>\<^sup>i z \<equiv> \<exists>xs ys zs. xs@x#ys@z#zs = history i"
 
@@ -152,7 +156,7 @@ lemma (in causal_network) causal_broadcast:
     shows "Deliver m1 \<sqsubset>\<^sup>j Deliver m2"
   using assms causal_delivery hb.intros(2) by blast
 
-lemma (in causal_network) hb_broadcast_exists1:
+lemma (in network) hb_broadcast_exists1:
   assumes "hb m1 m2"
   shows "\<exists>i. Broadcast m1 \<in> set (history i)"
   using assms
@@ -161,7 +165,7 @@ lemma (in causal_network) hb_broadcast_exists1:
   apply(meson delivery_has_a_cause insert_subset local_order_carrier_closed)
   by simp
 
-lemma (in causal_network) hb_broadcast_exists2:
+lemma (in network) hb_broadcast_exists2:
   assumes "hb m1 m2"
   shows "\<exists>i. Broadcast m2 \<in> set (history i)"
   using assms
@@ -347,18 +351,22 @@ interpretation trivial_node_histories: node_histories "\<lambda>m. []"
 
 interpretation trivial_network: network "\<lambda>m. []"
   by standard auto
-
-interpretation non_trivial_node_histories: node_histories "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else [Deliver id]"
+    
+interpretation trivial_causal_network: causal_network "\<lambda>m. []"
   by standard auto
 
-interpretation non_trivial_network: network "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else [Deliver id]"
+interpretation non_trivial_node_histories: node_histories "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else []"
+  by standard auto
+
+interpretation non_trivial_network: network "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else []"
   apply standard
     apply(auto split: if_split_asm)
     apply(rule_tac x=0 in exI)
    apply (metis append.left_neutral non_trivial_node_histories.history_order_def)
-    apply(rule_tac x=0 in exI)
-  apply (metis append.left_neutral non_trivial_node_histories.history_order_def)
   apply (metis append.left_neutral non_trivial_node_histories.history_order_def)
   done
+    
+interpretation non_trivial_causal_network: causal_network "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else []"
+  oops
     
 end

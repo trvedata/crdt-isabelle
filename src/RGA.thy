@@ -12,7 +12,7 @@ datatype ('id, 'v) operation =
 fun interpret_opers :: "('id::linorder, 'v) operation \<Rightarrow> ('id, 'v) elt list \<rightharpoonup> ('id, 'v) elt list" ("\<langle>_\<rangle>" [0] 1000) where
   "interpret_opers (Insert e n) xs  = insert xs e n" |
   "interpret_opers (Delete n)   xs  = delete xs n"
-
+  
 (* Replicated Growable Array Network *)
 locale rga = network_with_ops _ interpret_opers +
   assumes insert_flag: "Broadcast (Insert e n) \<in> set (history i) \<Longrightarrow> snd (snd e) = False"
@@ -20,6 +20,9 @@ locale rga = network_with_ops _ interpret_opers +
                             (\<exists>n' n'' v b. n = Some n' \<and> Deliver (Insert (n', v, b) n'') \<sqsubset>\<^sup>i Broadcast (Insert e n))"
   assumes insert_id_unique: "id1 = id2 \<Longrightarrow> Broadcast (Insert (id1, v1, b1) n1) \<in> set (history i) \<Longrightarrow> Broadcast (Insert (id2, v2, b2) n2) \<in> set (history j) \<Longrightarrow> v1 = v2 \<and> n1 = n2"
   assumes allowed_delete: "Broadcast (Delete x) \<in> set (history i) \<Longrightarrow> (\<exists>n' v b. Deliver (Insert (x, v, b) n') \<sqsubset>\<^sup>i Broadcast (Delete x))"
+    
+locale id_consistent_rga_network = rga +
+  assumes ids_consistent: "hb (Insert e2 n2) (Insert e1 n1) \<Longrightarrow> fst e2 < fst e1"
     
 lemma (in rga) allowed_delete_deliver:
   assumes "Deliver (Delete x) \<in> set (history i)"
@@ -340,5 +343,13 @@ corollary (in rga) rga_convergence:
     shows "apply_operations xs = apply_operations ys"
 using assms by(auto intro: hb.convergence_ext concurrent_operations_commute
                 node_deliver_messages_distinct hb_consistent_prefix)
+              
+section\<open>Interpretations\<close>
+  
+interpretation trivial_rga_implementation: rga "\<lambda>x. []"
+  by standard (auto simp add: trivial_node_histories.history_order_def)
+    
+interpretation non_trivial_rga_implementation: rga "\<lambda>m. if m = 0 then [Broadcast (Insert (0, 0, False) None), Deliver (Insert (0, 0, False) None)] else []"
+oops
 
 end
