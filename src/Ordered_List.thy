@@ -233,7 +233,7 @@ lemma insert_insert':
   shows "insert xs e i = insert' xs e i"
 by(induction xs; cases e; cases i, auto split: option.split simp add: insert_body_insert')
 
-section \<open>Insertion points\<close>
+section \<open>Insertion behaves as you expect it to behave\<close>
 
 lemma insert_body_stop_iteration:
   assumes "fst e > fst x"
@@ -243,18 +243,18 @@ using assms by simp
 lemma insert_body_contains_new_elem:
   shows "\<exists>p s. xs = p @ s \<and> insert_body xs e = p @ e # s"
   apply (induction xs)
-   apply force
+  apply force
   apply clarsimp
   apply (rule conjI)
-   apply clarsimp
-   apply (rule_tac x="[]" in exI)
-   apply (rule_tac x="(a, aa, b) # p @ s" in exI)
-   apply clarsimp
-    apply clarsimp
-   apply (rule_tac x="(a, aa, b) # p" in exI)
+  apply clarsimp
+  apply (rule_tac x="[]" in exI)
+  apply (rule_tac x="(a, aa, b) # p @ s" in exI)
+  apply clarsimp
+  apply clarsimp
+  apply (rule_tac x="(a, aa, b) # p" in exI)
   apply (rule_tac x="s" in exI)
   apply clarsimp
-  done
+done
 
 lemma insert_between_elements:
   assumes "xs = pre@ref#suf"
@@ -269,70 +269,59 @@ lemma insert_between_elements:
   apply(clarsimp)
   apply(case_tac suf)
   apply force
-   apply force
+  apply force
   apply clarsimp
-  done
-    
+done
+
 lemma insert_position_element_technical:
   assumes "\<forall>x\<in>set as. a \<noteq> fst x"
     and "insert_body (cs @ ds) e = cs @ e # ds"
   shows "insert (as @ (a, aa, b) # cs @ ds) e (Some a) = Some (as @ (a, aa, b) # cs @ e # ds)"
-  using assms
+using assms
   apply(induction as arbitrary: cs ds)
-   apply simp
+  apply simp
   apply clarsimp
-  done
-    
+done
 
-lemma obtain_first_nth:
-  assumes "x \<in> set xs"
-  shows "\<exists>pre suf. xs = pre@x#suf \<and> (\<forall>y \<in> set pre. y \<noteq> x)"
+lemma split_tuple_list_by_id:
+  assumes "(a,b,c) \<in> set xs"
+    and "distinct (map fst xs)"
+  shows "\<exists>pre suf. xs = pre @ (a,b,c) # suf \<and> (\<forall>y \<in> set pre. fst y \<noteq> a)"
   using assms
-  apply(induction xs arbitrary:x)
-   apply clarsimp
+  apply(induction xs)
   apply clarsimp
-  apply(erule disjE)
-   apply clarsimp
-   apply(rule_tac x="[]" in exI, clarsimp, rule_tac x="xs" in exI)
-  apply(erule_tac x=x in meta_allE, erule meta_impE, assumption)
-  apply(erule exE, erule conjE, erule exE)
-  apply clarify
-    sorry
-    
+  apply(case_tac "aa = (a,b,c)")
+  apply(rule_tac x="[]" in exI)
+  apply(rule_tac x="xs" in exI)
+  apply force
+  apply(subgoal_tac "\<exists>pre suf. xs = pre @ (a, b, c) # suf \<and> (\<forall>y\<in>set pre. fst y \<noteq> a)")
+  apply(erule exE)+
+  apply(rule_tac x="aa#pre" in exI)
+  apply(rule_tac x="suf" in exI)
+  apply(rule conjI)
+  apply auto+
+done
+
 lemma insert_preserves_order:
   assumes "i = None \<or> (\<exists>i'. i = Some i' \<and> i' \<in> fst ` set xs)"
-    shows "\<exists>pre suf. xs = pre@suf \<and> insert (pre@suf) e i = Some (pre @ e # suf)"
+      and "distinct (map fst xs)"
+    shows "\<exists>pre suf. xs = pre@suf \<and> insert xs e i = Some (pre @ e # suf)"
   using assms
   apply -
   apply(erule disjE)
-   apply clarsimp
-    using insert_body_contains_new_elem apply metis
-    apply(erule exE, clarsimp)
-    apply(subgoal_tac "\<exists>as bs. xs = as@(a,aa,b)#bs \<and> (\<forall>x \<in> set as. a \<noteq> fst x)")
-     apply clarsimp
-     apply(subgoal_tac "\<exists>cs ds. insert_body bs e = cs@e#ds \<and> cs@ds = bs")
-      apply clarsimp
-      apply(rule_tac x="as@(a,aa,b)#cs" in exI)
-      apply(rule_tac x="ds" in exI)
-      apply clarsimp
-    apply(subgoal_tac "\<exists>idx<length xs. fst (xs ! idx) = a")
-       apply clarsimp
-       apply(rule insert_position_element_technical, force, force)
-      apply (metis fst_conv in_set_conv_decomp in_set_conv_nth)
-    using insert_body_contains_new_elem apply metis
-    apply clarsimp
-    apply(subgoal_tac "xs \<noteq> [] \<and> (\<exists>idx<length xs. xs ! idx = (a, aa, b) \<and> (\<forall>idx'<idx. fst (xs ! idx') \<noteq> a))")
-     apply clarsimp
-     apply(drule list_nth_split_technical[rotated], assumption)
-     apply clarsimp
-     apply(rule_tac x=xsa in exI, clarsimp)
-     apply(subgoal_tac "\<exists>idx''<idx. xsa!idx'' = (ab, ac, ba)")
-      apply clarsimp
-      apply (metis fst_conv le_less_trans linorder_not_less nth_append nth_append_length)
-     apply(subst (asm) in_set_conv_nth, clarsimp, rule_tac x=ia in exI)
-     apply(subgoal_tac "idx > length xsa")
-      apply simp
-      
-      
-    
+  apply clarsimp
+  using insert_body_contains_new_elem apply metis
+  apply(erule exE, clarsimp)
+  apply(subgoal_tac "\<exists>as bs. xs = as@(a,aa,b)#bs \<and> (\<forall>x \<in> set as. fst x \<noteq> a)")
+  apply clarsimp
+  apply(subgoal_tac "\<exists>cs ds. insert_body bs e = cs@e#ds \<and> cs@ds = bs")
+  apply clarsimp
+  apply(rule_tac x="as@(a,aa,b)#cs" in exI)
+  apply(rule_tac x="ds" in exI)
+  apply clarsimp
+  apply(metis insert_position_element_technical)
+  apply(metis insert_body_contains_new_elem)
+  using split_tuple_list_by_id apply fastforce
+done
+
 end
