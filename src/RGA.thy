@@ -46,7 +46,6 @@ using assms
   apply clarsimp
   apply(frule delivery_has_a_cause) back
   apply clarsimp
-  apply(frule no_message_lost[where j=i]) back
   apply(drule causal_broadcast[rotated, where j=i])
   apply auto
 done
