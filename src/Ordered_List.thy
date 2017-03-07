@@ -232,4 +232,70 @@ lemma insert_insert':
   shows "insert xs e i = insert' xs e i"
 by(induction xs; cases e; cases i, auto split: option.split simp add: insert_body_insert')
 
+section \<open>Insertion points\<close>
+
+lemma insert_body_stop_iteration:
+  assumes "fst e > fst x"
+  shows "insert_body (x#xs) e = e#x#xs"
+using assms by simp
+
+lemma insert_body_contains_new_elem:
+  shows "\<exists>p s. xs = p @ s \<and> insert_body xs e = p @ e # s"
+  apply (induction xs)
+   apply force
+  apply clarsimp
+  apply (rule conjI)
+   apply clarsimp
+   apply (rule_tac x="[]" in exI)
+   apply (rule_tac x="(a, aa, b) # p @ s" in exI)
+   apply clarsimp
+    apply clarsimp
+   apply (rule_tac x="(a, aa, b) # p" in exI)
+  apply (rule_tac x="s" in exI)
+  apply clarsimp
+  done
+
+(*lemma insert_after_ref:
+  shows "\<exists>p s. suf = p@s \<and> insert (pre @ ref # suf) e (Some (fst ref)) =
+           Some(pre @ ref # p @ e # s)"
+  apply(induction pre)
+   apply clarsimp
+  using insert_body_contains_new_elem apply blast
+  apply(clarsimp split: if_split_asm)
+  apply(rule conjI, clarsimp)
+   apply (insert insert_body_contains_new_elem)
+   apply (erule_tac x="p @ s" in meta_allE)
+   apply (erule_tac x=e in meta_allE)
+    apply (erule exE)+
+    apply clarsimp
+  apply(induction suf)
+   apply(rule_tac x="[]" in exI)+
+   apply clarsimp
+   apply(induction pre)
+    apply force
+   apply (clarsimp split: if_split_asm)
+      apply force
+    apply(unfold insert_def)*)
+    
+
+lemma insert_between_elements:
+  assumes "xs = pre @ ref # suf"
+      and "\<forall> i' \<in> fst ` set xs. i' < fst e"
+    shows "insert xs e (Some (fst ref)) = Some (pre @ ref # e # suf)"
+using assms
+  apply(induction xs arbitrary: pre ref suf)
+  apply force
+  apply(clarsimp)
+  apply(case_tac pre)
+  apply(clarsimp)
+  apply(case_tac suf)
+  apply force
+  apply force
+  apply(erule_tac x=list in meta_allE)
+  apply(erule_tac x=ab in meta_allE)
+  apply(erule_tac x=ac in meta_allE)
+  apply(erule_tac x=ba in meta_allE)
+  apply(erule_tac x=suf in meta_allE)
+  apply clarsimp
+  oops
 end
