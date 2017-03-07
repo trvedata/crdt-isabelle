@@ -320,6 +320,19 @@ using assms
   using same_insert apply force
 done
 
+lemma (in rga) apply_operations_never_fails:
+  assumes "xs prefix of i"
+  shows "apply_operations xs \<noteq> None"
+  using assms
+  apply(induction xs rule: rev_induct)
+   apply clarsimp
+  apply(case_tac "x"; clarsimp)
+   apply force
+  apply(case_tac "x2"; clarsimp)
+   apply (metis bind.bind_lunit interpret_opers.simps(1) prefix_of_appendD rga.Insert_no_failure rga_axioms)
+  apply(metis bind.bind_lunit interpret_opers.simps(2) local.delete_no_failure prefix_of_appendD)
+  done
+  
 corollary (in rga) rga_convergence:
   assumes "set (node_deliver_messages xs) = set (node_deliver_messages ys)"
       and "xs prefix of i"
