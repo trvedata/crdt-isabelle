@@ -34,7 +34,7 @@ lemma fst_prod_less:
   assumes "fst x < fst y"
   shows "x < y"
   using assms by(simp add: prod_less_def)
-    
+    (*
 (* Not needed, now? *)
 lemma (in lamport_rga) Insert_between_elements:
   assumes "xs@[Broadcast (Insert e (Some (fst ref)))] prefix of j"
@@ -62,7 +62,7 @@ lemma (in lamport_rga) Insert_between_elements:
           apply(erule exE)
         apply(subgoal_tac "n=n''", clarify)
 oops
-
+*)
 end
     
   
