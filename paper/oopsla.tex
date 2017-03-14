@@ -1,18 +1,16 @@
-\documentclass[11pt]{article}
+\documentclass[acmlarge,review,anonymous]{acmart}\settopmatter{printfolios=true}
 
-\RequirePackage[letterpaper,portrait,margin=1in]{geometry}
-\PassOptionsToPackage{hyphens}{url}
-\usepackage[british]{babel}
-\usepackage[colorlinks]{hyperref}
-\usepackage[hyphenbreaks]{breakurl} % Fix URL line breaking when using dvips (e.g. arxiv.org)
-\usepackage[numbers,sort]{natbib}
-\usepackage{microtype}
+\bibliographystyle{ACM-Reference-Format}
+\citestyle{acmauthoryear}
+\usepackage[english]{babel}
 
-\title{Formal Verification of Peer-to-Peer Collaborative Editing}
-\author{Victor~B.~F.~Gomes, Martin Kleppmann, Dominic P.~Mulligan,\\Alastair R. Beresford}
-\date{Computer Laboratory, University of Cambridge}
+\setcopyright{none} % For review submission
 
 \begin{document}
+\title{Formal Verification of Peer-to-Peer Collaborative Editing}
+%\author{Victor~B.~F.~Gomes, Martin Kleppmann, Dominic P.~Mulligan,\\Alastair R. Beresford}
+%\date{Computer Laboratory, University of Cambridge}
+
 
 \maketitle
 
@@ -24,7 +22,6 @@ To be completed...
 % Section
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\newpage
 \section{Introduction}
 \label{sect.introduction}
 
@@ -164,7 +161,6 @@ executions~\cite{Suleiman:1998eu,Sun:1998vf}.
 
 \subsection*{Acknowledgements}
 
-\bibliographystyle{plainnat}
 \bibliography{references}{}
 
 \end{document}

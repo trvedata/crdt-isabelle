@@ -1,16 +1,16 @@
 .SUFFIXES: .tex .bib .aux .bbl .dvi .ps .pdf
 
-all:	podc.pdf
+all:	oopsla.pdf
 
-podc.pdf:	podc.bbl
-	pdflatex podc
-	pdflatex podc
+oopsla.pdf:	oopsla.bbl
+	pdflatex oopsla
+	pdflatex oopsla
 
-podc.bbl:	references.bib podc.aux
-	bibtex podc
+oopsla.bbl:	references.bib oopsla.aux
+	bibtex oopsla
 
-podc.aux:	*.tex
-	pdflatex podc
+oopsla.aux:	*.tex
+	pdflatex oopsla
 
 clean:
 	rm -f *.{log,aux,out,bbl,blg,dvi,ps,pdf}
