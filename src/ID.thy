@@ -6,8 +6,7 @@ imports
 begin
   
 locale lamport_rga = rga history for history :: "nat \<Rightarrow> (nat \<times> nat, 'b) operation event list" +
-  assumes lamport_spec: "Broadcast (Insert e n) \<in> set (history i) \<Longrightarrow>
-    (\<forall>e' n'. hb (Insert e' n') (Insert e n) \<longrightarrow> fst (fst e') < counter) \<Longrightarrow> fst e = (counter, i)"
+  assumes lamport_spec: "hb (Insert e n') (Insert f n) \<Longrightarrow> fst (fst e) < fst (fst f)"
 
 (* What the fuck... *)
 lemma finite_deliveries:
@@ -26,41 +25,43 @@ lemma finite_deliveries:
   done
     
 sublocale lamport_rga < id_consistent_rga_network
-proof
-  fix e2 e1 n2 n1
-  define next_id :: _ where "next_id \<equiv> \<lambda>j. (Suc (Max (fst ` fst ` fst ` { (e, n). Deliver (Insert e n) \<sqsubset>\<^sup>j Deliver (Insert e1 n1) })), j)"  
-  assume A: "hb (Insert e2 n2) (Insert e1 n1)"
-  from this obtain j where B: "Broadcast (Insert e1 n1) \<in> set (history j)" and "Deliver (Insert e1 n1) \<in> set (history j)"
-    using hb_broadcast_exists2 by (meson deliver_locally insert_subset local_order_carrier_closed)
-  hence "Deliver (Insert e2 n2) \<sqsubset>\<^sup>j Deliver (Insert e1 n1)"
-    using causal_delivery \<open>hb (Insert e2 n2) (Insert e1 n1)\<close> by blast
-  have C: "\<forall>e' n'. hb (Insert e' n') (Insert e1 n1) \<longrightarrow> fst (fst e') < fst (next_id j)"
-  proof(standard+)
-    fix e' n'
-    assume "hb (Insert e' n') (Insert e1 n1)"
-    hence "Deliver (Insert e' n') \<sqsubset>\<^sup>j Deliver (Insert e1 n1)"
-      using \<open>Deliver (Insert e1 n1) \<in> set (history j)\<close> causal_delivery by blast
-    hence D: "fst (fst e') \<in> fst ` fst ` fst ` { (e, n). Deliver (Insert e n) \<sqsubset>\<^sup>j Deliver (Insert e1 n1) }"
-      by (metis (no_types, lifting) case_prod_conv fst_conv imageI mem_Collect_eq)
-    also have "finite (fst ` fst ` fst ` { (e, n). Deliver (Insert e n) \<sqsubset>\<^sup>j Deliver (Insert e1 n1) })"
-      apply -
-      apply(rule finite_imageI, rule finite_imageI, rule finite_imageI)
-      apply(subgoal_tac "{(e, n). Deliver (Insert e n) \<sqsubset>\<^sup>j Deliver (Insert e1 n1)} \<subseteq> {(e, n). Deliver (Insert e n) \<in> set (history j)}")
-       apply(subgoal_tac "finite {(e, n). Deliver (Insert e n) \<in> set (history j)}")
-      using infinite_super apply blast
-      using finite_deliveries apply force
-      apply(rule subsetI, drule CollectD, rule CollectI)
-      apply(simp split: prod.split_asm)
-      apply(metis history_order_def in_set_conv_decomp)
-      done (* What is happening here?  This should be easy... *)
-    hence "fst (fst e') \<le> Max (fst ` fst ` fst ` { (e, n). Deliver (Insert e n) \<sqsubset>\<^sup>j Deliver (Insert e1 n1) })"
-      using D Max_ge by simp
-    thus "fst (fst e') < fst (next_id j)"
-      using D Max_ge next_id_def by simp
-  qed
-  thus "fst e2 < fst e1"
-    using A lamport_spec[OF B, where counter="fst (next_id j)"] C less_prod_def' by(metis (no_types, lifting) fst_conv)
-qed
+  apply standard
+  apply(frule lamport_spec)
+  apply(auto split: prod.split_asm prod.split)
+  done
+    
+lemma fst_prod_less:
+  assumes "fst x < fst y"
+  shows "x < y"
+  using assms by(simp add: prod_less_def)
+    
+(* Not needed, now? *)
+lemma (in lamport_rga) Insert_between_elements:
+  assumes "xs@[Broadcast (Insert e (Some (fst ref)))] prefix of j"
+      and "apply_operations xs = Some (pre@ref#suf)"
+    shows "insert (pre@ref#suf) e (Some (fst ref)) = Some (pre@ref#e#suf)"
+  using assms
+  apply -
+  apply(rule insert_between_elements, force)
+  using apply_operations_distinct apply blast
+   apply(subgoal_tac "\<exists>j::(nat \<times> nat, 'b) elt. i' = fst j", erule exE)
+    apply(subgoal_tac "fst ja < fst e", force)
+   apply(rule fst_prod_less)
+   apply(subgoal_tac "Broadcast (Insert e (Some (fst ref))) \<in> set (history j)")
+    apply(drule allowed_insert)
+    apply(erule disjE, force)
+    apply(erule exE)+
+    apply(erule conjE)
+    apply(rule_tac n'="n''" in lamport_spec[where n="Some (fst ref)"])
+    apply(rule_tac i=j in hb.intros(2))
+    apply(subgoal_tac "Deliver (Insert ja n'') \<sqsubset>\<^sup>j Deliver (Insert (n', v, b) n'')")
+      using node_total_order_trans apply blast
+     apply(frule apply_opers_idx_elems[rotated], force)
+        apply(subgoal_tac "i' \<in> set (indices xs)")
+         apply(subgoal_tac "\<exists>n. Deliver (Insert ja n) \<in> set (history j)")
+          apply(erule exE)
+        apply(subgoal_tac "n=n''", clarify)
+oops
 
 end
     
