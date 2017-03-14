@@ -239,7 +239,6 @@ qed
 (*************************************************************************)
 subsection\<open>Convergence Theorem\<close>
 (*************************************************************************)
-
 theorem  convergence:
   assumes "set xs = set ys"
           "concurrent_ops_commute xs"
@@ -250,46 +249,27 @@ theorem  convergence:
           "hb_consistent ys"
   shows   "apply_operations xs = apply_operations ys"
 using assms proof(induction xs arbitrary: ys rule: rev_induct, simp)
-  fix x xs ys
-  assume IH: "(\<And>ys. set xs = set ys \<Longrightarrow>
-                    concurrent_ops_commute xs \<Longrightarrow> 
-                    concurrent_ops_commute ys \<Longrightarrow>
-                     distinct xs \<Longrightarrow> distinct ys \<Longrightarrow>
-                     hb_consistent xs \<Longrightarrow>
-                     hb_consistent ys \<Longrightarrow> 
-               apply_operations xs = apply_operations ys)"
-   assume assms: "set (xs @ [x]) = set ys"
-                 "concurrent_ops_commute (xs @ [x])"
-                 "concurrent_ops_commute ys"
-                 "distinct (xs @ [x])"      "distinct ys"
-                 "hb_consistent (xs @ [x])" "hb_consistent ys"
+  case assms: (snoc x xs)
   then obtain prefix suffix where ys_split: "ys = prefix @ x # suffix \<and> concurrent_set x suffix"
     using hb_consistent_prefix_suffix_exists by fastforce
-  moreover have "distinct (prefix @ suffix)" "hb_consistent xs"
-    using ys_split assms by(auto simp add: disjoint_insert(1) distinct.simps(2) distinct_append list.simps(15))
+  moreover hence *: "distinct (prefix @ suffix)" "hb_consistent xs"
+    using assms by auto
   moreover {
     have "hb_consistent prefix" "hb_consistent suffix"
       using ys_split assms hb_consistent_append_D2 hb_consistent_append_elim_ConsD by blast+
     hence "hb_consistent (prefix @ suffix)"
-    using ys_split assms
-      apply clarsimp
-      apply(rule hb_consistent_append, assumption, assumption)
-      apply(rule hb_consistent_append_porder)
-      apply assumption back
-      apply auto
-    done
+      by (metis assms(8) hb_consistent_append hb_consistent_append_porder list.set_intros(2) ys_split)
   }
-  moreover have CPS: "concurrent_ops_commute (prefix @ suffix @ [x])"
+  moreover have **: "concurrent_ops_commute (prefix @ suffix @ [x])"
     using assms ys_split by (clarsimp simp: concurrent_ops_commute_def)
   moreover hence "concurrent_ops_commute (prefix @ suffix)"
     by (force simp del: append_assoc simp add: append_assoc[symmetric])
-  ultimately have IH': "apply_operations xs = apply_operations (prefix@suffix)"
-    using ys_split assms by (clarsimp simp add: IH) (metis Diff_insert_absorb IH Un_iff 
-        \<open>distinct (prefix @ suffix)\<close> happens_before.concurrent_ops_commute_appendD happens_before_axioms set_append)
-  hence conc: "apply_operations (prefix@suffix @ [x]) = apply_operations (prefix@x # suffix)"
-    using ys_split assms CPS by(force intro!: concurrent_ops_commute_concurrent_set)
-  show "apply_operations (xs @ [x]) = apply_operations ys"
-    using ys_split by (force simp: IH' conc[symmetric] append_assoc[symmetric] simp del: append_assoc)
+  ultimately have "apply_operations xs = apply_operations (prefix@suffix)"
+    using assms by simp (metis Diff_insert_absorb Un_iff * concurrent_ops_commute_appendD set_append)
+  moreover have "apply_operations (prefix@suffix @ [x]) = apply_operations (prefix@x # suffix)"
+    using ys_split assms ** concurrent_ops_commute_concurrent_set by force
+  ultimately show ?case
+    using ys_split by (force simp: append_assoc[symmetric] simp del: append_assoc)
 qed
 
 corollary convergence_ext:
