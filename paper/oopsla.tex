@@ -129,11 +129,12 @@ two given nodes in a network that have received the same set of events converge 
 We prove this convergence property in an abstract setting, that is, any two arbitrary list of distinct events, enriched by an order relation that satisfies a \emph{consistency property}, converge.
 
 Let $\mathit{Events}$ be the set of events enriched with a preorder $\prec$. We
-write $x \prec y$ and say that the event $x$ \emph{happens before} the event
-$y$.  Moreover we assume that there exists an interpretation partial function
-$\langle\_\rangle$ that maps events to \emph{operations}, which are \emph{state
-transformers} on a set of states $\Sigma$.  This is implemented in Isabelle
-by the following \textbf{locale} statement.
+write $\isa{x} \prec \isa{y}$ and say that the event \isa{x} \emph{happens
+before} the event \isa{y}.  Moreover we assume that there exists an
+interpretation partial function $\langle\_\rangle$ that maps events to
+\emph{operations}, which are \emph{state transformers} on a set of states
+$\Sigma$.  This is implemented in Isabelle by the following \textbf{locale}
+statement.
 
 \begin{isabellebody}
   \isanewline
@@ -145,8 +146,8 @@ by the following \textbf{locale} statement.
 \end{isabellebody}
 
 We say that two events (or operations) $x$ and $y$ are \emph{concurrent}
-whenever one does not happens before the other, that is, $\neg (x \prec y)$ and
-$\neg (y \prec x)$.
+whenever one does not happens before the other, that is, $\neg (\isa{x} \prec
+\isa{y})$ and $\neg (\isa{y} \prec \isa{x})$.
 
 \begin{isabellebody}
   \isanewline
@@ -155,11 +156,11 @@ $\neg (y \prec x)$.
 \ \ {\isachardoublequoteopen}x\ {\isasymparallel}\ y\ {\isasymequiv}\ {\isasymnot}\ {\isacharparenleft}x\ {\isasymprec}\ y{\isacharparenright}\ {\isasymand}\ {\isasymnot}\ {\isacharparenleft}y\ {\isasymprec}\ x{\isacharparenright}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
-A list of events $xs$ is \emph{hb-consistent}, or simply \emph{consistent},
-whenever for any element $y$, it is not the case that $y$ happens before $x$
-for all $x$ that appears before $y$ in the list. That is, $x$ and $y$ are
-either concurrent or $x$ happens before $y$.  This is implemented in Isabelle
-by an inductive predicate.
+A list of events \isa{xs} is \emph{hb-consistent}, or simply \emph{consistent},
+whenever for any element \isa{y}, it is not the case that \isa{y} happens
+before \isa{x} for all \isa{x} that appears before \isa{y} in the list. That
+is, \isa{x} and \isa{y} are either concurrent or \isa{x} happens before
+\isa{y}.  This is implemented in Isabelle by an inductive predicate.
 
 \begin{isabellebody}
   \isanewline
@@ -169,10 +170,11 @@ by an inductive predicate.
 \ \ {\isachardoublequoteopen}{\isasymlbrakk}\ hb{\isacharunderscore}consistent\ xs{\isacharsemicolon}\ {\isasymforall}x\ {\isasymin}\ set\ xs{\isachardot}\ {\isasymnot}\ y\ {\isasymprec}\ x\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ hb{\isacharunderscore}consistent\ {\isacharparenleft}xs\ {\isacharat}\ {\isacharbrackleft}y{\isacharbrackright}{\isacharparenright}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
-Additionally, we say that concurrent operations commute in a list $xs$ whenever
-for all concurrent events $x$ and $y$ in the list $xs$, the Kleisli arrow
-composition of their operations commute $\langle x \rangle \rhd \langle y
-\rangle = \langle y \rangle \rhd \langle x \rangle$.
+Additionally, we say that concurrent operations commute in a list \isa{xs}
+whenever for all concurrent events \isa{x} and \isa{y} in the list \isa{xs},
+the Kleisli arrow composition of their operations commute $\langle \isa{x}
+\rangle \rhd \langle \isa{y} \rangle = \langle \isa{y} \rangle \rhd \langle
+\isa{x} \rangle$.
 
 \begin{isabellebody}
   \isanewline
@@ -186,9 +188,10 @@ composition of their operations commute $\langle x \rangle \rhd \langle y
 \ \ {\isachardoublequoteopen}f\ {\isasymrhd}\ g\ {\isasymequiv}\ {\isasymlambda}x{\isachardot}\ f\ x\ {\isasymbind}\ {\isacharparenleft}{\isasymlambda}fx{\isachardot}\ g\ fx{\isacharparenright}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
-Given a list of events $xs$, \emph{apply-operations} $xs$ is the state
-transformer equivalent of applying each operation associated to the events in
-the list. 
+Let \isa{xs} be a list of events, \isa{apply-operations\ xs} is the state
+transformer equivalent of applying in order each operation $\langle \isa{x}
+\rangle$ for events \isa{x} in the list.  In other words, it is the fold of
+the Kleisli arrow composition on the associated list of operations.
 
 \begin{isabellebody}
   \isanewline
@@ -197,7 +200,18 @@ the list.
 \ \ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ es\ s\ {\isasymequiv}\ {\isacharparenleft}foldl\ {\isacharparenleft}op\ {\isasymrhd}{\isacharparenright}\ Some\ {\isacharparenleft}map\ interp\ es{\isacharparenright}{\isacharparenright}\ s{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
-We can now formally state the abstract convergence theorem: two consistent list of distinct events in which concurrent operations commute that have the same set of elements yields the same state transformer.
+\begin{isabellebody}
+\isacommand{lemma}\isamarkupfalse%
+\ concurrent{\isacharunderscore}ops{\isacharunderscore}commute{\isacharunderscore}concurrent{\isacharunderscore}set{\isacharcolon}\isanewline
+\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}prefix{\isacharat}suffix{\isacharat}{\isacharbrackleft}x{\isacharbrackright}{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}concurrent{\isacharunderscore}set\ x\ suffix{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}distinct\ {\isacharparenleft}prefix\ {\isacharat}\ x\ {\isacharhash}\ suffix{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ {\isacharparenleft}prefix\ {\isacharat}\ suffix\ {\isacharat}\ {\isacharbrackleft}x{\isacharbrackright}{\isacharparenright}\ {\isacharequal}\ apply{\isacharunderscore}operations\ {\isacharparenleft}prefix\ {\isacharat}\ x\ {\isacharhash}\ suffix{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\end{isabellebody}
+
+We can now formally state the abstract convergence theorem: two consistent list
+of distinct events in which concurrent operations commute that have the same
+set of elements yield the same state transformer.
 
 \begin{isabellebody}
   \isanewline
@@ -213,12 +227,22 @@ We can now formally state the abstract convergence theorem: two consistent list 
 \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
-The proof follows by induction on $xs$. The empty list case is immediate. Assmuming the property true for $xs$, we prove for $xs@[x]$. One can split $ys$ such that
-$ys = prefix@x@suffix$ and "concurrent set x suffix".
-We prove that "apply oeprations xs = apply operations prefix@ suffix"
-finally
-"apply operations (xs@[x]) = apply operations (prefix@suffix@[x]) = apply oepratiosn (prefix@[x]@suffix)"
-The entire proof is shown in Figure~\ref{fig.convergence}.
+The entire proof is shown in Figure~\ref{fig.convergence}.  The proof follows
+by induction on \isa{xs}. The empty list case is immediate. Assuming the
+property for \isa{xs}, we prove the case when a new event \isa{x} is added to
+the end of \isa{xs}, that is, $\isa{xs}@[\isa{x}]$. Since both lists have the
+same elements, one can split \isa{ys} such that \isa{ys = prefix@x@suffix} for
+some suitable lists \isa{prefix} and \isa{suffix}. Moreover, all the events in
+the set of \isa{suffix} is concurrent to \isa{x}. By the induction hypothesis,
+\isa{apply-operations\ xs $=$ apply-operations\ (prefix $@$ suffix)}. Then
+\begin{align*}
+  \isa{apply-operations}\ (\isa{xs}@[\isa{x}])
+  &= \langle\isa{x}\rangle\ (\isa{apply-operations}\ \isa{xs}) \\
+  &= \langle\isa{x}\rangle\ (\isa{apply-operations}\ (\isa{prefix}@\isa{suffix}))\\
+  &= \isa{apply-operations} (\isa{prefix}@\isa{suffix}@\isa{x}) \\
+  &= \isa{apply-operations} (\isa{prefix}@\isa{x@\isa{suffix}}) \\
+  &= \isa{apply-operations}\ ys.
+\end{align*}
 
 
 \begin{figure}
@@ -299,7 +323,7 @@ The entire proof is shown in Figure~\ref{fig.convergence}.
 \isacommand{qed}\isamarkupfalse%
   \end{isabellebody}
   \caption{Proof of convergence theorem in Isar.}
-  \label{fig.converge}
+  \label{fig.convergence}
 \end{figure}
 
 
