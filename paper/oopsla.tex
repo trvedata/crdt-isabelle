@@ -132,6 +132,7 @@ the next generation of algorithms for collaborative editing.
 
 All of our proofs are checked with the Isabelle proof assistant~\cite{DBLP:conf/tphol/WenzelPN08}.
 Accordingly, we now provide a brief introduction to the Isabelle logical framework, and to the Isabelle/HOL object logic, so that the reader can easily follow our proofs, and understand our theorem statements.
+The interested reader is invited to reference standard tutorial material on Isabelle, for a more in-depth introduction to the system~\cite{DBLP:books/sp/NipkowK14}.
 
 Isabelle is a logical framework, providing a weak meta-logic---a fragment of intuitionistic higher-order logic---within which object logics may be embedded as theories.
 One particular object logic embedding---Isabelle/HOL, a more expressive implementation of Gordon's higher-order logic than that provided by the meta-logic---is the arena in which we formalise our proof of convergence.
@@ -139,10 +140,28 @@ One particular object logic embedding---Isabelle/HOL, a more expressive implemen
 % Type system
 
 Isabelle/HOL is a strictly-typed logic.
-The logic's type system resembles that of mainstream functional programming languages, such as Standard ML, OCaml, or Haskell.
-\emph{Function types} are written $\tau_1 \Rightarrow \tau_2$ are inhabited by \emph{total} functions, mapping elements of $\tau_1$ to elements of $\tau_2$.
+The logic's type system resembles that of mainstream functional programming languages, such as Standard ML, OCaml, or Haskell, albeit without the let-polymorphism that each of these languages implement.
+\emph{Function types} are written $\tau_1 \Rightarrow \tau_2$, and are inhabited by \emph{total} functions, mapping elements of $\tau_1$ to elements of $\tau_2$.
+Here, `total' means that all recursive function definitions must terminate i.e. recurse on some smaller argument, with respect to a well-founded order.
+We write $\tau_1 \times \tau_2$ for the \emph{product type} of $\tau_1$ and $\tau_2$, inhabited by pairs of elements of type $\tau_1$ and $\tau_2$, respectively.
+In a similar fashion to Standard ML and OCaml, but differing from Haskell, \emph{type operators} are applied to arguments in reverse order.
+We therefore write $\tau\ \isa{list}$ and $\tau\ \isa{set}$ for the type of lists of elements of type $\tau$, and the type of mathematical (i.e. potentially infinite) sets of type $\tau$, respectively.
+Type variable are written in Greek lowercase, with, $\alpha \Rightarrow \alpha$ denoting the type of a polymorphic identity function, for example.
+
+Isabelle/HOL's term language again contains many features one would typically find in a mainstream functional programming language.
+We write $\isa{t} \isa{::} \tau$ for a \emph{type ascription}, constraining the type of the term $\isa{t}$ to the type $\tau$.
+We write $\lambda{x}. t$ for an anonymous function mapping an argument $\isa{x}$ to $\isa{t(x)}$, and write the application of term $\isa{t}$ with function type to an argument $\isa{u}$ as $\isa{t\ u}$, as usual.
+Terms of list type are introduced using one of two constructors: $\isa{[]}$, or `nil', and $\isa{\#}$, or `cons', which prepends an element to an existing list.
+We use $[t_1, \ldots, t_n]$ as syntactic sugar for a list literal, which is desugared into a series of cons applications.
+We write $\{\}$ for the empty set, and use usual mathematical notation for set union, disjunction, membership tests, and so on: $\isa{t} \cup \isa{u}$, $\isa{t} \cap \isa{u}$, and $\isa{x} \in \isa{t}$.
+Local definitions, within the body of a term, may be made with a let-in construct.
+
+Terms with type $\isa{bool}$ are called \emph{formulae}.
+We write $\isa{True}$ and $\isa{False}$ for the logical truthity and falsity constants, respectively.
 
 % Definitions and recursive functions
+
+% Inductive relations
 
 % Formulae, theorem statements
 
