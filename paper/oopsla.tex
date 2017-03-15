@@ -131,8 +131,8 @@ the next generation of algorithms for collaborative editing.
 \label{subsect.an.overview.of.isabelle}
 
 All of our proofs are checked with the Isabelle proof assistant~\cite{DBLP:conf/tphol/WenzelPN08}.
-Accordingly, we now provide a brief introduction to the Isabelle logical framework, and to the Isabelle/HOL object logic, so that the reader can easily follow our proofs, and understand our theorem statements.
-The interested reader is invited to reference standard tutorial material on Isabelle, for a more in-depth introduction to the system~\cite{DBLP:books/sp/NipkowK14}.
+Accordingly, we now provide a brief introduction to the Isabelle logical framework and to the Isabelle/HOL object logic, so that the reader can easily follow our proofs and understand our theorem statements.
+The interested reader is invited to reference standard tutorial material on Isabelle for a more in-depth introduction to the system~\cite{DBLP:books/sp/NipkowK14}.
 
 Isabelle is a logical framework, providing a weak meta-logic---a fragment of intuitionistic higher-order logic---within which object logics may be embedded as theories.
 One particular object logic embedding---Isabelle/HOL, a more expressive implementation of Gordon's higher-order logic than that provided by the meta-logic---is the arena in which we formalise our proof of convergence.
@@ -147,15 +147,14 @@ Here, `total' means that all recursive function definitions must terminate i.e. 
 We write $\tau_1 \times \tau_2$ for the \emph{product type} of $\tau_1$ and $\tau_2$, inhabited by pairs of elements of type $\tau_1$ and $\tau_2$, respectively.
 In a similar fashion to Standard ML and OCaml, but differing from Haskell, \emph{type operators} are applied to arguments in reverse order.
 We therefore write $\tau\ \isa{list}$ and $\tau\ \isa{set}$ for the type of lists of elements of type $\tau$, and the type of mathematical (i.e. potentially infinite) sets of type $\tau$, respectively.
-Type variable are written in Greek lowercase, with $\alpha \Rightarrow \alpha$ denoting the type of a polymorphic identity function, for example.
+Type variable are written in lowercase, and preceded with a prime: ${\isacharprime}a \Rightarrow {\isacharprime}a$ denotes the type of a polymorphic identity function, for example.
 
-Isabelle/HOL's term language again contains many features one would typically find in a mainstream functional programming language.
-We write $\isa{t} \isa{::} \tau$ for a \emph{type ascription}, constraining the type of the term $\isa{t}$ to the type $\tau$.
+In Isabelle/HOL's term language we write $\isa{t} \isa{::} \tau$ for a \emph{type ascription}, constraining the type of the term $\isa{t}$ to the type $\tau$.
 We write $\lambda{x}. t$ for an anonymous function mapping an argument $\isa{x}$ to $\isa{t(x)}$, and write the application of term $\isa{t}$ with function type to an argument $\isa{u}$ as $\isa{t\ u}$, as usual.
-Terms of list type are introduced using one of two constructors: $\isa{[]}$, or `nil', and $\isa{\#}$, or `cons', which prepends an element to an existing list.
+Terms of list type are introduced using one of two constructors: $\isa{[]}$, or `nil', standing for the empty list, and infix $\isa{\#}$, or `cons', which prepends an element to an existing list.
 We use $[t_1, \ldots, t_n]$ as syntactic sugar for a list literal, which is desugared into a series of cons applications.
 We write $\{\}$ for the empty set, and use usual mathematical notation for set union, disjunction, membership tests, and so on: $\isa{t} \cup \isa{u}$, $\isa{t} \cap \isa{u}$, and $\isa{x} \in \isa{t}$.
-Local definitions, within the body of a term, may be made with a let-in construct that is an abbreviation for a $\beta$-redex.
+Local definitions, within the body of a term, may be made with a let-in construct that is merely syntactic sugar for an unreduced $\beta$-redex.
 
 Terms with type $\isa{bool}$ are called \emph{formulae}.
 We write $\isa{True}$ and $\isa{False}$ for the logical truthity and falsity constants, respectively.
@@ -201,7 +200,11 @@ A theorem statement of the form
 \noindent
 produces a proof obligation, wherein the user is tasked with proving $\isa{foo} (xs \isacharat ys)$ under the two assumptions $\isa{foo}\ xs$ and $\isa{foo}\ ys$, where $xs \isacharat ys$ denotes the appending of two lists $\isa{xs}$ and $\isa{ys}$.
 An optional name, here $\isa{goo}$, is assigned to the theorem, so that it may be referenced in later proofs.
-% Proofs
+
+Closing a proof obligation can proceed in one of two ways in Isabelle/HOL.
+`Apply-style' tactic driven theorem proving is one method, which sees a proof obligation decomposed into simpler subgoals in a backwards-directed manner, using \emph{tactics}.
+An alternative style uses the Isar structured proof language, which attempts to mimic the structure and form of human-written proofs in a completely machine-checked way, and is claimed to be closer to informal mathematical practice than the alternative `apply-style' proofs.
+We use both styles in this formalisation, depending on the particular theorem that we are proving.
 
 % move into background
 
