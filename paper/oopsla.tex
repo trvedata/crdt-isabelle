@@ -139,9 +139,9 @@ As a result, local state changes at any given pair of replicas may progress with
 A natural question to ask of a distributed system, therefore, is whether any two replicas will converge to the same state, and under what conditions that convergence will happen.
 A \emph{consistency model} enumerates the criteria under which a distributed system converges, when, and how a replica's view of the system's state is related to the view of any other replica.
 Several standard consistency models for distributed systems exist in the literature, with differing strengths and weaknesses.
-We discuss three here: \emph{strict consistency}, \emph{eventual consistency}, and a variant of the latter called \emph{strong eventual consistency}.
+We discuss three here: \emph{strict (or strong) consistency}, \emph{eventual consistency}, and a variant of the latter called \emph{strong eventual consistency}.
 
-\emph{Strict consistency} is a popular consistency model for transactional databases.
+\emph{Strict (or strong) consistency} is a popular consistency model for transactional databases.
 Upon a replica updating some subcomponent of the system's shared state, strict consistency guarantees that all other replicas immediately see this update.
 This is a strong requirement, and for many distributed systems is often impossible to implement due to physical constraints---notice of updates to the system's shared state may take significant amounts of time to percolate to geographically widely separated replicas, for instance.
 Further, in cases where one is able to achieve strict consistency, updates to the system's shared state may require global locks, or some other performance-degrading mechanism deemed unacceptable to the architects of the system.
@@ -152,13 +152,27 @@ Many commercially deployed systems, particularly distributed data stores, and vi
 Barring no new updates to some subcomponent of the system's shared state, eventual consistency guarantees that at some future point all replicas will agree on the state of that subcomponent.
 Naturally, eventual consistency requires a means of addressing conflicts when concurrent updates to the system's state are detected, and different strategies may be deployed, dependending on the requirements of the particular system.
 Popular strategies include invoking a user-specified conflict resolution handler upon detection of conflicts, or uniformly applying a \emph{last writer wins} policy to all conflicts.
-These strategies are often \emph{ad hoc} and error prone, motivating strong eventual consistency.
+These strategies are often \emph{ad hoc} and error prone, motivating variants of the consistency model, including strong eventual consistency.
 
-\emph{Strong eventual consistency} is a consistency model 
+\emph{Strong eventual consistency} is a special case of eventual consistency.
+In a strongly eventual consistent system, the operations that a replica may use to modify subcomponents of the system's shared global state are constrained in such a way that pairs of operations naturally commute with each other.
+As a result, the system will eventually reach a consistent state, but the potentially error prone process of invoking conflict resolution strategies is no longer needed, as conflicts are impossible to introduce, by construction.
+This consistency model is impossible to achieve for many distributed systems, but it is the natural consistency model---and therefore notion of correctness---for Conflict-free Replicated Datatypes, whose operations are guaranteed to commute, as previously described.
 
-\emph{Strong eventual consistency} is a safety property that guarantees that any
-two given nodes in a network that have received the same set of events converge to the same state.
-We prove this convergence property in an abstract setting, that is, any two arbitrary list of distinct events, enriched by an order relation that satisfies a \emph{consistency property}, converge.
+In this work, we prove that our Replicated Growable Array implementation possesses this convergence property in an abstract setting.
+Our final theorem states that two arbitrary lists of distinct events enriched by an order relation, that satisfy a consistency property defined in terms of a \emph{happens before} relation, converge to the same state.
+Formally, we prove:
+\\
+\begin{isabellebody}
+\ \ \ \ \isacommand{theorem} convergence{\isacharcolon}\isanewline
+\ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ xs\ {\isacharequal}\ set\ ys{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ ys{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}distinct\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}distinct\ ys{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ ys{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}\isanewline
+\end{isabellebody}
+That is, suppose $\isa{xs}$ and $\isa{ys}$ are two arbitrary list of distinct events, that contain the same set of elements.
+Suppose also that any two events in $\isa{xs}$ (respectively, $\isa{ys}$) that happen concurrently, per our \emph{happens before} relation, 
 
 Let $\mathit{Events}$ be the set of events enriched with a preorder $\prec$. We
 write $\isa{x} \prec \isa{y}$ and say that the event \isa{x} \emph{happens
