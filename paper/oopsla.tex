@@ -121,8 +121,7 @@ the next generation of algorithms for collaborative editing.
 % Background
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Background}
-\label{sect.background}
+\input{background}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Convergence
@@ -673,45 +672,7 @@ the set of \isa{suffix} is concurrent to \isa{x}. By the induction hypothesis,
 % Related Work
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Related Work}
-\label{sect.relatedwork}
-
-
-\subsection{Formal Verification}
-
-Zeller et al. have used Isabelle to formally specify and verify a number of state-based CRDTs~\cite{Zeller:2014fl}.
-
-Some operational transformation functions have also been formally specified and verified using the
-SPIKE theorem prover~\cite{Imine:2003ks,Imine:2006kn}, Coq~\cite{Sinchuk:2016cf}, and
-Isabelle~\cite{Jungnickel:2015ua}. These efforts focus on proving that the transformation functions
-satisfy given properties (such as the \emph{transformation properties} $\mathit{TP}_1$ and
-$\mathit{TP}_2$~\cite{Oster:2006tr,Ressel:1996wx}).
-
-control algorithm (also known as integration algorithm)
-
-Prove commutativity properties of the transformation function, but do not formally relate these
-properties to a particular network model. Informal reasoning is used to demonstrate that these
-properties do indeed ensure convergence in all possible
-executions~\cite{Suleiman:1998eu,Sun:1998vf}.
-
-
-% \cite{Burckhardt:2014ft}
-% \cite{Roh:2009ws}
-% \cite{Bieniusa:2012gt}
-% \cite{Wang:2015vo}
-% \cite{Spiewak:2010vw}
-% \cite{Google:2015vk}
-% \cite{Lemonik:2016wh}
-% \cite{Lamport:1978jq}
-% \cite{Preguica:2012fx}
-% \cite{Schwarz:1994gl}
-% \cite{ParkerJr:1983jb}
-% vector clocks~\cite{Fidge:1988tv,Raynal:1996jl}
-% \cite{Defago:2004ji}
-% \cite{Chandra:1996cp}
-% \cite{Davidson:1985hv}
-% \cite{Terry:1995dn}
-% \cite{DeCandia:2007ui}
+\input{relwork}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % RGA_Network
