@@ -136,6 +136,7 @@ The interested reader is invited to reference standard tutorial material on Isab
 
 Isabelle is a logical framework, providing a weak meta-logic---a fragment of intuitionistic higher-order logic---within which object logics may be embedded as theories.
 One particular object logic embedding---Isabelle/HOL, a more expressive implementation of Gordon's higher-order logic than that provided by the meta-logic---is the arena in which we formalise our proof of convergence.
+Unlike systems based around Constructive Type Theory---such as Agda, Coq, or Matita---Isabelle/HOL implements a fully classical logic.
 
 % Type system
 
@@ -146,7 +147,7 @@ Here, `total' means that all recursive function definitions must terminate i.e. 
 We write $\tau_1 \times \tau_2$ for the \emph{product type} of $\tau_1$ and $\tau_2$, inhabited by pairs of elements of type $\tau_1$ and $\tau_2$, respectively.
 In a similar fashion to Standard ML and OCaml, but differing from Haskell, \emph{type operators} are applied to arguments in reverse order.
 We therefore write $\tau\ \isa{list}$ and $\tau\ \isa{set}$ for the type of lists of elements of type $\tau$, and the type of mathematical (i.e. potentially infinite) sets of type $\tau$, respectively.
-Type variable are written in Greek lowercase, with, $\alpha \Rightarrow \alpha$ denoting the type of a polymorphic identity function, for example.
+Type variable are written in Greek lowercase, with $\alpha \Rightarrow \alpha$ denoting the type of a polymorphic identity function, for example.
 
 Isabelle/HOL's term language again contains many features one would typically find in a mainstream functional programming language.
 We write $\isa{t} \isa{::} \tau$ for a \emph{type ascription}, constraining the type of the term $\isa{t}$ to the type $\tau$.
@@ -154,17 +155,52 @@ We write $\lambda{x}. t$ for an anonymous function mapping an argument $\isa{x}$
 Terms of list type are introduced using one of two constructors: $\isa{[]}$, or `nil', and $\isa{\#}$, or `cons', which prepends an element to an existing list.
 We use $[t_1, \ldots, t_n]$ as syntactic sugar for a list literal, which is desugared into a series of cons applications.
 We write $\{\}$ for the empty set, and use usual mathematical notation for set union, disjunction, membership tests, and so on: $\isa{t} \cup \isa{u}$, $\isa{t} \cap \isa{u}$, and $\isa{x} \in \isa{t}$.
-Local definitions, within the body of a term, may be made with a let-in construct.
+Local definitions, within the body of a term, may be made with a let-in construct that is an abbreviation for a $\beta$-redex.
 
 Terms with type $\isa{bool}$ are called \emph{formulae}.
 We write $\isa{True}$ and $\isa{False}$ for the logical truthity and falsity constants, respectively.
+We write $\isa{t} \longrightarrow \isa{u}$, $\isa{t} \wedge \isa{u}$, and $\isa{t} \vee \isa{u}$ for material implication, conjunction, and disjunction, respectively, between formulae, and write $\neg t$ for the negation of a formula.
+We write $\forall{x}.t$ and $\exists{x}.t$ for universal and existential quantification---and write $\forall{x{\in}t}.u$ and $\exists{x{\in}t}.u$ for their bounded forms, restricted to members of a set $\isa{t}$.
+Note that Isabelle/HOL is an impredicative logic, unlike the logic implemented by other proof assistants: $\forall{x::\isa{bool}}. t$ is itself a formula, i.e. term of type $\isa{bool}$.
+Isabelle/HOL's equality constant is polymorphic: we write $t = u$ for an assertion of equality between two terms of the same type.
 
-% Definitions and recursive functions
+New non-recursive definitions are entered into Isabelle's global context via the $\mathbf{definition}$ keyword.
+Recursive functions are entered via the $\mathbf{fun}$ keyword, with functions being defined piecewise by pattern matching on inputs by a series of equations.
+As mentioned, all recursive functions must be provably terminating.
+Most termination proofs are generated automatically by Isabelle itself, however.
 
-% Inductive relations
+Inductive relations are used extensively in our formalisation, and are introduced with the $\mathbf{inductive}$ keyword.
+An inductive relation definition of the form
+\\
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{inductive} foo\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ list\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}foo\ {\isacharbrackleft}{\isacharbrackright}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}{\isasymlbrakk}\ foo\ xs\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ foo {\isacharparenleft}5\#xs{\isacharparenright}{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{\baselineskip}
+\noindent
+introduces a new constant $\isa{foo}$ of type $\isa{nat list} \Rightarrow \isa{bool}$.
+The two clauses in the body of the definition enumerate the conditions under which $\isa{foo}\ \isa{xs}$ is true, for arbitrary $\isa{xs}$.
+The definition above states that $\isa{foo}$ is true at the empty list, or given a proof that $\isa{foo}\ \isa{xs}$ is true for some $\isa{xs}$, then $\isa{foo}\ (5\#\isa{xs})$ is true, also.
+Further, $\isa{foo}\ \isa{xs}$ is true in no other circumstances, i.e. $\isa{foo}$ is the \emph{smallest} relation closed under the rules defining it.
+In short, the clauses defining $\isa{foo}$ above state that $\isa{foo}\ \isa{xs}$ holds exactly in the case where $\isa{xs}$ is a (potentially empty) list containing only repeated copies of the natural number $5$.
+Note that each clause above, and each clause in any inductive relation definition, can be interpreted as defining a series of inference rules, where assertions appearing to the left of $\Longrightarrow$ are understood as a rule's premisses, and assertions appearing to the right of the arrow are understood to be the rule's conclusion.
+Clauses without an arrow can be interpreted as inference rules without premisses, or the `axioms' of the inductive relation definition.
+Note that Isabelle will automatically generate custom induction, case analysis, and introduction theorems, tied to the definition of $\isa{foo}$, above, at the time of definition.
 
-% Formulae, theorem statements
-
+Lemmas, theorems, and corollaries can be asserted using the $\mathbf{lemma}$, $\mathbf{theorem}$, and $\mathbf{corollary}$ keywords, respectively.
+There is no semantic difference between these keywords in Isabelle---any relative import between a lemma statement and a theorem statement is purely in the eye of the beholder.
+A theorem statement of the form
+\\
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{theorem} goo{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ foo\ xs \isakeyword{and}\ foo\ ys \isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ foo (xs \isacharat ys)
+\end{isabellebody}
+\vspace{\baselineskip}
+\noindent
+produces a proof obligation, wherein the user is tasked with proving $\isa{foo} (xs \isacharat ys)$ under the two assumptions $\isa{foo}\ xs$ and $\isa{foo}\ ys$, where $xs \isacharat ys$ denotes the appending of two lists $\isa{xs}$ and $\isa{ys}$.
+An optional name, here $\isa{goo}$, is assigned to the theorem, so that it may be referenced in later proofs.
 % Proofs
 
 % move into background
