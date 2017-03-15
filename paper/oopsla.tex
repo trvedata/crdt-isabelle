@@ -128,8 +128,25 @@ the next generation of algorithms for collaborative editing.
 % Convergence
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Strong Eventual Consistency}
+\section{Our consistency model}
 \label{sect.convergence}
+
+Distributed systems---by their very nature---include replication and communication between replicas.
+Messages passed back and forth between replicas across networks may be delayed, reordered, or lost entirely.
+These effects may be caused by networking or other hardware faults, a conscious trade-off in the design of the networking protocol used, or they may simply be an inevitable result of geographic separation between replicas.
+As a result, local state changes at any given pair of replicas may progress with differing views of the system's state.
+
+A natural question to ask of a distributed system, therefore, is whether any two replicas will converge to the same state, and under what conditions that convergence will happen.
+A \emph{consistency model} enumerates the criteria under which a distributed system converges, when, and how a replica's view of the system's state is related to the view of any other replica.
+Several standard consistency models for distributed systems exist in the literature.
+We discuss three here: \emph{strong consistency}, \emph{eventual consistency}, and a variant of the latter called \emph{strong eventual consistency}.
+
+\paragraph{Strong consistency}
+
+\paragraph{Eventual consistency} is a widely used consistency model in distributed systems, and is widely used in commercially deployed systems, particularly distributed data stores.
+Barring no new updates 
+
+\paragraph{Strong eventual consistency}
 
 \emph{Strong eventual consistency} is a safety property that guarantees that any
 two given nodes in a network that have received the same set of events converge to the same state.
