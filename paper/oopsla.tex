@@ -135,8 +135,8 @@ Accordingly, we now provide a brief introduction to the Isabelle logical framewo
 The interested reader is invited to reference standard tutorial material on Isabelle for a more in-depth introduction to the system~\cite{DBLP:books/sp/NipkowK14}.
 
 Isabelle is a logical framework, providing a weak meta-logic---a fragment of intuitionistic higher-order logic---within which object logics may be embedded as theories.
-One particular object logic embedding---Isabelle/HOL, a more expressive implementation of Gordon's higher-order logic than that provided by the meta-logic---is the arena in which we formalise our proof of convergence.
-Unlike systems based around Constructive Type Theory---such as Agda, Coq, or Matita---Isabelle/HOL implements a fully classical logic.
+One particular object logic embedding---Isabelle/HOL, a more expressive implementation of Gordon's higher-order logic~\cite{DBLP:conf/tphol/Gordon91} than that provided by the meta-logic---is the arena in which we formalise our proof of convergence.
+Unlike systems based around Constructive Type Theory---such as Agda~\cite{DBLP:conf/tphol/BoveDN09}, Coq, or Matita---Isabelle/HOL implements a fully classical logic.
 
 % Type system
 
@@ -148,6 +148,7 @@ We write $\tau_1 \times \tau_2$ for the \emph{product type} of $\tau_1$ and $\ta
 In a similar fashion to Standard ML and OCaml, but differing from Haskell, \emph{type operators} are applied to arguments in reverse order.
 We therefore write $\tau\ \isa{list}$ and $\tau\ \isa{set}$ for the type of lists of elements of type $\tau$, and the type of mathematical (i.e. potentially infinite) sets of type $\tau$, respectively.
 Type variable are written in lowercase, and preceded with a prime: ${\isacharprime}a \Rightarrow {\isacharprime}a$ denotes the type of a polymorphic identity function, for example.
+\emph{Tagged union} types are introduced with the $\mathtt{datatype}$ keyword: constructors of such types are written with an initial upper case letter.
 
 In Isabelle/HOL's term language we write $\isa{t} \isa{::} \tau$ for a \emph{type ascription}, constraining the type of the term $\isa{t}$ to the type $\tau$.
 We write $\lambda{x}. t$ for an anonymous function mapping an argument $\isa{x}$ to $\isa{t(x)}$, and write the application of term $\isa{t}$ with function type to an argument $\isa{u}$ as $\isa{t\ u}$, as usual.
@@ -202,11 +203,25 @@ produces a proof obligation, wherein the user is tasked with proving $\isa{foo} 
 An optional name, here $\isa{goo}$, is assigned to the theorem, so that it may be referenced in later proofs.
 
 Closing a proof obligation can proceed in one of two ways in Isabelle/HOL.
-`Apply-style' tactic driven theorem proving is one method, which sees a proof obligation decomposed into simpler subgoals in a backwards-directed manner, using \emph{tactics}.
-An alternative style uses the Isar structured proof language, which attempts to mimic the structure and form of human-written proofs in a completely machine-checked way, and is claimed to be closer to informal mathematical practice than the alternative `apply-style' proofs.
-We use both styles in this formalisation, depending on the particular theorem that we are proving.
+`Apply-style' tactic driven theorem proving is one method, which sees a proof obligation decomposed into simpler subgoals in a backwards-directed manner, using \emph{tactics}---small programs that aim to progress a backwards proof by decomposing, or solving outright, a proof obligation.
+An alternative style uses the Isar structured proof language~\cite{DBLP:phd/dnb/Wenzel02a}, which attempts to mimic the structure and form of human-written proofs in a completely machine-checked way, and is claimed to be closer to informal mathematical practice than the alternative `apply-style' proofs.
+We use both styles of proof in this formalisation, depending on the particular theorem and its relative importance.
 
-% move into background
+Lastly, we use \emph{locales}---or local theory environments~\cite{DBLP:conf/types/HaftmannW08}---extensively throughout our development to structure the proof.
+A declaration of the form
+\\
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{locale} hoo = \isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ f\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes} {\isachardoublequoteopen}f\ x = x{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{\baselineskip}
+\noindent
+introduces a local theory, with a fixed, typed constant $\isa{f}$, and an associated law that states that $\isa{f}$ is the identity function.
+Functions and constants may now be defined, and theorems conjectured and proved, within the context of the $\isa{hoo}$ theory.
+Any such function, constant, or theorem, may make reference to $\isa{f}$, or the fact that $\isa{f}\ \isa{x} = \isa{x}$ for all $\isa{x}$.
+\emph{Interpreting} a local theory---such as $\isa{hoo}$ above---involves providing a concrete implementation of $\isa{f}$ coupled with a proof that the concrete implementation satisfies the associated law.
+Once interpreted, all functions, definitions, and theorems made within the $\isa{hoo}$ local theory become available to use for that concrete implementation.
 
 \section{High-level proof strategy}
 \label{sect.high-level.proof.strategy}
