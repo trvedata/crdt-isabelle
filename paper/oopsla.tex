@@ -127,12 +127,20 @@ the next generation of algorithms for collaborative editing.
 
 \input{background}
 
+\section{High-level proof strategy}
+\label{sect.high-level.proof.strategy}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Convergence
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Our consistency model}
+\section{Convergence}
 \label{sect.convergence}
+
+\subsection{Our consistency model, and main theorem statement}
+\label{subsect.consistency.model.main.theorem.statement}
+
+% move into background?
 
 Distributed systems---by their very nature---include replication and communication between replicas over a network.
 Messages passed back and forth between replicas may be delayed, reordered, or lost entirely.
@@ -174,8 +182,9 @@ Formally, we prove:
 \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ ys{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
-That is, suppose $\isa{xs}$ and $\isa{ys}$ are two arbitrary list of distinct events, that contain the same set of elements.
-Suppose also that any two events in $\isa{xs}$ (respectively, $\isa{ys}$) that happen concurrently, per our \emph{happens before} relation, 
+That is, suppose $\isa{xs}$ and $\isa{ys}$ are two arbitrary list of distinct events, that contain the same set of elements, but are ordered in a way that respects our \emph{happens before} relation---that is, so earlier elements in the list all \emph{happen before} later ones.
+Suppose also that any two events in $\isa{xs}$ (respectively, $\isa{ys}$) that happen concurrently, per our \emph{happens before} relation, have a commuting property on states.
+Then the final state one obtains by applying
 
 Let $\mathit{Events}$ be the set of events enriched with a preorder $\prec$. We
 write $\isa{x} \prec \isa{y}$ and say that the event \isa{x} \emph{happens
