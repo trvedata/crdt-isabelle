@@ -127,8 +127,33 @@ the next generation of algorithms for collaborative editing.
 
 \input{background}
 
+\subsection{An overview of Isabelle}
+\label{subsect.an.overview.of.isabelle}
+
+All of our proofs are checked with the Isabelle proof assistant~\cite{DBLP:conf/tphol/WenzelPN08}.
+Accordingly, we now provide a brief introduction to the Isabelle logical framework, and to the Isabelle/HOL object logic, so that the reader can easily follow our proofs, and understand our theorem statements.
+
+Isabelle is a logical framework, providing a weak meta-logic---a fragment of intuitionistic higher-order logic---within which object logics may be embedded as theories.
+One particular object logic embedding---Isabelle/HOL, a more expressive implementation of Gordon's higher-order logic than that provided by the meta-logic---is the arena in which we formalise our proof of convergence.
+
+% Type system
+
+Isabelle/HOL is a strictly-typed logic.
+The logic's type system resembles that of mainstream functional programming languages, such as Standard ML, OCaml, or Haskell.
+\emph{Function types} are written $\tau_1 \Rightarrow \tau_2$ are inhabited by \emph{total} functions, mapping elements of $\tau_1$ to elements of $\tau_2$.
+
+% Definitions and recursive functions
+
+% Formulae, theorem statements
+
+% Proofs
+
+% move into background
+
 \section{High-level proof strategy}
 \label{sect.high-level.proof.strategy}
+
+Before embarking on a detailed description of our formal proof of convergence in Isabelle, we provide a higher-level overview of the proof strategy used.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Convergence
