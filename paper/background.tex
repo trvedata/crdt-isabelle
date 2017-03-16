@@ -5,7 +5,7 @@ Distributed systems are conventionally modeled as a set of \emph{nodes} (or \emp
 can communicate only by sending and receiving messages over a network. In practice, nodes may be
 servers in datacenters, end-user devices such as laptops and smartphones, or any other kind of
 device with network connectivity. We assume that messages sent via the network may be delayed,
-reordered, or lost entirely~-- an assumption that matches the behavior of networks in practice
+reordered, or lost entirely~-- an assumption that matches the behavior of many networks in practice
 \cite{Bailis:2014jx}.
 
 Moreover, nodes or network links may fail at any time, and the non-faulty parts of the system need
@@ -22,7 +22,7 @@ without having to worry about how it is implemented. In this paper, the abstract
 structure (such as a document). Each node may independently read and modify the data, and any
 updates (modifications) are propagated to other replicas via the network.
 
-\subsection{Consistency Models for Replicated Data}
+\subsection{Consistency Models for Replicated Data}\label{sect.consistencymodels}
 
 The purpose of replication is to ensure that you have a copy of the same data on each node that is
 acting as a replica. However, when multiple nodes are concurrently reading and modifying the data,
@@ -92,6 +92,11 @@ much stronger than eventual consistency, a liveness property, since eventual con
 constrain the values that reads may return until such time as consistency is eventually reached
 \cite{Bailis:2013jc}.
 
+\subsection{Properties of Networks}
+
+The consistency properties that a replication algorithm can achieve depend on the assumptions that
+can be made about the network and its connectedness.
+
 \subsubsection{Asynchronous System Model}
 
 In this paper, we discuss an approach for achieving SEC in \emph{asynchronous} systems. In the
@@ -112,30 +117,173 @@ hand, consensus becomes possible if the algorithm is allowed to make certain wea
 \cite{Chandra:1996cp}. However, SEC \emph{can} be achieved in the asynchronous model, so we use it
 here in order to keep our assumptions minimal.
 
+\subsubsection{Centralized Versus Peer-to-Peer Networks}
 
-\subsection{Collaborative Editing and Data Synchronization}
+Many online services today rely on a central server that maintains the authoritative copy of the
+data. In this architecture, clients that want to modify the data send their updates to the central
+server (often called \emph{master} or \emph{leader}), which in turn forwards the updates to all of
+the replicas. The server can attach a sequence number to each update, enabling all replicas to apply
+the updates in the same order. Being able to assume totally ordered delivery across all replicas
+significantly simplifies replication algorithms, which is why this architecture is so popular today.
+
+As discussed in Section~\ref{sect.introduction}, peer-to-peer networks have no such central server
+that can be assumed to be always reachable. It is possible to provide the same ordering guarantee in
+peer-to-peer networks; this abstraction is known as \emph{total order broadcast} or \emph{atomic
+broadcast} \cite{Cachin:2011wt}. However, it is expensive: total order broadcast is equivalent to
+consensus \cite{Chandra:1996cp}, making it unattainable in the asynchronous model. Even if we
+introduce timing assumptions, total order broadcast requires a quorum of nodes (typically a
+majority) to be reachable in order to make progress; in a peer-to-peer network of mobile devices, it
+is likely that less than a majority of devices is online at any one time, and so total order
+broadcast would be stalled.
+
+If we require any subset of nodes to be able to synchronize data independently from the remaining
+nodes (for example, two devices connected by a wireless link but disconnected from the internet), we
+cannot rely on total order broadcast, and causally ordered delivery is the strongest ordering
+guarantee that can reliably be provided \cite{Attiya:2015dm}.
+
+\subsubsection{Causal Ordering}
+
+Total order broadcast ensures that when nodes broadcast a set of messages to other nodes on the
+network, they are delivered in the same order to all recipients. By contrast, causal ordering is a
+weaker guarantee that allows greater concurrency and thus greater nondeterminism in the network.
+However, it has the advantage that it makes no assumptions about the number of nodes that are
+online.
 
 
-% Upon a replica updating some subcomponent of the system's shared state, strict consistency
-% guarantees that all other replicas immediately see this update. This is a strong requirement, and
-% for many distributed systems is often impossible to implement due to physical constraints---notice
-% of updates to the system's shared state may take significant amounts of time to percolate to
-% geographically widely separated replicas, for instance. Further, in cases where one is able to
-% achieve strict consistency, updates to the system's shared state may require global locks, or some
-% other performance-degrading mechanism deemed unacceptable to the architects of the system. These
-% problems with strict consistency motivate various relaxed consistency models, including eventual
-% consistency.
+% There are two families of algorithms for collaborative editing: \emph{operational transformation}
+% (OT)~\cite{Ellis:1989ue,Ressel:1996wx,Oster:2006tr,Sun:1998vf,Sun:1998un,Suleiman:1998eu,Nichols:1995fd}
+% and \emph{conflict-free replicated datatypes}
+% (CRDTs)~\cite{Shapiro:2011wy,Roh:2011dw,Preguica:2009fz,Oster:2006wj,Weiss:2010hx,Nedelec:2013ky,Kleppmann:2016ve}.
+% Both allow a document to be modified concurrently on different replicas, with changes applied
+% immediately to the local copy, while asynchronously propagating changes to other replicas. The
+% goal of these algorithms is to ensure that for all concurrent executions, the replicas converge
+% toward the same state without any edits being lost, a property known as \emph{strong eventual
+% consistency}~\cite{Shapiro:2011un}.
 
-% Naturally, eventual consistency requires a means of addressing conflicts when concurrent updates
-% to the system's state are detected, and different strategies may be deployed, dependending on the
-% requirements of the particular system. Popular strategies include invoking a user-specified
-% conflict resolution handler upon detection of conflicts, or uniformly applying a \emph{last writer
-% wins} policy to all conflicts. These strategies are often \emph{ad hoc} and error prone,
-% motivating strong eventual consistency.
+
+% CRDTs are a more recent development~\cite{Shapiro:2011un}. While OT is based on transforming
+% non-commutative operations so that they have the same effect when reordered, CRDTs define operations
+% in a way that makes them commutative by design, making them more amenable to peer-to-peer settings
+% in which each node may apply edits in a different order. CRDTs also have attractive performance
+% characteristics~\cite{Mehdi:2011ke}.
+
+% TODO Various decentralised algorithms have been proposed and all but one (Oster 2006) have
+% subsequently been shown to be incorrect.
+
+
+\subsection{Collaborative Editing and Data Synchronization}\label{sect.datasync}
+
+In a strongly consistent system, as long as a node is disconnected (also known as
+\emph{partitioned}) from all other nodes, read and write operations cannot return on that node,
+because they need to wait for communication with other nodes to complete in order to find out about
+writes that occurred on other nodes. This observation is popularly known as the CAP theorem
+\cite{Gilbert:2002il}, and it makes linearizability impossible for applications that need to
+continue working if a network connection is slow or unavailable.
+
+On the other hand, SEC systems can serve reads and writes entirely from a local replica without
+waiting for network communication, and exchange updates with other replicas asynchronously when a
+network connection is available. For example, this mode of data exchange is familiar from calendar
+sync on mobile devices: a user can view and enter calendar entries while the device is offline, and
+any changes are propagated to replicas of the calendar on other devices when an internet connection
+is available.
+
+\subsubsection{The Need for Conflict Resolution}
+
+In SEC systems, different replicas may concurrently execute conflicting operations without being
+aware of each other, causing their states to diverge, and requiring \emph{conflict resolution}
+(reconciliation) at a later time. Some systems place the burden of conflict resolution on the user,
+or leave it to application code, which is often error-prone (for example, \citet{DeCandia:2007ui}
+describe an anomaly at Amazon that arose due to poor conflict resolution). The definition of SEC
+requires convergence, which implies automatic conflict resolution: the replication algorithm must
+ensure that once the updates have been propagated, the states of replicas are equivalent.
+
+The simplest way of achieving convergence is a \emph{last write wins} (LWW) policy, in which a
+unique timestamp is assigned to each version of the data structure, and when there is a conflict,
+the system picks the version with the highest timestamp. In this approach, concurrent updates with a
+lower timestamp are simply discarded. Better algorithms are able to preserve concurrent updates
+while still ensuring automatic convergence.
+
+\subsubsection{Conflict-Free Replicated Data Types (CRDTs)}
+
+Some operations, such as addition of numbers, are naturally commutative. Thus, if the replicated
+data structure is a counter whose value can only be incremented or decremented, convergence can be
+achieved by applying the increment and decrement operations in any order at each replica.
+
+\emph{Conflict-free replicated data types} (CRDTs) generalize this idea to other data structures and
+operations
+\cite{Shapiro:2011wy,Shapiro:2011un,Roh:2011dw,Preguica:2009fz,Oster:2006wj,Weiss:2010hx,Nedelec:2013ky,Kleppmann:2016ve}.
+For example, an ordered list (sequence) of values can be modified by inserting or deleting elements
+at specified positions, and a map (dictionary) datatype can be modified by setting the value
+associated with a key or deleting a key-value pair from the map. In a CRDT, those modification
+operations are made commutative by attaching additional metadata to the data structure.
+
+Three families of CRDTs are distinguished in the literature:
+\begin{description}
+\item[Operation-based CRDTs] construct update operations such that they are commutative. Every
+update operation that is performed on one replica is broadcast to other replicas, where the
+operation is applied when it is delivered. Due to the commutativity of operations, replicas converge
+towards the same state, even when each node applies the operation in a different order.
+\item[State-based CRDTs] do not capture individual update operations, but instead broadcast the
+entire state of a replica after it has changed. The CRDT defines a \emph{merge} function over a
+join-semilattice, allowing states to be combined such that the result reflects changes made in
+either replica.
+\item[$\delta$-CRDTs] \cite{Almeida:2015fc} are a middle ground between operation-based and state-based
+CRDTs: rather than broadcasting the entire state after an update, they only send deltas reflecting
+the modification. Like state-based CRDTs, $\delta$-CRDTs are based on an associative, commutative,
+and idempotent merge operation, whereas operation-based CRDTs only use operation commutativity.
+\end{description}
+
+In this paper we focus on operation-based CRDTs, and in particular the RGA algorithm for ordered
+lists described in Section~\ref{sect.rga.background}. For this algorithm, we formally prove the
+commutativity of operations, and prove that it achieves convergence on an asynchronous network.
+
+\subsubsection{Operational Transformation (OT)}
+
+Another family of algorithms for achieving convergence of replicas uses the \emph{operational
+transformation} (OT) approach
+\cite{Ellis:1989ue,Ressel:1996wx,Oster:2006tr,Sun:1998vf,Sun:1998un,Suleiman:1998eu,Nichols:1995fd}.
+These algorithms are intended for collaborative editing, that is, multiple users concurrently
+modifying a document on their local device, and propagating updates asynchronously to other users'
+devices. The replicated data structure is usually assumed to be a text document, represented as an
+ordered list of characters that may be modified by inserting or deleting characters at arbitrary
+positions in the string.
+
+Unlike CRDTs, in which update operations are commutative by definition, OT allows non-commutative
+operations. Instead, OT relies on \emph{transforming} concurrent operations, allowing them to be
+reordered on different nodes while ensuring the same outcome. For example, if two nodes started in
+the same state, and then concurrently generated operations $\mathit{op}_1$ and $\mathit{op}_2$
+respectively, the transformation $T$ of those operations must satisfy
+\[
+  T(\mathit{op}_1, \mathit{op}_2) = (\mathit{op}_1', \mathit{op}_2') \quad\text{ such that }\quad
+  \mathit{op}_1 \circ \mathit{op}_2' \equiv \mathit{op}_2 \circ \mathit{op}_1' \;.
+\]
+
+This property is known as the \emph{transformation property 1} ($\mathit{TP}_1$), as defined by
+\citet{Ressel:1996wx}. It allows two operations that were generated concurrently to be applied
+sequentially in different orders at each replica. It is sufficient for ensuring convergence in
+systems that deliver operations in the same order to all replicas, for example by sequencing them
+through a central server. This design was originally pioneered by the Jupiter system
+\cite{Nichols:1995fd} and is now used by all widely-deployed OT-based collaboration systems,
+including Google Docs \cite{DayRichter:2010tt}, Microsoft Word Online, Etherpad
+\cite{Etherpad:2011um}, and Novell Vibe \cite{Spiewak:2010vw}.
+
+However, if the system cannot ensure that operations are delivered in the same order to all
+replicas, the $\mathit{TP}_1$ property is not sufficient, and the transformation must also satisfy a
+second, more subtle property $\mathit{TP}_2$ \cite{Ressel:1996wx}. This latter property has a
+checkered history: several OT algorithms have claimed to satisfy $\mathit{TP}_2$, but were later
+shown to be incorrect \cite{Imine:2003ks,Imine:2006kn}. It has even been shown that in the classic
+formulation of OT it is impossible to achieve $\mathit{TP}_2$ \cite{Randolph:2015gj}, and that the
+transformation needs to be defined differently in order to satisfy this property
+\cite{Oster:2006tr}.
+
+\citet{Levien:2016wz} has hypothesized that an OT algorithm satisfying $\mathit{TP}_2$ is in fact a
+CRDT.
 
 % We prove this convergence property in an abstract setting, that is, any two arbitrary list of
 % distinct events, enriched by an order relation that satisfies a \emph{consistency property},
 % converge.
+
+\subsection{The Replicated Growable Array (RGA)}\label{sect.rga.background}
 
 \begin{figure}
 \centering

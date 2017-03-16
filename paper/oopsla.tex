@@ -34,70 +34,58 @@ To be completed...
 \section{Introduction}
 \label{sect.introduction}
 
-Collaborative editing applications such as Google Docs~\cite{DayRichter:2010tt}, Microsoft Word
-Online, Etherpad~\cite{Etherpad:2011um}, and Novell Vibe~\cite{Spiewak:2010vw} are increasing in
-popularity. A common feature of these tools is that they allow several users to concurrently modify
-a document without having to send the document back and forth manually (e.g., by email), and without
-requiring any exclusive locking or manual resolution of merge conflicts.
+Collaborative editing applications such as Google Docs, Microsoft Word Online, and Etherpad are
+increasing in popularity. A common feature of these tools is that they allow several users to
+concurrently modify a document without having to send the document back and forth manually (e.g., by
+email), and without requiring any exclusive locking or manual resolution of merge conflicts. Similar
+features are found in applications that synchronize data between devices owned by the same user,
+such as calendars, address books, note-taking apps, password managers, and so on: they also allow
+data to be independently modified on different devices, and any changes are propagated to copies of
+the data on other devices when an internet connection is available.
 
-However, all currently deployed collaborative editing systems rely on a central server to determine
-a sequential order of edit operations, a design originally pioneered by the Jupiter
-system~\cite{Nichols:1995fd}. This architecture has the advantage of simplifying the collaborative
-editing algorithm by restricting the concurrency in the system.
+As we show in Section~\ref{sect.background}, all currently deployed algorithms for such
+collaborative editing and data synchronization rely on a central server that is trusted to hold the
+authoritative copy of the data. The use of a central server introduces a number of limitations:
+\begin{itemize}
+\item It limits offline usage: for example, a user cannot synchronize changes between their
+    smartphone and laptop via a local wireless connection, but must instead connect both devices to
+    the internet. It also rules out a group of users collaborating on a local network disconnected
+    from the server, for example in a remote location without reliable internet connectivity.
+\item Since the central server holds the authoritative copy of the data, all participants must be
+    willing to trust it to a high degree. If the server were compromised by attackers, or subverted
+    by a malicious insider, it could tamper with the data or grant access to unauthorized parties.
+\item Finally, a central server requires high availability and is also susceptible to blocking and
+    censorship. For sensitive scenarios, such as communication among journalists and dissidents
+    under a repressive regime, such centralization is problematic.
+\end{itemize}
 
-However, the use of a central server introduces a number of limitations. It limits offline usage, preventing
-a user from synchronising changes locally between, say, their smartphone and their laptop; it also
-prevents a group of users from collaborating on a local network disconnected from the server. 
-Since a central server model requires the server to sequentially order messages,
-message meta data must be modifiable by the server, placing a high level of trust in the server
-and limiting any confidentiality and integrity guarantees such a system can offer to users. %Is this too vague? 
-Finally, a central server requires high availability and is also readily amenable to blocking and censorship. 
-For sensitive scenarios, such as communication between dissidents of a repressive regime, such centralization is problematic.
+Decentralized peer-to-peer systems therefore look attractive in scenarios where reliance on a
+central server is impractical or undesirable. Unfortunately, we currently have a poor understanding
+of algorithms that enable collaborative editing and data synchronization in peer-to-peer networks.
+In Section~\ref{sect.background} we highlight several algorithms for peer-to-peer collaboration,
+published in peer-reviewed venues, that claimed to work correctly but were subsequently shown to violate
+their supposed guarantees. Informal reasoning in this domain has repeatedly produced algorithms that
+look plausible, but actually turn out to be flawed.
 
-Decentralized peer-to-peer systems therefore look attractive. In a decentralized setting, 
-especially when the participating nodes are mobile devices, totally ordered broadcast of 
-editing operations is prohibitively expensive~\cite{Attiya:2015dm}. Thus, there
-has been significant interest in collaborative editing algorithms that work correctly in the face of
-the increased concurrency encountered in peer-to-peer systems~\cite{Randolph:2015gj}.
+In this work, we contribute to a better understanding of algorithms for peer-to-peer collaboration
+by establishing techniques for formally verifying their correctness. We use Isabelle, a generic
+proof assistant tool \cite{DBLP:conf/tphol/WenzelPN08}, to create formal specifications of an
+asynchronous network and distributed algorithms executing in such a system. We then use this
+framework to produce a machine-checked proof of correctness of one particular algorithm for
+peer-to-peer collaboration~-- the Replicated Growable Array (RGA) of \citet{Roh:2011dw}, an example
+of a Conflict-Free Replicated Data Type (CRDT) as introduced by
+\citet{Shapiro:2011wy,Shapiro:2011un}.
+The algorithm is subtle~-- \citet{Attiya:2016kh} wrote, ``the reason why RGA actually works has been
+a bit of a mystery''~-- which makes formal verification particularly important.
 
-There are two families of algorithms for collaborative editing: \emph{operational transformation}
-(OT)~\cite{Ellis:1989ue,Ressel:1996wx,Oster:2006tr,Sun:1998vf,Sun:1998un,Suleiman:1998eu,Nichols:1995fd}
-and \emph{conflict-free replicated datatypes}
-(CRDTs)~\cite{Shapiro:2011wy,Roh:2011dw,Preguica:2009fz,Oster:2006wj,Weiss:2010hx,Nedelec:2013ky,Kleppmann:2016ve}.
-Both allow a document to be modified concurrently on different replicas, with changes applied
-immediately to the local copy, while asynchronously propagating changes to other replicas. The
-goal of these algorithms is to ensure that for all concurrent executions, the replicas converge
-toward the same state without any edits being lost, a property known as \emph{strong eventual
-consistency}~\cite{Shapiro:2011un}.
-
-However, these algorithms have a checkered history. OT algorithms have a reputation of being
-difficult to understand and to implement correctly~\cite{Spiewak:2010vw}. Despite the fact that OT
-has been studied for almost three decades~\cite{Ellis:1989ue}, few algorithms work correctly in a
-peer-to-peer setting, and several published algorithms were later shown to violate their supposed
-convergence guarantees~\cite{Imine:2003ks,Imine:2006kn}. It has even been proved that in the classic
-formulation of OT it is impossible to achieve an important property required for convergence
-in a peer-to-peer setting% (called $\mathit{TP}_2$ in the literature)
-, and that additional parameters must be added to transformation functions
-to make convergence possible~\cite{Randolph:2015gj}.
-
-CRDTs are a more recent development~\cite{Shapiro:2011un}. While OT is based on transforming
-non-commutative operations so that they have the same effect when reordered, CRDTs define operations
-in a way that makes them commutative by design, making them more amenable to peer-to-peer settings
-in which each node may apply edits in a different order. CRDTs also have attractive performance
-characteristics~\cite{Mehdi:2011ke}.
+\dots something about how the formal verification is generally applicable, not just for this
+particular algorithm \dots
 
 To date there has been little formal verification of the correctness of CRDTs, and the
 history of broken OT algorithms highlights the inadequacy of informal reasoning in this domain. In
 this work we contribute to the formal basis of collaborative editing algorithms by using the
 interactive proof assistant Isabelle to develop machine-checked proofs of the
 correctness for CRDTs.
-
-In particular, we study the Replicated Growable Array (RGA) CRDT~\cite{Roh:2011dw}, which represents
-a collaboratively editable document as a sequence of characters. There are previous pen-and-paper
-correctness proofs of RGA in the literature~\cite{Attiya:2016kh,Kleppmann:2016ve,Roh:2009ws}, but to
-our knowledge, ours is the first mechanized proof of the convergence of RGA. The algorithm is
-subtle~-- \citet{Attiya:2016kh} wrote, ``the reason why RGA actually works has been a bit of a
-mystery''~~-- which makes formal verification particularly important.
 
 Our proof is structured in four modules:
 \begin{inparaenum}
@@ -109,15 +97,6 @@ Our proof is structured in four modules:
     \item a proof that when the RGA algorithm is executed in our network model, all possible
         executions are well-formed, and thus converge.
 \end{inparaenum}
-
-%TODO Move to related work?
-In doing so, we go much further than previous correctness proofs of collaborative editing
-algorithms. Previous formalizations of OT using theorem
-provers~\cite{Imine:2003ks,Imine:2006kn,Sinchuk:2016cf,Jungnickel:2015ua} focus on proving that the
-transformation functions satisfy given properties (such as the transformation properties
-$\mathit{TP}_1$ and $\mathit{TP}_2$~\cite{Oster:2006tr,Ressel:1996wx}), and do not explicitly model
-the network. A previous formalization of CRDTs~\cite{Zeller:2014fl}, also using Isabelle, considers
-other datatypes (sets, registers, counters) but not the ordered sequence datatype provided by RGA.
 
 By including a model of the network in our proof, we rule out a larger set of potential errors in
 the algorithm that may result from the interaction of operation properties with assumptions about
@@ -131,8 +110,6 @@ machine-checked correctness proofs of operation-based CRDTs. Our proofs are brok
 with well-defined properties, allowing modules to be reused for proofs of new datatypes in future.
 By making formal verification easier, we hope to provide a strong foundation for the development of
 the next generation of algorithms for collaborative editing.
-
-%TODO Various decentralised algorithms have been proposed and all but one (Oster 2006) have subsequently been shown to be incorrect.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

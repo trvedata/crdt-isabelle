@@ -1,6 +1,19 @@
 \section{Related Work}
 \label{sect.relatedwork}
 
+In particular, we study the Replicated Growable Array (RGA) CRDT~\cite{Roh:2011dw}, which represents
+a collaboratively editable document as a sequence of characters. There are previous pen-and-paper
+correctness proofs of RGA in the literature~\cite{Attiya:2016kh,Kleppmann:2016ve,Roh:2009ws}, but to
+our knowledge, ours is the first mechanized proof of the convergence of RGA.
+
+In doing so, we go much further than previous correctness proofs of collaborative editing
+algorithms. Previous formalizations of OT using theorem
+provers~\cite{Imine:2003ks,Imine:2006kn,Sinchuk:2016cf,Jungnickel:2015ua} focus on proving that the
+transformation functions satisfy given properties (such as the transformation properties
+$\mathit{TP}_1$ and $\mathit{TP}_2$~\cite{Oster:2006tr,Ressel:1996wx}), and do not explicitly model
+the network. A previous formalization of CRDTs~\cite{Zeller:2014fl}, also using Isabelle, considers
+other datatypes (sets, registers, counters) but not the ordered sequence datatype provided by RGA.
+
 
 \subsection{Formal Verification}
 
