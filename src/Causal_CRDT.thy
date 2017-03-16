@@ -39,7 +39,7 @@ corollary (in network_with_ops)
   apply(erule disjE, clarsimp simp add: node_deliver_messages_def map_filter_def)
   apply blast
   apply(cases "history i"; clarsimp; case_tac "list"; clarsimp)
-  apply(rule hb_consistent_technical[where i=i])
+  apply(rule hb_consistent_technical[where i=i])                                         
   apply(subst history_order_def, clarsimp)
   apply(metis list_nth_split One_nat_def Suc_le_mono cancel_comm_monoid_add_class.diff_cancel
           le_imp_less_Suc length_Cons less_Suc_eq_le less_imp_diff_less nat.simps neq0_conv nth_Cons_pos)

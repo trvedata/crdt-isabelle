@@ -304,8 +304,6 @@ using assms
   apply(subgoal_tac "Ordered_List.insert xa (a, aa, b) x12 \<bind> (\<lambda>x. Ordered_List.delete x x2) = delete xa x2 \<bind> (\<lambda>x. Ordered_List.insert x (a, aa, b) x12)")
   apply(metis (no_types, lifting) Option.bind_cong interpret_opers.simps)
   apply(rule insert_delete_commute)
-  apply(rule insert_valid_assms)
-  using prefix_msg_in_history apply blast
   apply(rule Insert_Delete_concurrent)
   apply clarsimp
   using prefix_msg_in_history apply blast
@@ -314,8 +312,6 @@ using assms
   apply(subgoal_tac "delete xa x2 \<bind> (\<lambda>x. insert x (a, aa, b) x12) = Ordered_List.insert xa (a, aa, b) x12 \<bind> (\<lambda>x. delete x x2)")
   apply(metis (no_types, lifting) Option.bind_cong interpret_opers.simps)
   apply(rule insert_delete_commute[symmetric])
-  apply(rule insert_valid_assms)
-  using prefix_msg_in_history apply blast
   apply(rule Insert_Delete_concurrent)
   using prefix_msg_in_history apply blast
   apply(subst (asm) hb.concurrent_comm)
