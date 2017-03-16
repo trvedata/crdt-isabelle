@@ -5,6 +5,7 @@
 \usepackage[english]{babel}
 \usepackage{setspace}
 
+\usepackage{paralist} % For inline enumeration
 \usepackage{tikz} % For diagrams
 \usetikzlibrary{arrows}
 
@@ -99,16 +100,17 @@ subtle~-- \citet{Attiya:2016kh} wrote, ``the reason why RGA actually works has b
 mystery''~~-- which makes formal verification particularly important.
 
 Our proof is structured in four modules:
-\begin{enumerate}
-    \item A general convergence theorem that applies in any system where concurrent operations are
+\begin{inparaenum}
+    \item a general convergence theorem that applies in any system where concurrent operations are
         commutative;
-    \item A formal model of a network protocol providing reliable, causally-ordered broadcast;
-    \item An implementation of the RGA algorithm, and a proof that well-formed, concurrent insertion
-        and deletion operations commute;
-    \item A proof that when the RGA algorithm is executed in our network model, all possible
+    \item a formal model of a network protocol providing reliable, causally-ordered broadcast;
+    \item an implementation of the RGA algorithm, and a proof that well-formed, concurrent insertion
+        and deletion operations commute; and
+    \item a proof that when the RGA algorithm is executed in our network model, all possible
         executions are well-formed, and thus converge.
-\end{enumerate}
+\end{inparaenum}
 
+%TODO Move to related work?
 In doing so, we go much further than previous correctness proofs of collaborative editing
 algorithms. Previous formalizations of OT using theorem
 provers~\cite{Imine:2003ks,Imine:2006kn,Sinchuk:2016cf,Jungnickel:2015ua} focus on proving that the
@@ -132,9 +134,6 @@ the next generation of algorithms for collaborative editing.
 
 %TODO Various decentralised algorithms have been proposed and all but one (Oster 2006) have subsequently been shown to be incorrect.
 
-%TODO Why do we want to demonstrate that CRDTs are somehow more worthy than OT of our attention?
-
-%TODO Point out that we have a network model, when most proofs do not feature this aspect.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Background
