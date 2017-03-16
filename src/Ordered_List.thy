@@ -193,8 +193,7 @@ lemma insert_body_delete_commute:
 using assms by (induction xs arbitrary: x; cases e, auto split: bind_splits if_split_asm)
 
 lemma insert_delete_commute:
-  assumes "i1 = None \<or> i1 \<noteq> Some (fst e)"
-          "i2 \<noteq> fst e"
+  assumes "i2 \<noteq> fst e"
   shows   "do { ys \<leftarrow> insert xs e i1; delete ys i2 } = do { ys \<leftarrow> delete xs i2; insert ys e i1 }"
 using assms by(induction xs; cases e; cases i1, auto split: bind_splits if_split_asm simp add: insert_body_delete_commute)
 

@@ -597,7 +597,7 @@ which maps a list of events to a list of delivered messages.
 \end{isabellebody}
 
 We can show that for any prefix of the history of a node in the network, their
-deliver messages are distinct and consistent to the happens before relation.
+delivered messages are distinct and consistent to the happens before relation.
 That is, in any point in time, the messages received by a node are distinct
 and satisfy the consistency requirement defined in Section~\ref{sect.convergence}.
 
@@ -640,12 +640,34 @@ concurrent messages commute, then both nodes converge to the same state.
 \subsection{Operations definitions}
 \label{sect.rga.operations}
 
+We use Isabelle's functional list to implement RGAs. We provide two operations:
+insertion and deletion. Any operations that do not modify the list can easily be
+added without changing its correctness. Update functions can be seen as
+combination of deletion and insertion.
+
+An item in the array is a tuple composed of an unique identifier, an arbitrary
+element (the data to be stored) and a boolean flag, which indicates if the
+element is still presented in the array or was deleted by some node.  Setting
+this flag to true is the equivalent of making a \emph{tombstone} in
+\cite{Roh:2011dw}'s implementation. In addition, we assume that the identifiers
+form a total linear order.
+
 \begin{isabellebody}
 \isanewline
 \isacommand{type{\isacharunderscore}synonym}\isamarkupfalse%
 \ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ {\isacharequal}\ {\isachardoublequoteopen}{\isacharprime}id\ {\isasymtimes}\ {\isacharprime}v\ {\isasymtimes}\ bool{\isachardoublequoteclose}%
+\isanewline
 \end{isabellebody}
 
+The function \isa{insert\ xs\ e\ i} adds an element \isa{e} to the list
+\isa{xs} after the element with identifier \isa{i}. More precisely, it first
+scans the list, searching for the element with this given id, and then adds
+after it, but before any element with a smaller id (\isa{insert-body}). This
+makes insertion of concurrent operations deterministic, since it always puts
+the element of higher id first.  If \isa{i} is \isa{None}, the element is added
+to the head of the list.  Note that \isa{insert} is a partial function, if an
+element with identifier \isa{i} is not found in the list \isa{xs}, the function
+returns \isa{None}, essentially failing.
 
 \begin{isabellebody}
 \isanewline
@@ -670,7 +692,8 @@ concurrent messages commute, then both nodes converge to the same state.
 \ \ \ \ \ \ \ \ \ \ \ {\isacharbraceright}{\isacharparenright}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
-
+The delete operation simply recursively search for the element with a given
+identifier and change its flag to true, effectively making it a tombstone.
 
 \begin{isabellebody}
 \isanewline
@@ -684,10 +707,19 @@ concurrent messages commute, then both nodes converge to the same state.
 \ \ \ \ \ \ \ \ do\ {\isacharbraceleft}\ t\ {\isasymleftarrow}\ delete\ xs\ i\isanewline
 \ \ \ \ \ \ \ \ \ \ \ {\isacharsemicolon}\ Some\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}v{\isacharcomma}flag{\isacharparenright}{\isacharhash}t{\isacharparenright}\isanewline
 \ \ \ \ \ \ \ \ \ \ \ {\isacharbraceright}{\isacharparenright}{\isachardoublequoteclose}%
+\isanewline
 \end{isabellebody}
 
+The operations used here are deliberately inefficient and easier to reason
+with. They can be seen as functional specifications for RGAs, one can create
+more efficient algorithms by data refinement.
 
 \subsection{Failure conditions}
+
+We are interested in proving that given that the network satisfy the conditions
+in Section~\ref{sect.network}, the operations can never fail. It can be proven
+that the operation \isa{insert\ xs\ e\ i} will never fail if \isa{i} is
+\isa{None} or there exists an element in \isa{xs} with identifier \isa{i}.
 
 \begin{isabellebody}
 \isanewline
@@ -697,6 +729,7 @@ concurrent messages commute, then both nodes converge to the same state.
 \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}{\isasymexists}xs{\isacharprime}{\isachardot}\ insert\ xs\ e\ i\ {\isacharequal}\ Some\ xs{\isacharprime}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
+Similarly, \isa{delete\ xs\ i} will never fail if there exists an element in \isa{xs} with identifier \isa{i}.
 
 \begin{isabellebody}
 \isanewline
@@ -708,17 +741,23 @@ concurrent messages commute, then both nodes converge to the same state.
 
 \subsection{Commutativity conditions}
 
+The implementation guarantees that insertion operations commute when both
+operations are concurrent. Two insertion operations \isa{insert\ xs\ e1\ i1}
+and \isa{insert\ xs\ e2\ i2} are concurrent if \isa{i1} is not the id of \isa{e2}
+and vice-versa. We also require that every element has an unique id, hence the
+ids of \isa{e1} and \isa{e2} must be different.
+
 \begin{isabellebody}
 \isanewline
 \isacommand{lemma}\isamarkupfalse%
 \ insert{\isacharunderscore}commutes{\isacharcolon}\isanewline
 \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}fst\ e{\isadigit{1}}\ {\isasymnoteq}\ fst\ e{\isadigit{2}}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}i{\isadigit{1}}\ {\isacharequal}\ None\ {\isasymor}\ i{\isadigit{1}}\ {\isasymnoteq}\ Some\ {\isacharparenleft}fst\ e{\isadigit{2}}{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}i{\isadigit{2}}\ {\isacharequal}\ None\ {\isasymor}\ i{\isadigit{2}}\ {\isasymnoteq}\ Some\ {\isacharparenleft}fst\ e{\isadigit{1}}{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ insert\ xs\ e{\isadigit{1}}\ i{\isadigit{1}}{\isacharsemicolon}\ insert\ ys\ e{\isadigit{2}}\ i{\isadigit{2}}\ {\isacharbraceright}\ {\isacharequal}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ insert\ xs\ e{\isadigit{2}}\ i{\isadigit{2}}{\isacharsemicolon}\ insert\ ys\ e{\isadigit{1}}\ i{\isadigit{1}}\ {\isacharbraceright}{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{and}\ {\isachardoublequoteopen}i{\isadigit{1}}\ {\isacharequal}\ None\ {\isasymor}\ i{\isadigit{1}}\ {\isasymnoteq}\ Some\ {\isacharparenleft}fst\ e{\isadigit{2}}{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{and}\ {\isachardoublequoteopen}i{\isadigit{2}}\ {\isacharequal}\ None\ {\isasymor}\ i{\isadigit{2}}\ {\isasymnoteq}\ Some\ {\isacharparenleft}fst\ e{\isadigit{1}}{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ insert\ xs\ e{\isadigit{1}}\ i{\isadigit{1}}{\isacharsemicolon}\ insert\ ys\ e{\isadigit{2}}\ i{\isadigit{2}}\ {\isacharbraceright}\ {\isacharequal}\ do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ insert\ xs\ e{\isadigit{2}}\ i{\isadigit{2}}{\isacharsemicolon}\ insert\ ys\ e{\isadigit{1}}\ i{\isadigit{1}}\ {\isacharbraceright}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
+It is easy to see that delete is an idempotent operation that always commute with another delete operation.
 
 \begin{isabellebody}
 \isanewline
@@ -727,13 +766,15 @@ concurrent messages commute, then both nodes converge to the same state.
 \ \ \isakeyword{shows}\ {\isachardoublequoteopen}do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ delete\ xs\ i{\isadigit{1}}{\isacharsemicolon}\ delete\ ys\ i{\isadigit{2}}\ {\isacharbraceright}\ {\isacharequal}\ do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ delete\ xs\ i{\isadigit{2}}{\isacharsemicolon}\ delete\ ys\ i{\isadigit{1}}\ {\isacharbraceright}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
+Finally, delete commutes with insertion operation whenever the element to be
+deleted is not the same as the inserted element. In other words, the operations
+are concurrent.
 
 \begin{isabellebody}
 \isanewline
 \isacommand{lemma}\isamarkupfalse%
 \ insert{\isacharunderscore}delete{\isacharunderscore}commute{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i{\isadigit{1}}\ {\isacharequal}\ None\ {\isasymor}\ i{\isadigit{1}}\ {\isasymnoteq}\ Some\ {\isacharparenleft}fst\ e{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}i{\isadigit{2}}\ {\isasymnoteq}\ fst\ e{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i{\isadigit{2}}\ {\isasymnoteq}\ fst\ e{\isachardoublequoteclose}\isanewline
 \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ insert\ xs\ e\ i{\isadigit{1}}{\isacharsemicolon}\ delete\ ys\ i{\isadigit{2}}\ {\isacharbraceright}\ {\isacharequal}\ do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ delete\ xs\ i{\isadigit{2}}{\isacharsemicolon}\ insert\ ys\ e\ i{\isadigit{1}}\ {\isacharbraceright}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
