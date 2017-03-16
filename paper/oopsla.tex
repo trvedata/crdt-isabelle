@@ -279,7 +279,7 @@ write $\isa{x} \prec \isa{y}$ and say that the event \isa{x} \emph{happens
 before} the event \isa{y}.  Moreover we assume that there exists an
 interpretation partial function $\langle\_\rangle$ that maps events to
 \emph{operations}, which are \emph{state transformers} on a set of states
-$\Sigma$.  This is implemented in Isabelle by the following \textbf{locale}
+$\Sigma$.  This is implemented in Isabelle by the following locale
 statement.
 
 \begin{isabellebody}
@@ -471,7 +471,6 @@ the set of \isa{suffix} is concurrent to \isa{x}. By the induction hypothesis,
   \caption{Proof of convergence theorem in Isar.}
   \label{fig.convergence}
 \end{figure}
->>>>>>> e0b66fcfbf86cf750010cb9b2abaef028781f5d9
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -560,12 +559,14 @@ be the case that a different node \isa{j} has also broadcasted message \isa{m}
 \end{isabellebody}
 
 A message \isa{m1} (or operation) \emph{happens before} a message \isa{m2},
-that is $\isa{m1} \prec \isa{m2}$, if both messages has been broadcasted by the
+that is $\isa{m1} \prec \isa{m2}$, if both messages have been broadcasted by the
 same node and the broadcast of \isa{m1} \emph{comes before} the broadcast of
 \isa{m2}; or for some node, the deliver of \isa{m1} \emph{comes before}
 the broadcast \isa{m2}; or finally, there is another message that
 happens after \isa{m1}, but before \isa{m2}.  This is defined in Isabelle by an
-inductive predicate.
+inductive predicate \isa{hb}.
+It can be shown that this definition of \isa{hb} forms a
+preorder.
 
 \begin{isabellebody}
 \isanewline
@@ -576,12 +577,12 @@ inductive predicate.
 \ \ {\isachardoublequoteopen}{\isasymlbrakk}\ m{\isadigit{1}}\ $\prec$\  m{\isadigit{2}}{\isacharsemicolon}\ m{\isadigit{2}}\ $\prec$\ m{\isadigit{3}}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{3}}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
-The correctness of operation-based CRDTs relies on \emph{causal networks}.
-Since this is a stronger requirement, we separate this axiom into a new
-\textbf{locale}, making the whole implementation modular and adaptable to new
+Additionally, the correctness of operation-based CRDTs relies on \emph{causal
+networks}.  Since this is a stronger requirement, we separate this axiom into a
+new locale, making the whole implementation modular and adaptable to new
 formalisations that do not depend on causality.  We say that the network
-satisfy the causality property whenever a message \isa{m1} happens before
-\isa{m2} and a node \isa{j} has received the message \isa{m2}, then the node
+satisfy the causality property if a message \isa{m1} happens before \isa{m2}
+and whenever a node \isa{j} has received the message \isa{m2}, then the node
 has also previously received the message \isa{m1}.
 
 \begin{isabellebody}
@@ -591,13 +592,25 @@ has also previously received the message \isa{m1}.
 \ \ \isakeyword{assumes}\ causal{\isacharunderscore}delivery{\isacharcolon}\ {\isachardoublequoteopen}Deliver\ m{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{2}}\ {\isasymLongrightarrow}\ Deliver\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup j\ Deliver\ m{\isadigit{2}}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
-Interpreting a local theory—such as hoo above—involves providing a concrete implementation of f coupled with a proof that the concrete implementation satis es the associated law.
+We can now instantiate the local theory \isa{happens-before} defined in
+Section~\ref{sect.convergence}. This involves providing a concrete
+implementation for the happens before relation (\isa{hb} in this case) and
+proving that it forms indeed a preorder. Once interpreted, all functions,
+definitions, and theorems made within the \isa{happens-before} locale become
+available to use in the locale \isa{network} prefixed by \isa{hb}, particularly
+the definitions of \isa{hb.concurrent}, \isa{hb.concurrent-ops-commute} and
+\isa{hb.hb-consistent}; and the convergence theorem: \isa{hb.convergence}.
+This is done in Isabelle by a \isa{sublocale} statement.
 
-It can be shown that this definition of \emph{happens-before} forms a
-preorder, matching the requirement of the local theory of the previous section.
-The two local theories --the network and the happens-before locale from the previous section-- can now be connected in Isabelle by a sublocale statement. It is enough to prove that the network satisfy every axiom (that is, that the We prove that the 
+\begin{isabellebody}
+\isanewline
+\isacommand{sublocale}\isamarkupfalse%
+\ hb{\isacharcolon}\ happens{\isacharunderscore}before\ weak{\isacharunderscore}hb\ hb\isanewline
+\end{isabellebody}
 
-Once interpreted, all functions, de nitions, and theorems made within the hoo local theory become available to use for that concrete implementation.
+Since the deliver event is the only type of event that modifies the state of
+the CRDT dealt with, we can consider the function \isa{node-deliver-messages}
+which maps a list of events to a list of delivered messages.
 
 \begin{isabellebody}
 \isanewline
@@ -606,11 +619,38 @@ Once interpreted, all functions, de nitions, and theorems made within the hoo lo
 \ \ {\isachardoublequoteopen}node{\isacharunderscore}deliver{\isacharunderscore}messages\ cs\ {\isasymequiv}\ List{\isachardot}map{\isacharunderscore}filter\ {\isacharparenleft}{\isasymlambda}e{\isachardot}\ case\ e\ of\ Deliver\ m\ {\isasymRightarrow}\ Some\ m\ {\isacharbar}\ {\isacharunderscore}\ {\isasymRightarrow}\ None{\isacharparenright}\ cs{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
+We can show that for any prefix of the history of a node in the network, their
+deliver messages are distinct and consistent to the happens before relation.
+That is, in any point in time, the messages received by a node are distinct
+and satisfy the consistency requirement defined in Section~\ref{sect.convergence}.
+
 \begin{isabellebody}
 \isanewline
 \isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ causal{\isacharunderscore}network{\isacharparenright}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isachardot}hb{\isacharunderscore}consistent\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ i{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ {\isacharparenleft}\isakeyword{in}\ causal{\isacharunderscore}network{\isacharparenright}\ node{\isacharunderscore}deliver{\isacharunderscore}messages{\isacharunderscore}distinct{\isacharcolon}\isanewline
+\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{shows}\ {\isachardoublequoteopen}distinct\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
+
+\isacommand{lemma}\isamarkupfalse%
+\ {\isacharparenleft}\isakeyword{in}\ causal{\isacharunderscore}network{\isacharparenright}\ hb{\isacharunderscore}consistent{\isacharunderscore}prefix{\isacharcolon}\isanewline
+\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isachardot}hb{\isacharunderscore}consistent\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\end{isabellebody}
+
+The convergence theorem can then be refined in this setting to consider
+prefixes of two different nodes with the same set of delivered messages, if
+concurrent messages commute, then both nodes converge to the same state.
+
+\begin{isabellebody}
+\isanewline
+\isacommand{corollary}\isamarkupfalse%
+\ {\isacharparenleft}\isakeyword{in}\ causal{\isacharunderscore}network{\isacharparenright}\ network{\isacharunderscore}convergence{\isacharcolon}\isanewline
+\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}
+\ \isakeyword{and}\ {\isachardoublequoteopen}ys\ prefix\ of\ j{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{and}\ {\isachardoublequoteopen}set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -787,21 +827,7 @@ Once interpreted, all functions, de nitions, and theorems made within the hoo lo
 \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isasymnoteq}\ None{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
-\begin{isabellebody}
-\isanewline
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ rga{\isacharparenright}\ node{\isacharunderscore}deliver{\isacharunderscore}messages{\isacharunderscore}distinct{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}distinct\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\end{isabellebody}
 
-\begin{isabellebody}
-\isanewline
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ rga{\isacharparenright}\ hb{\isacharunderscore}consistent{\isacharunderscore}prefix{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
-\ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isachardot}hb{\isacharunderscore}consistent\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\end{isabellebody}
 
 \begin{isabellebody}
 \isanewline

@@ -219,7 +219,7 @@ lemma (in rga) Insert_Delete_concurrent:
     shows "n' \<noteq> fst e"
 by (metis assms Insert_equal allowed_delete delivery_has_a_cause fst_conv hb.concurrent_def hb.intros(2) insert_subset local_order_carrier_closed)
 
-lemma (in rga) node_deliver_messages_distinct:
+lemma (in network_with_ops) node_deliver_messages_distinct:
   assumes "xs prefix of i"
   shows "distinct (node_deliver_messages xs)"
 using assms
@@ -246,7 +246,7 @@ lemma (in rga) apply_operations_distinct:
     shows "distinct (map fst ys)"
 oops
 
-lemma (in rga) hb_consistent_prefix:
+lemma (in network_with_ops) hb_consistent_prefix:
   assumes "xs prefix of i"
     shows "hb.hb_consistent (node_deliver_messages xs)"
 using assms
