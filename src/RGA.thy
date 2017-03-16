@@ -238,7 +238,13 @@ using assms
   apply(subst (asm) node_deliver_messages_def) back
   apply(clarsimp simp add: map_filter_def)
   apply(case_tac x; clarsimp)
-done
+  done
+    
+lemma (in rga) apply_operations_distinct:
+  assumes "xs prefix of i"
+      and "apply_operations xs = Some ys"
+    shows "distinct (map fst ys)"
+oops
 
 lemma (in rga) hb_consistent_prefix:
   assumes "xs prefix of i"
@@ -261,7 +267,7 @@ using assms
   apply(rule_tac x="zs@ys" in exI)
   apply(metis Cons_eq_appendI append_assoc)
   apply force
-done
+  done
 
 lemma (in rga) concurrent_operations_commute:
   assumes "xs prefix of i"
@@ -343,6 +349,36 @@ corollary (in rga) rga_convergence:
     shows "apply_operations xs = apply_operations ys"
 using assms by(auto intro: hb.convergence_ext concurrent_operations_commute
                 node_deliver_messages_distinct hb_consistent_prefix)
+          
+(* Not needed, now? *)
+lemma (in rga) Insert_preserves_order:
+  assumes "(xs@[Deliver (Insert e i)]) prefix of j"
+  shows "\<exists>pre suf. apply_operations xs = Some (pre@suf) \<and> insert (pre@suf) e i = Some (pre @ e # suf)"
+  using assms
+  oops
+(*
+  apply -
+  apply(insert insert_preserves_order)
+  apply(erule_tac x=i in meta_allE)
+  apply(subgoal_tac "\<exists>ys. apply_operations xs = Some ys")
+   apply(erule exE)
+   apply(erule_tac x="ys" in meta_allE)
+   apply(erule_tac x="e" in meta_allE)
+   apply(subgoal_tac "i = None \<or> (\<exists>i'. i = Some i' \<and> i' \<in> fst ` set (the (apply_operations xs)))")
+    apply(subgoal_tac "distinct (map fst ys)")
+     apply force
+    apply(rule apply_operations_distinct[where xs="xs"], force, force)
+   apply(drule allowed_insert_deliver_in_set)
+   apply(erule disjE)
+    apply force
+   apply(erule exE)+
+   apply(rule disjI2)
+   apply(rule_tac x="m'" in exI, erule conjE, rule conjI)
+    apply clarsimp
+   apply(metis assms fst_conv option.sel rga.insert_in_apply_set rga_axioms)
+  using apply_operations_never_fails apply blast
+  done
+*)
               
 section\<open>Interpretations\<close>
   
