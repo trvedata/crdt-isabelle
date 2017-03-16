@@ -468,6 +468,19 @@ the set of \isa{suffix} is concurrent to \isa{x}. By the induction hypothesis,
 \section{Network}
 \label{sect.network}
 
+Before defining a network, we consider an arbitrary number of \emph{nodes}.
+Each node has an \emph{unique identifier} and a \emph{history} of distinct
+events.  Concretely, an event can be force to be distinct by also assigning to
+it an unique identifier.  Furthermore, we assume a function \isa{history} that
+maps node identifiers to a list of events.  This setting considers infinite
+nodes with finite but unbounded number of events. Finite number of nodes can be
+taken into account by simply mapping the rest of the nodes identifiers to an
+empty list. In the end of its history, we assume that a node has either
+\emph{failed} or has been terminated correctly. Therefore, in our model, a node
+can fail only once, and after that, it is disconnect to the network. It is well
+known that to model \emph{node recovering}, the system need to solve
+\emph{consensus}, which CRDTs usually try to avoid.
+
 \begin{isabellebody}
 \isanewline
 \isacommand{locale}\isamarkupfalse%
@@ -476,6 +489,12 @@ the set of \isa{suffix} is concurrent to \isa{x}. By the induction hypothesis,
 \ \ \isakeyword{assumes}\ histories{\isacharunderscore}distinct{\isacharcolon}\ {\isachardoublequoteopen}distinct\ {\isacharparenleft}history\ i{\isacharparenright}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
+The arrangement of events in a list naturally defines a total strict
+order. We say that event \isa{x} \emph{comes before} event \isa{y} in the
+node \isa{i} if there exists suitable lists \isa{xs}, \isa{ys} and \isa{zs}
+such that $\isa{xs}@[\isa{x}]@\isa{ys}@[\isa{y}]@\isa{zs} = \isa{history\ i}$.
+We then write $\isa{x} \sqsubset^\isa{i} \isa{y}$.
+
 \begin{isabellebody}
 \isanewline
 \isacommand{definition}\isamarkupfalse%
@@ -483,13 +502,22 @@ the set of \isa{suffix} is concurrent to \isa{x}. By the induction hypothesis,
 \ \ {\isachardoublequoteopen}x\ {\isasymsqsubset}\isactrlsup i\ z\ {\isasymequiv}\ {\isasymexists}xs\ ys\ zs{\isachardot}\ xs{\isacharat}x{\isacharhash}ys{\isacharat}z{\isacharhash}zs\ {\isacharequal}\ history\ i{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
+Most often we are not interested in the whole history of a node \isa{i}, but
+how it has evolved over time. We say that a list \isa{xs} is a \isa{prefix\ of}
+node \isa{i} if there exists a suitable list \isa{ys} such that their append
+forms the history of \isa{i}.
+
 \begin{isabellebody}
 \isanewline
 \isacommand{definition}\isamarkupfalse%
 \ {\isacharparenleft}\isakeyword{in}\ node{\isacharunderscore}histories{\isacharparenright}\ prefix{\isacharunderscore}of{\isacharunderscore}node{\isacharunderscore}history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ list\ {\isasymRightarrow}\ nat\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}prefix\ of{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
 \ \ {\isachardoublequoteopen}xs\ prefix\ of\ i\ {\isasymequiv}\ {\isasymexists}ys{\isachardot}\ xs{\isacharat}ys\ {\isacharequal}\ history\ i{\isachardoublequoteclose}\isanewline
-\isanewline
 \end{isabellebody}
+
+Our network considers two different type of events. A node can either broadcast
+a message or receive it (a deliver event). In this setting, a message is an
+abstract object, it can either be an operation in the case of operation-based
+CRDTs or the data structure itself in the state-based one.
 
 \begin{isabellebody}
 \isanewline
@@ -497,9 +525,17 @@ the set of \isa{suffix} is concurrent to \isa{x}. By the induction hypothesis,
 \ {\isacharprime}a\ event\isanewline
 \ \ {\isacharequal}\ Broadcast\ {\isacharprime}a\isanewline
 \ \ {\isacharbar}\ Deliver\ {\isacharprime}a\isanewline
-\isanewline
 \end{isabellebody}
 
+Every message received by a node must have been broadcasted by some node
+previously (\isa{broadcast-before-delivery}), that is, messages are not created
+out-of-thin air. Note that messages can be delayed, reordered or lost, we do
+not guarantee that every node will ever receive the broadcasted message. We
+assume however that, when broadcasting a message, a node will eventually
+deliver this message to itself (\isa{deliver-locally}). Finally, messages are
+unique; if a message \isa{m} has been broadcasted by a node \isa{i}, it cannot
+be the case that a different node \isa{j} has also broadcasted message \isa{m}
+(\isa{broadcast-unique}).
 
 \begin{isabellebody}
 \isanewline
@@ -510,23 +546,45 @@ the set of \isa{suffix} is concurrent to \isa{x}. By the induction hypothesis,
 \ \ \isakeyword{and}\ broadcasts{\isacharunderscore}unique{\isacharcolon}\ {\isachardoublequoteopen}i\ {\isasymnoteq}\ j\ {\isasymLongrightarrow}\ Broadcast\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ Broadcast\ m\ {\isasymnotin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
+A message \isa{m1} (or operation) \emph{happens before} a message \isa{m2},
+that is $\isa{m1} \prec \isa{m2}$, if both messages has been broadcasted by the
+same node and the broadcast of \isa{m1} \emph{comes before} the broadcast of
+\isa{m2}; or for some node, the deliver of \isa{m1} \emph{comes before}
+the broadcast \isa{m2}; or finally, there is another message that
+happens after \isa{m1}, but before \isa{m2}.  This is defined in Isabelle by an
+inductive predicate.
+
 \begin{isabellebody}
 \isanewline
 \isacommand{inductive}\isamarkupfalse%
 \ {\isacharparenleft}\isakeyword{in}\ network{\isacharparenright}\ hb\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}{\isasymlbrakk}\ Broadcast\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup i\ Broadcast\ m{\isadigit{2}}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ hb\ m{\isadigit{1}}\ m{\isadigit{2}}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ {\isachardoublequoteopen}{\isasymlbrakk}\ Deliver\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup i\ Broadcast\ m{\isadigit{2}}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ hb\ m{\isadigit{1}}\ m{\isadigit{2}}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ {\isachardoublequoteopen}{\isasymlbrakk}\ hb\ m{\isadigit{1}}\ m{\isadigit{2}}{\isacharsemicolon}\ hb\ m{\isadigit{2}}\ m{\isadigit{3}}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ hb\ m{\isadigit{1}}\ m{\isadigit{3}}{\isachardoublequoteclose}\isanewline
-\ \ \isanewline
+\ \ {\isachardoublequoteopen}{\isasymlbrakk}\ Broadcast\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup i\ Broadcast\ m{\isadigit{2}}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{2}}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ {\isachardoublequoteopen}{\isasymlbrakk}\ Deliver\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup i\ Broadcast\ m{\isadigit{2}}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{2}}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ {\isachardoublequoteopen}{\isasymlbrakk}\ m{\isadigit{1}}\ $\prec$\  m{\isadigit{2}}{\isacharsemicolon}\ m{\isadigit{2}}\ $\prec$\ m{\isadigit{3}}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{3}}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
+
+The correctness of operation-based CRDTs relies on \emph{causal networks}.
+Since this is a stronger requirement, we separate this axiom into a new
+\textbf{locale}, making the whole implementation modular and adaptable to new
+formalisations that do not depend on causality.  We say that the network
+satisfy the causality property whenever a message \isa{m1} happens before
+\isa{m2} and a node \isa{j} has received the message \isa{m2}, then the node
+has also previously received the message \isa{m1}.
 
 \begin{isabellebody}
 \isanewline
 \isacommand{locale}\isamarkupfalse%
 \ causal{\isacharunderscore}network\ {\isacharequal}\ network\ {\isacharplus}\isanewline
-\ \ \isakeyword{assumes}\ causal{\isacharunderscore}delivery{\isacharcolon}\ {\isachardoublequoteopen}Deliver\ m{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}\ {\isasymLongrightarrow}\ hb\ m{\isadigit{1}}\ m{\isadigit{2}}\ {\isasymLongrightarrow}\ Deliver\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup j\ Deliver\ m{\isadigit{2}}{\isachardoublequoteclose}\isanewline
-\isanewline
+\ \ \isakeyword{assumes}\ causal{\isacharunderscore}delivery{\isacharcolon}\ {\isachardoublequoteopen}Deliver\ m{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{2}}\ {\isasymLongrightarrow}\ Deliver\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup j\ Deliver\ m{\isadigit{2}}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
+
+Interpreting a local theory—such as hoo above—involves providing a concrete implementation of f coupled with a proof that the concrete implementation satis es the associated law.
+
+It can be shown that this definition of \emph{happens-before} forms a
+preorder, matching the requirement of the local theory of the previous section.
+The two local theories --the network and the happens-before locale from the previous section-- can now be connected in Isabelle by a sublocale statement. It is enough to prove that the network satisfy every axiom (that is, that the We prove that the 
+
+Once interpreted, all functions, de nitions, and theorems made within the hoo local theory become available to use for that concrete implementation.
 
 \begin{isabellebody}
 \isanewline
