@@ -5,6 +5,7 @@
 \usepackage[english]{babel}
 \usepackage{setspace}
 
+\usepackage{paralist} % For inline enumeration
 \usepackage{tikz} % For diagrams
 \usetikzlibrary{arrows}
 
@@ -36,20 +37,26 @@ To be completed...
 Collaborative editing applications such as Google Docs~\cite{DayRichter:2010tt}, Microsoft Word
 Online, Etherpad~\cite{Etherpad:2011um}, and Novell Vibe~\cite{Spiewak:2010vw} are increasing in
 popularity. A common feature of these tools is that they allow several users to concurrently modify
-a document without having to send the document back and forth (e.g., by email), and without
+a document without having to send the document back and forth manually (e.g., by email), and without
 requiring any exclusive locking or manual resolution of merge conflicts.
 
 However, all currently deployed collaborative editing systems rely on a central server to determine
 a sequential order of edit operations, a design originally pioneered by the Jupiter
 system~\cite{Nichols:1995fd}. This architecture has the advantage of simplifying the collaborative
-editing algorithm by restricting the concurrency in the system, but it has the downside of placing
-significant trust in that single server: it is at risk of being compromised, censored, seized, or
-otherwise subverted by adversaries. For sensitive scenarios, such as communication between
-dissidents of a repressive regime, such centralization is problematic.
+editing algorithm by restricting the concurrency in the system.
 
-Decentralized peer-to-peer systems with end-to-end encryption can be more robust against such
-interference. In this setting, especially when the participating nodes are mobile devices, totally
-ordered broadcast of editing operations is prohibitively expensive~\cite{Attiya:2015dm}. Thus, there
+However, the use of a central server introduces a number of limitations. It limits offline usage, preventing
+a user from synchronising changes locally between, say, their smartphone and their laptop; it also
+prevents a group of users from collaborating on a local network disconnected from the server. 
+Since a central server model requires the server to sequentially order messages,
+message meta data must be modifiable by the server, placing a high level of trust in the server
+and limiting any confidentiality and integrity guarantees such a system can offer to users. %Is this too vague? 
+Finally, a central server requires high availability and is also readily amenable to blocking and censorship. 
+For sensitive scenarios, such as communication between dissidents of a repressive regime, such centralization is problematic.
+
+Decentralized peer-to-peer systems therefore look attractive. In a decentralized setting, 
+especially when the participating nodes are mobile devices, totally ordered broadcast of 
+editing operations is prohibitively expensive~\cite{Attiya:2015dm}. Thus, there
 has been significant interest in collaborative editing algorithms that work correctly in the face of
 the increased concurrency encountered in peer-to-peer systems~\cite{Randolph:2015gj}.
 
@@ -60,16 +67,17 @@ and \emph{conflict-free replicated datatypes}
 Both allow a document to be modified concurrently on different replicas, with changes applied
 immediately to the local copy, while asynchronously propagating changes to other replicas. The
 goal of these algorithms is to ensure that for all concurrent executions, the replicas converge
-toward the same state without any edits being lost (a property known as \emph{strong eventual
-consistency}~\cite{Shapiro:2011un}).
+toward the same state without any edits being lost, a property known as \emph{strong eventual
+consistency}~\cite{Shapiro:2011un}.
 
-However, these algorithms have a checkered history. OT algorithms have a reputation of being very
+However, these algorithms have a checkered history. OT algorithms have a reputation of being
 difficult to understand and to implement correctly~\cite{Spiewak:2010vw}. Despite the fact that OT
 has been studied for almost three decades~\cite{Ellis:1989ue}, few algorithms work correctly in a
 peer-to-peer setting, and several published algorithms were later shown to violate their supposed
 convergence guarantees~\cite{Imine:2003ks,Imine:2006kn}. It has even been proved that in the classic
-formulation of OT it is impossible to achieve the $\mathit{TP}_2$ property required for convergence
-in a peer-to-peer setting, and that additional parameters must be added to transformation functions
+formulation of OT it is impossible to achieve an important property required for convergence
+in a peer-to-peer setting% (called $\mathit{TP}_2$ in the literature)
+, and that additional parameters must be added to transformation functions
 to make convergence possible~\cite{Randolph:2015gj}.
 
 CRDTs are a more recent development~\cite{Shapiro:2011un}. While OT is based on transforming
@@ -78,10 +86,10 @@ in a way that makes them commutative by design, making them more amenable to pee
 in which each node may apply edits in a different order. CRDTs also have attractive performance
 characteristics~\cite{Mehdi:2011ke}.
 
-To date there has been fairly little formal verification of the correctness of CRDTs, and the
+To date there has been little formal verification of the correctness of CRDTs, and the
 history of broken OT algorithms highlights the inadequacy of informal reasoning in this domain. In
 this work we contribute to the formal basis of collaborative editing algorithms by using the
-interactive proof assistant software Isabelle (TODO citation) to develop machine-checked proofs of
+interactive proof assistant Isabelle to develop machine-checked proofs of the
 correctness for CRDTs.
 
 In particular, we study the Replicated Growable Array (RGA) CRDT~\cite{Roh:2011dw}, which represents
@@ -92,16 +100,17 @@ subtle~-- \citet{Attiya:2016kh} wrote, ``the reason why RGA actually works has b
 mystery''~~-- which makes formal verification particularly important.
 
 Our proof is structured in four modules:
-\begin{enumerate}
-    \item A general convergence theorem that applies in any system where concurrent operations are
+\begin{inparaenum}
+    \item a general convergence theorem that applies in any system where concurrent operations are
         commutative;
-    \item A formal model of a network protocol providing reliable, causally-ordered broadcast;
-    \item An implementation of the RGA algorithm, and a proof that well-formed, concurrent insertion
-        and deletion operations commute;
-    \item A proof that when the RGA algorithm is executed in our network model, all possible
+    \item a formal model of a network protocol providing reliable, causally-ordered broadcast;
+    \item an implementation of the RGA algorithm, and a proof that well-formed, concurrent insertion
+        and deletion operations commute; and
+    \item a proof that when the RGA algorithm is executed in our network model, all possible
         executions are well-formed, and thus converge.
-\end{enumerate}
+\end{inparaenum}
 
+%TODO Move to related work?
 In doing so, we go much further than previous correctness proofs of collaborative editing
 algorithms. Previous formalizations of OT using theorem
 provers~\cite{Imine:2003ks,Imine:2006kn,Sinchuk:2016cf,Jungnickel:2015ua} focus on proving that the
@@ -122,6 +131,9 @@ machine-checked correctness proofs of operation-based CRDTs. Our proofs are brok
 with well-defined properties, allowing modules to be reused for proofs of new datatypes in future.
 By making formal verification easier, we hope to provide a strong foundation for the development of
 the next generation of algorithms for collaborative editing.
+
+%TODO Various decentralised algorithms have been proposed and all but one (Oster 2006) have subsequently been shown to be incorrect.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Background
@@ -459,6 +471,7 @@ the set of \isa{suffix} is concurrent to \isa{x}. By the induction hypothesis,
   \caption{Proof of convergence theorem in Isar.}
   \label{fig.convergence}
 \end{figure}
+>>>>>>> e0b66fcfbf86cf750010cb9b2abaef028781f5d9
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
