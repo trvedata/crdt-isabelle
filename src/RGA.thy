@@ -15,10 +15,9 @@ fun interpret_opers :: "('id::linorder, 'v) operation \<Rightarrow> ('id, 'v) el
   
 (* Replicated Growable Array Network *)
 locale rga = network_with_ops _ interpret_opers +
-  assumes insert_flag: "Broadcast (Insert e n) \<in> set (history i) \<Longrightarrow> snd (snd e) = False"
   assumes allowed_insert: "Broadcast (Insert e n) \<in> set (history i) \<Longrightarrow> n = None \<or> 
-                            (\<exists>n' n'' v b. n = Some n' \<and> Deliver (Insert (n', v, b) n'') \<sqsubset>\<^sup>i Broadcast (Insert e n))"
-  assumes insert_id_unique: "id1 = id2 \<Longrightarrow> Broadcast (Insert (id1, v1, b1) n1) \<in> set (history i) \<Longrightarrow> Broadcast (Insert (id2, v2, b2) n2) \<in> set (history j) \<Longrightarrow> v1 = v2 \<and> n1 = n2"
+                            (\<exists>e' n'. n = Some (fst e') \<and> Deliver (Insert e' n') \<sqsubset>\<^sup>i Broadcast (Insert e n))"
+  assumes insert_id_unique: "fst e1 = fst e2 \<Longrightarrow> Broadcast (Insert e1 n1) \<in> set (history i) \<Longrightarrow> Broadcast (Insert e2 n2) \<in> set (history j) \<Longrightarrow> Insert e1 n1 = Insert e2 n2"
   assumes allowed_delete: "Broadcast (Delete x) \<in> set (history i) \<Longrightarrow> (\<exists>n' v b. Deliver (Insert (x, v, b) n') \<sqsubset>\<^sup>i Broadcast (Delete x))"
     
 locale id_consistent_rga_network = rga +
@@ -157,8 +156,7 @@ using assms
   apply(subgoal_tac "e1 = e2")
   apply(metis surjective_pairing insert_id_unique)
   apply(cases e1, cases e2; clarsimp)
-  apply(metis insert_flag snd_conv insert_id_unique)
-done
+  using insert_id_unique by force
 
 lemma (in rga) insert_id_unique_node:
   assumes "fst e1 = fst e2" 

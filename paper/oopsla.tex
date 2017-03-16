@@ -660,7 +660,7 @@ concurrent messages commute, then both nodes converge to the same state.
 \section{Replicated Growable Array}
 \label{sect.rga}
 
-\subsection{Operations}
+\subsection{Operations definitions}
 \label{sect.rga.operations}
 
 \begin{isabellebody}
@@ -710,6 +710,8 @@ concurrent messages commute, then both nodes converge to the same state.
 \end{isabellebody}
 
 
+\subsection{Failure conditions}
+
 \begin{isabellebody}
 \isanewline
 \isacommand{lemma}\isamarkupfalse%
@@ -727,22 +729,7 @@ concurrent messages commute, then both nodes converge to the same state.
 \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}{\isasymexists}xs{\isacharprime}{\isachardot}\ delete\ xs\ i\ {\isacharequal}\ Some\ xs{\isacharprime}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
-
-\begin{isabellebody}
-\isanewline
-\isacommand{lemma}\isamarkupfalse%
-\ insert{\isacharunderscore}body{\isacharunderscore}preserve{\isacharunderscore}indices\ {\isacharbrackleft}simp{\isacharbrackright}{\isacharcolon}\isanewline
-\ \ \isakeyword{shows}\ \ {\isachardoublequoteopen}fst\ {\isacharbackquote}\ set\ {\isacharparenleft}insert{\isacharunderscore}body\ xs\ e{\isacharparenright}\ {\isacharequal}\ fst\ {\isacharbackquote}\ set\ xs\ {\isasymunion}\ {\isacharbraceleft}fst\ e{\isacharbraceright}{\isachardoublequoteclose}\isanewline
-\end{isabellebody}
-
-
-\begin{isabellebody}
-\isanewline
-\isacommand{lemma}\isamarkupfalse%
-\ delete{\isacharunderscore}preserve{\isacharunderscore}indices{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}delete\ xs\ i\ {\isacharequal}\ Some\ ys{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}fst\ {\isacharbackquote}\ set\ xs\ {\isacharequal}\ fst\ {\isacharbackquote}\ set\ ys{\isachardoublequoteclose}\isanewline
-\end{isabellebody}
+\subsection{Commutativity conditions}
 
 \begin{isabellebody}
 \isanewline
@@ -801,30 +788,18 @@ concurrent messages commute, then both nodes converge to the same state.
 \isanewline
 \isacommand{locale}\isamarkupfalse%
 \ rga\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharunderscore}\ interpret{\isacharunderscore}opers\ {\isacharplus}\isanewline
-\ \ \isakeyword{assumes}\ insert{\isacharunderscore}flag{\isacharcolon}\ {\isachardoublequoteopen}Broadcast\ {\isacharparenleft}Insert\ e\ n{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ snd\ {\isacharparenleft}snd\ e{\isacharparenright}\ {\isacharequal}\ False{\isachardoublequoteclose}\isanewline
 \ \ \isakeyword{assumes}\ allowed{\isacharunderscore}insert{\isacharcolon}\ {\isachardoublequoteopen}Broadcast\ {\isacharparenleft}Insert\ e\ n{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ n\ {\isacharequal}\ None\ {\isasymor}\ \isanewline
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharparenleft}{\isasymexists}n{\isacharprime}\ n{\isacharprime}{\isacharprime}\ v\ b{\isachardot}\ n\ {\isacharequal}\ Some\ n{\isacharprime}\ {\isasymand}\ Deliver\ {\isacharparenleft}Insert\ {\isacharparenleft}n{\isacharprime}{\isacharcomma}\ v{\isacharcomma}\ b{\isacharparenright}\ n{\isacharprime}{\isacharprime}{\isacharparenright}\ {\isasymsqsubset}\isactrlsup i\ Broadcast\ {\isacharparenleft}Insert\ e\ n{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{assumes}\ insert{\isacharunderscore}id{\isacharunderscore}unique{\isacharcolon}\ {\isachardoublequoteopen}id{\isadigit{1}}\ {\isacharequal}\ id{\isadigit{2}}\ {\isasymLongrightarrow}\ Broadcast\ {\isacharparenleft}Insert\ {\isacharparenleft}id{\isadigit{1}}{\isacharcomma}\ v{\isadigit{1}}{\isacharcomma}\ b{\isadigit{1}}{\isacharparenright}\ n{\isadigit{1}}{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ Broadcast\ {\isacharparenleft}Insert\ {\isacharparenleft}id{\isadigit{2}}{\isacharcomma}\ v{\isadigit{2}}{\isacharcomma}\ b{\isadigit{2}}{\isacharparenright}\ n{\isadigit{2}}{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}\ {\isasymLongrightarrow}\ v{\isadigit{1}}\ {\isacharequal}\ v{\isadigit{2}}\ {\isasymand}\ n{\isadigit{1}}\ {\isacharequal}\ n{\isadigit{2}}{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{assumes}\ allowed{\isacharunderscore}delete{\isacharcolon}\ {\isachardoublequoteopen}Broadcast\ {\isacharparenleft}Delete\ x{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ {\isacharparenleft}{\isasymexists}n{\isacharprime}\ v\ b{\isachardot}\ Deliver\ {\isacharparenleft}Insert\ {\isacharparenleft}x{\isacharcomma}\ v{\isacharcomma}\ b{\isacharparenright}\ n{\isacharprime}{\isacharparenright}\ {\isasymsqsubset}\isactrlsup i\ Broadcast\ {\isacharparenleft}Delete\ x{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{and}\ insert{\isacharunderscore}id{\isacharunderscore}unique{\isacharcolon}\ {\isachardoublequoteopen}id{\isadigit{1}}\ {\isacharequal}\ id{\isadigit{2}}\ {\isasymLongrightarrow}\ Broadcast\ {\isacharparenleft}Insert\ {\isacharparenleft}id{\isadigit{1}}{\isacharcomma}\ v{\isadigit{1}}{\isacharcomma}\ b{\isadigit{1}}{\isacharparenright}\ n{\isadigit{1}}{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ Broadcast\ {\isacharparenleft}Insert\ {\isacharparenleft}id{\isadigit{2}}{\isacharcomma}\ v{\isadigit{2}}{\isacharcomma}\ b{\isadigit{2}}{\isacharparenright}\ n{\isadigit{2}}{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}\ {\isasymLongrightarrow}\ v{\isadigit{1}}\ {\isacharequal}\ v{\isadigit{2}}\ {\isasymand}\ n{\isadigit{1}}\ {\isacharequal}\ n{\isadigit{2}}{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{and}\ allowed{\isacharunderscore}delete{\isacharcolon}\ {\isachardoublequoteopen}Broadcast\ {\isacharparenleft}Delete\ x{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ {\isacharparenleft}{\isasymexists}n{\isacharprime}\ v\ b{\isachardot}\ Deliver\ {\isacharparenleft}Insert\ {\isacharparenleft}x{\isacharcomma}\ v{\isacharcomma}\ b{\isacharparenright}\ n{\isacharprime}{\isacharparenright}\ {\isasymsqsubset}\isactrlsup i\ Broadcast\ {\isacharparenleft}Delete\ x{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
-
-
-\begin{isabellebody}
-\isanewline
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ rga{\isacharparenright}\ apply{\isacharunderscore}opers{\isacharunderscore}idx{\isacharunderscore}elems{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}es\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ es\ {\isacharequal}\ Some\ xs{\isachardoublequoteclose}\isanewline
-\ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}fst\ {\isacharbackquote}\ set\ xs\ {\isacharequal}\ set\ {\isacharparenleft}indices\ es{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\end{isabellebody}
-
 
 \begin{isabellebody}
 \isanewline
 \isacommand{theorem}\isamarkupfalse%
 \ {\isacharparenleft}\isakeyword{in}\ rga{\isacharparenright}\ apply{\isacharunderscore}operations{\isacharunderscore}never{\isacharunderscore}fails{\isacharcolon}\isanewline
 \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isasymnoteq}\ None{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isasymnoteq}\ None{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
 
@@ -841,12 +816,11 @@ concurrent messages commute, then both nodes converge to the same state.
 \isanewline
 \isacommand{corollary}\isamarkupfalse%
 \ {\isacharparenleft}\isakeyword{in}\ rga{\isacharparenright}\ rga{\isacharunderscore}convergence{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}ys\ prefix\ of\ j{\isachardoublequoteclose}\isanewline
-\ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}
+\ \isakeyword{and}\ {\isachardoublequoteopen}ys\ prefix\ of\ j{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{and}\ {\isachardoublequoteopen}set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Example
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
