@@ -271,13 +271,26 @@ However, if the system cannot ensure that operations are delivered in the same o
 replicas, the $\mathit{TP}_1$ property is not sufficient, and the transformation must also satisfy a
 second, more subtle property $\mathit{TP}_2$ \cite{Ressel:1996wx}. This latter property has a
 checkered history: several OT algorithms have claimed to satisfy $\mathit{TP}_2$, but were later
-shown to be incorrect \cite{Imine:2003ks,Imine:2006kn}. It has even been shown that in the classic
-formulation of OT it is impossible to achieve $\mathit{TP}_2$ \cite{Randolph:2015gj}, and that the
-transformation needs to be defined differently in order to satisfy this property
+shown to be incorrect \cite{Imine:2003ks,Imine:2006kn,Oster:2005vi}. It has even been shown that in
+the classic formulation of OT it is impossible to achieve $\mathit{TP}_2$ \cite{Randolph:2015gj},
+and that the transformation needs to be defined differently in order to satisfy this property
 \cite{Oster:2006tr}.
 
-\citet{Levien:2016wz} has hypothesized that an OT algorithm satisfying $\mathit{TP}_2$ is in fact a
-CRDT.
+Hand-written proofs of the $\mathit{TP}_2$ property are laborious and difficult to check by hand
+\cite{Li:2008hw,Li:2005jq}, so most algorithms have been presented without proof.
+\citet{Suleiman:1998eu} developed transformation functions with a hand-written proof of
+$\mathit{TP}_2$, but \citet{Oster:2005vi} showed that this proof was incorrect.
+\citet{Imine:2003ks} used a theorem prover to check $\mathit{TP}_2$ for their transformation
+functions, but unfortunately there was an error in the specification, as documented by
+\citet{Oster:2005vi}: it relied on an assumption that was not guaranteed by the algorithm, making
+the proofs invalid. Removing the incorrect assumption yielded a counterexample that violated
+$\mathit{TP}_2$.
+
+In our formalization we hope to avoid the trap of making incorrect assumptions by proving not only
+the commutativity of operations, but also that the preconditions of operations are guaranteed to
+hold in all executions of our network model. The network model in turn is specified by a small set
+of axioms whose correctness can be robustly defended.
+
 
 % We prove this convergence property in an abstract setting, that is, any two arbitrary list of
 % distinct events, enriched by an order relation that satisfies a \emph{consistency property},
