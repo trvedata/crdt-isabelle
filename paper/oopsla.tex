@@ -129,8 +129,6 @@ Isabelle is a logical framework, providing a weak meta-logic---a fragment of int
 One particular object logic embedding---Isabelle/HOL, a more expressive implementation of Gordon's higher-order logic~\cite{DBLP:conf/tphol/Gordon91} than that provided by the meta-logic---is the arena in which we formalise our proof of convergence.
 Unlike systems based around Constructive Type Theory---such as Agda~\cite{DBLP:conf/tphol/BoveDN09}, Coq~\cite{DBLP:conf/popl/HuetH14}, or Matita~\cite{DBLP:conf/cade/AspertiRCT11}---Isabelle/HOL implements a classical logic.
 
-% Type system
-
 Isabelle/HOL is a strictly-typed logic.
 The logic's type system resembles that of mainstream functional programming languages, such as Standard ML, OCaml, or Haskell, albeit without the let-polymorphism that each of these languages implement.
 \emph{Function types} are written $\tau_1 \Rightarrow \tau_2$, and are inhabited by \emph{total} functions, mapping elements of $\tau_1$ to elements of $\tau_2$.
@@ -368,7 +366,7 @@ the set of \isa{suffix} is concurrent to \isa{x}. By the induction hypothesis,
 \end{align*}
 
 
-\begin{figure}
+\begin{figure}[t]
   \raggedright
   \begin{isabellebody}
 \isanewline
@@ -457,39 +455,53 @@ the set of \isa{suffix} is concurrent to \isa{x}. By the induction hypothesis,
 \section{Network}
 \label{sect.network}
 
-Before defining a network, we consider an arbitrary number of \emph{nodes}.
-Each node has an \emph{unique identifier} and a \emph{history} of distinct
-events.  Concretely, an event can be force to be distinct by also assigning to
-it an unique identifier.  Furthermore, we assume a function \isa{history} that
-maps node identifiers to a list of events.  This setting considers infinite
-nodes with finite but unbounded number of events. Finite number of nodes can be
-taken into account by simply mapping the rest of the nodes identifiers to an
-empty list. In the end of its history, we assume that a node has either
-\emph{failed} or has been terminated correctly. Therefore, in our model, a node
-can fail only once, and after that, it is disconnect to the network. It is well
-known that to model \emph{node recovering}, the system need to solve
-\emph{consensus}, which CRDTs usually try to avoid.
+In this section, we incrementally work towards a definition of an asynchronous causal network, considering a number of intermediary abstractions, and important definitions made using those abstractions, along the way.
+We conclude the section by demonstrating that our convergence theorem---$\isa{convergence}$, discussed in the previous section---can be `lowered' into an asynchronous causal network, to obtain another convergence theorem.
 
+We first consider a setting characterised by an arbitrary (unbounded) number of `nodes', `replicas', or `agents'.
+What these nodes are, what their pattern of communication is, and so on, is left abstract at this point.
+However, aside from being unbounded in number, nodes in this setting have two key properties:
+\begin{enumerate}
+\item
+They are uniquely named, and we can always refer to a node with some known unique identifier.
+In our setting, we will identify the set of node identifiers with the set of natural numbers.
+\item
+Each node has an ordered finite history of abstract `events' associated with it---though, at this point we do not specify what these events actually are.
+This history is a `local' history, in that it details a series of network events as the particular node in question perceives them.
+We therefore insist that a node's history is not merely ordered, but has a strict total order structure imposed on it.
+Further, every event in a node's history is assumed to be unique.
+Uniqueness is a reasonable assumption, as we may use timestamps, globally unique identifiers, or some other disambiguation device attached to concrete messages to ensure that this property holds.
+\end{enumerate}
+
+We model the setting described above with an Isabelle locale, which we call $\isa{node{\isacharunderscore}histories}$:
+\\
 \begin{isabellebody}
-\isanewline
-\isacommand{locale}\isamarkupfalse%
-\ node{\isacharunderscore}histories\ {\isacharequal}\ \isanewline
-\ \ \isakeyword{fixes}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharprime}a\ list{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{assumes}\ histories{\isacharunderscore}distinct{\isacharcolon}\ {\isachardoublequoteopen}distinct\ {\isacharparenleft}history\ i{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{locale} node{\isacharunderscore}histories\ {\isacharequal}\ \isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharprime}a\ list{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ histories{\isacharunderscore}distinct{\isacharcolon}\ {\isachardoublequoteopen}distinct\ {\isacharparenleft}history\ i{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{\baselineskip}
+Here, the history of a node $\isa{i}$ is obtained by using the fixed function, $\isa{history}$.
+Concretely, we capture the fact that a node's local history is totally ordered by implementing histories as a list of events.
+Events are simply modelled as a type variable, $\isa{{\isacharprime}a}$, to ensure that they are completely abstract.
+The $\isa{distinct}$ predicate is an Isabelle/HOL library function which asserts that a list has no repeated elements, upto equality.
 
-The arrangement of events in a list naturally defines a total strict
-order. We say that event \isa{x} \emph{comes before} event \isa{y} in the
-node \isa{i} if there exists suitable lists \isa{xs}, \isa{ys} and \isa{zs}
-such that $\isa{xs}@[\isa{x}]@\isa{ys}@[\isa{y}]@\isa{zs} = \isa{history\ i}$.
-We then write $\isa{x} \sqsubset^\isa{i} \isa{y}$.
+Note that the $\isa{node{\isacharunderscore}histories}$ locale is quite general: it can handle both a bounded and unbounded number of nodes.
+In the former case, we simply assume that all but a bounded number of node histories are `empty', in that the $\isa{history}$ function returns the empty list of events.
+Further, at the end of a node's history, we assume that a node has either \emph{failed} or successfully terminated.
+In our model, a node can fail only once, and after that it is disconnected from the network.
+Again, for our purposes, this is a reasonable assumption: it is well known that to model \emph{node recovery} the system needs to solve the \emph{consensus} problem, which is usually avoided in CRDT implementations.
 
+In this general setting, we may define when an event $\isa{x}$ \emph{comes before} an event $\isa{y}$ at a fixed node, $\isa{i}$.
+Writing $\isa{x} \sqsubset^\isa{i} \isa{y}$ for the \emph{comes before} relation at node $\isa{i}$, we assert that this relation holds whenever lists $\isa{xs}$, $\isa{ys}$ and $\isa{zs}$ exist such that $\isa{xs}@[\isa{x}]@\isa{ys}@[\isa{y}]@\isa{zs} = \isa{history\ i}$, where infix $xs@ys$ denotes the appending of list $xs$ to list $ys$.
+We define this in Isabelle, like so:
+\\
 \begin{isabellebody}
-\isanewline
 \isacommand{definition}\isamarkupfalse%
 \ {\isacharparenleft}\isakeyword{in}\ node{\isacharunderscore}histories{\isacharparenright}\ history{\isacharunderscore}order\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ nat\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ {\isacharparenleft}{\isachardoublequoteopen}{\isacharunderscore}{\isacharslash}\ {\isasymsqsubset}\isactrlsup {\isacharunderscore}{\isacharslash}\ {\isacharunderscore}{\isachardoublequoteclose}\ {\isacharbrackleft}{\isadigit{5}}{\isadigit{0}}{\isacharcomma}{\isadigit{1}}{\isadigit{0}}{\isadigit{0}}{\isadigit{0}}{\isacharcomma}{\isadigit{5}}{\isadigit{0}}{\isacharbrackright}{\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}x\ {\isasymsqsubset}\isactrlsup i\ z\ {\isasymequiv}\ {\isasymexists}xs\ ys\ zs{\isachardot}\ xs{\isacharat}x{\isacharhash}ys{\isacharat}z{\isacharhash}zs\ {\isacharequal}\ history\ i{\isachardoublequoteclose}\isanewline
+\ \ {\isachardoublequoteopen}x\ {\isasymsqsubset}\isactrlsup i\ z\ {\isasymequiv}\ {\isasymexists}xs\ ys\ zs{\isachardot}\ xs{\isacharat}x{\isacharhash}ys{\isacharat}z{\isacharhash}zs\ {\isacharequal}\ history\ i{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{\baselineskip}
 
 Most often we are not interested in the whole history of a node \isa{i}, but
 how it has evolved over time. We say that a list \isa{xs} is a \isa{prefix\ of}
