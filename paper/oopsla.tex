@@ -496,8 +496,9 @@ In the former case, we simply assume that $\isa{history}$ is \emph{finitely supp
 
 Isabelle lists are finite, and therefore so is a node's history.
 As a result, at the end of a node's history, we assume that a node has either \emph{failed} or successfully terminated.
-In our model, a node can fail only once, and after that it is deemed to have disconnected permanently from the network.
-For our purposes, this is a reasonable assumption: it is well known that to model \emph{node recovery} the system needs to solve the problem of \emph{consensus}, which is usually deemed outside the scope of CRDT implementations. % cite here for: it is well known...
+In our model, a node can fail only once, which is modeled by the absence of any further events in the history, and after that it is deemed to have disconnected permanently from the network.
+This \emph{crash-stop} abstraction is commonly used by distributed algorithms \cite{Cachin:2011wt}.
+Crashes of one node cannot be detected by other nodes: a lack of messages at any given moment might indicate the crash of the sender, message loss, or network delay, and recipients of messages cannot distinguish between these causes.
 
 In the general setting of the $\isa{node{\isacharunderscore}histories}$ local theory, we may define when one event comes before another, at a fixed node.
 Writing $\isa{x} \sqsubset^\isa{i} \isa{y}$ for the \emph{comes before} relation at node $\isa{i}$, we assert that this relation holds whenever lists $\isa{xs}$, $\isa{ys}$ and $\isa{zs}$ exist such that $\isa{xs}@[\isa{x}]@\isa{ys}@[\isa{y}]@\isa{zs} = \isa{history\ i}$.
@@ -533,7 +534,10 @@ We define a type of events as a tagged union type, like so:
 \ \ \ \ \ \ \ \ \ \ {\isacharbar}\ Deliver\ {\isacharprime}a
 \end{isabellebody}
 \vspace{\baselineskip}
-Here, the type variable $\isacharprime\ \isa{a}$ parameterising the type declaration is used in stead of a concrete representation of messages.
+Here, the type variable $\isacharprime\isa{a}$ parameterising the type declaration is used in stead of a concrete representation of messages.
+
+Intuitively, a node can be regarded as a deterministic state machine where each state transition corresponds to a broadcast or deliver event.
+We assume that users may query the state of any node at any time, and such queries do not constitute state transitions, since they neither modify the node state nor send or receive any messages.
 
 Our asynchronous networks possess several properties, or `laws', that relate broadcast and deliver messages appearing in the history of various nodes with each other.
 In particular, every message received by a node---in a deliver event---must have been broadcast by some node previously.
