@@ -81,35 +81,39 @@ a bit of a mystery''~-- which makes formal verification particularly important.
 \dots something about how the formal verification is generally applicable, not just for this
 particular algorithm \dots
 
-To date there has been little formal verification of the correctness of CRDTs, and the
-history of broken OT algorithms highlights the inadequacy of informal reasoning in this domain. In
-this work we contribute to the formal basis of collaborative editing algorithms by using the
-interactive proof assistant Isabelle to develop machine-checked proofs of the
-correctness for CRDTs.
+% TODO say more about our contributions. Can recycle some of the following text, but probably needs
+% adapting, as the explanation of CRDTs and OT has been moved to the background section...
+%
+% To date there has been little formal verification of the correctness of CRDTs, and the
+% history of broken OT algorithms highlights the inadequacy of informal reasoning in this domain. In
+% this work we contribute to the formal basis of collaborative editing algorithms by using the
+% interactive proof assistant Isabelle to develop machine-checked proofs of the
+% correctness for CRDTs.
+%
+% By including a model of the network in our proof, we rule out a larger set of potential errors in
+% the algorithm that may result from the interaction of operation properties with assumptions about
+% the network. Moreover, our network model and convergence theorems are independent of any particular
+% CRDT, so they can be reused for correctness proofs of any other replicated datatype that is based on
+% operation commutativity, encompassing a wide range of CRDTs~\cite{Baquero:2014ed}.
+%
+% Besides presenting the first machine-checked proof of the RGA algorithm, our main contribution in
+% this paper is to establish a modular toolkit of proof techniques and building blocks for
+% machine-checked correctness proofs of operation-based CRDTs. Our proofs are broken down into modules
+% with well-defined properties, allowing modules to be reused for proofs of new datatypes in future.
+% By making formal verification easier, we hope to provide a strong foundation for the development of
+% the next generation of algorithms for collaborative editing.
 
-Our proof is structured in four modules:
-\begin{inparaenum}
-    \item a general convergence theorem that applies in any system where concurrent operations are
-        commutative;
-    \item a formal model of a network protocol providing reliable, causally-ordered broadcast;
-    \item an implementation of the RGA algorithm, and a proof that well-formed, concurrent insertion
-        and deletion operations commute; and
-    \item a proof that when the RGA algorithm is executed in our network model, all possible
-        executions are well-formed, and thus converge.
-\end{inparaenum}
-
-By including a model of the network in our proof, we rule out a larger set of potential errors in
-the algorithm that may result from the interaction of operation properties with assumptions about
-the network. Moreover, our network model and convergence theorems are independent of any particular
-CRDT, so they can be reused for correctness proofs of any other replicated datatype that is based on
-operation commutativity, encompassing a wide range of CRDTs~\cite{Baquero:2014ed}.
-
-Besides presenting the first machine-checked proof of the RGA algorithm, our main contribution in
-this paper is to establish a modular toolkit of proof techniques and building blocks for
-machine-checked correctness proofs of operation-based CRDTs. Our proofs are broken down into modules
-with well-defined properties, allowing modules to be reused for proofs of new datatypes in future.
-By making formal verification easier, we hope to provide a strong foundation for the development of
-the next generation of algorithms for collaborative editing.
+% TODO put this in section on high-level proof strategy, and just have a forward reference here?
+%Our proof is structured in four modules:
+%\begin{inparaenum}
+%    \item a general convergence theorem that applies in any system where concurrent operations are
+%        commutative;
+%    \item a formal model of a network protocol providing reliable, causally-ordered broadcast;
+%    \item an implementation of the RGA algorithm, and a proof that well-formed, concurrent insertion
+%        and deletion operations commute; and
+%    \item a proof that when the RGA algorithm is executed in our network model, all possible
+%        executions are well-formed, and thus converge.
+%\end{inparaenum}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
