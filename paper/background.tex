@@ -28,7 +28,7 @@ The purpose of replication is to ensure that you have a copy of the same data on
 acting as a replica. However, when multiple nodes are concurrently reading and modifying the data,
 they do not have a single shared view of the data, since each node only has direct access to its
 local storage, and can observe the state of another node only by exchanging messages with it via the
-unreliable network \cite{Sheehy:2015jm}.
+unreliable network.
 
 For this reason, it is likely that at any given moment in time, two replicas are not in the same
 state, for example because one has received a message that has not yet been delivered to the other.
@@ -88,8 +88,9 @@ Thus, the key correctness property for SEC is \emph{convergence}. It is a safety
 \cite{Alpern:1985dg}~-- that is, it must hold at every point in the execution: whenever two replicas
 have seen the same set of updates, but perhaps in a different order, they must be in an equivalent
 state. Two states are equivalent if all reads return the same result in both states. Convergence is
-much stronger than eventual consistency (a liveness property), since the definition of convergence
-constrains the values that reads may return at any time, even if the system is never quiescent.
+much stronger property than eventual consistency (a liveness property), since the definition of
+convergence constrains the values that reads may return at any time, even if the system is never
+quiescent.
 
 \subsection{Properties of Networks}\label{sect.background.networks}
 
@@ -116,7 +117,7 @@ hand, consensus becomes possible if the algorithm is allowed to make certain wea
 \cite{Chandra:1996cp}. However, SEC \emph{can} be achieved in the asynchronous model, so we use it
 here in order to keep our assumptions minimal.
 
-\subsubsection{Centralized Versus Peer-to-Peer Networks}
+\subsubsection{Centralized Versus Peer-to-Peer Networks}\label{sect.central.vs.p2p}
 
 Many online services today rely on a central server that maintains the authoritative copy of the
 data. In this architecture, clients that want to modify the data send their updates to the central
@@ -129,46 +130,15 @@ As discussed in Section~\ref{sect.introduction}, peer-to-peer networks have no s
 that can be assumed to be always reachable. It is possible to provide the same ordering guarantee in
 peer-to-peer networks; this abstraction is known as \emph{total order broadcast} or \emph{atomic
 broadcast} \cite{Cachin:2011wt}. However, it is expensive: total order broadcast is equivalent to
-consensus \cite{Chandra:1996cp}, making it unattainable in the asynchronous model. Even if we
-introduce timing assumptions, total order broadcast requires a quorum of nodes (typically a
-majority) to be reachable in order to make progress; in a peer-to-peer network of mobile devices, it
-is likely that less than a majority of devices is online at any one time, and so an algorithm for
-total order broadcast would be stalled.
+consensus \cite{Chandra:1996cp}, making it unattainable in the asynchronous model.
 
-If we require any subset of nodes to be able to synchronize data independently from the remaining
-nodes (for example, two devices connected by a wireless link but disconnected from the internet), we
-cannot rely on total order broadcast. In this setting, causally ordered delivery is the strongest
-guarantee that can reliably be provided \cite{Attiya:2015dm}.
-
-\subsubsection{Causal Ordering}
-
-Total order broadcast ensures that when nodes broadcast a set of messages to other nodes on the
-network, they are delivered in the same order to all recipients. By contrast, causal ordering is a
-weaker guarantee that allows greater concurrency and thus greater nondeterminism in the network.
-However, it has the advantage that it makes no assumptions about the number of nodes that are
-online.
-
-
-% There are two families of algorithms for collaborative editing: \emph{operational transformation}
-% (OT)~\cite{Ellis:1989ue,Ressel:1996wx,Oster:2006tr,Sun:1998vf,Sun:1998un,Suleiman:1998eu,Nichols:1995fd}
-% and \emph{conflict-free replicated datatypes}
-% (CRDTs)~\cite{Shapiro:2011wy,Roh:2011dw,Preguica:2009fz,Oster:2006wj,Weiss:2010hx,Nedelec:2013ky,Kleppmann:2016ve}.
-% Both allow a document to be modified concurrently on different replicas, with changes applied
-% immediately to the local copy, while asynchronously propagating changes to other replicas. The
-% goal of these algorithms is to ensure that for all concurrent executions, the replicas converge
-% toward the same state without any edits being lost, a property known as \emph{strong eventual
-% consistency}~\cite{Shapiro:2011un}.
-
-
-% CRDTs are a more recent development~\cite{Shapiro:2011un}. While OT is based on transforming
-% non-commutative operations so that they have the same effect when reordered, CRDTs define operations
-% in a way that makes them commutative by design, making them more amenable to peer-to-peer settings
-% in which each node may apply edits in a different order. CRDTs also have attractive performance
-% characteristics~\cite{Mehdi:2011ke}.
-
-% TODO Various decentralised algorithms have been proposed and all but one (Oster 2006) have
-% subsequently been shown to be incorrect.
-
+Even if we introduce timing assumptions, total order broadcast requires a quorum of nodes (typically
+a majority) to be reachable in order to make progress; in a peer-to-peer network of mobile devices,
+it is likely that less than a majority of devices is online at any one time, and so an algorithm for
+total order broadcast would be stalled. If we require any subset of nodes to be able to synchronize
+data independently from the remaining nodes (for example, two devices connected by a wireless link
+but disconnected from the internet), we cannot rely on total order broadcast, and must assume weaker
+ordering guarantees in the network.
 
 \subsection{Collaborative Editing and Data Synchronization}\label{sect.datasync}
 
@@ -199,14 +169,16 @@ ensure that once the updates have been propagated, the states of replicas are eq
 The simplest way of achieving convergence is a \emph{last write wins} (LWW) policy, in which a
 unique timestamp is assigned to each version of the data structure, and when there is a conflict,
 the system picks the version with the highest timestamp. In this approach, concurrent updates with a
-lower timestamp are simply discarded. Better algorithms are able to preserve concurrent updates
-while still ensuring automatic convergence.
+lower timestamp are simply discarded. Although LWW achieves convergence, it does so at the cost of
+losing user input, which is often unacceptable. Better algorithms are able to preserve concurrent
+updates while still ensuring automatic convergence.
 
 \subsubsection{Conflict-Free Replicated Data Types (CRDTs)}
 
 Some operations, such as addition of numbers, are naturally commutative. Thus, if the replicated
-data structure is a counter whose value can only be incremented or decremented, convergence can be
-achieved by applying the increment and decrement operations in any order at each replica.
+data structure is a number whose value can only be incremented or decremented (a counter),
+convergence can be achieved by applying the increment and decrement operations in any order at each
+replica.
 
 \emph{Conflict-free replicated data types} (CRDTs) generalize this idea to other data structures and
 operations
@@ -266,17 +238,18 @@ through a central server. This design was originally pioneered by the Jupiter sy
 including Google Docs \cite{DayRichter:2010tt}, Microsoft Word Online, Etherpad
 \cite{Etherpad:2011um}, and Novell Vibe \cite{Spiewak:2010vw}.
 
-However, if the system cannot ensure that operations are delivered in the same order to all
-replicas, the $\mathit{TP}_1$ property is not sufficient, and the transformation must also satisfy a
-second, more subtle property $\mathit{TP}_2$ \cite{Ressel:1996wx}. This latter property has a
-checkered history: several OT algorithms have claimed to satisfy $\mathit{TP}_2$, but were later
-shown to be incorrect \cite{Imine:2003ks,Imine:2006kn,Oster:2005vi}. It has even been shown that in
-the classic formulation of OT it is impossible to achieve $\mathit{TP}_2$ \cite{Randolph:2015gj},
-and that the transformation needs to be defined differently in order to satisfy this property
+However, in decentralized systems that cannot ensure total order broadcast
+(Section~\ref{sect.central.vs.p2p}), the $\mathit{TP}_1$ property is not sufficient, and the
+transformation must also satisfy a second, more subtle property $\mathit{TP}_2$
+\cite{Ressel:1996wx}. This latter property has a checkered history: several OT algorithms have
+claimed to satisfy $\mathit{TP}_2$, but were later shown to be incorrect
+\cite{Imine:2003ks,Imine:2006kn,Oster:2005vi}. It has even been shown that in the classic
+formulation of OT it is impossible to achieve $\mathit{TP}_2$ \cite{Randolph:2015gj}, and that the
+transformation needs to be defined differently in order to satisfy this property
 \cite{Oster:2006tr}.
 
 Hand-written proofs of the $\mathit{TP}_2$ property are laborious and difficult to check by hand
-\cite{Li:2008hw,Li:2005jq}, so most algorithms have been presented without proof.
+\cite{Li:2008hw,Li:2005jq}, so several OT algorithms have been presented without proof.
 \citet{Suleiman:1998eu} developed transformation functions with a hand-written proof of
 $\mathit{TP}_2$, but \citet{Oster:2005vi} showed that this proof was incorrect.
 \citet{Imine:2003ks} used a theorem prover to check $\mathit{TP}_2$ for their transformation
@@ -290,12 +263,111 @@ the commutativity of operations, but also that the preconditions of operations a
 hold in all executions of our network model. The network model in turn is specified by a small set
 of axioms whose correctness can be robustly defended.
 
+\subsection{Causality and the Happens-Before Relation}\label{sect.causality}
 
-% We prove this convergence property in an abstract setting, that is, any two arbitrary list of
-% distinct events, enriched by an order relation that satisfies a \emph{consistency property},
-% converge.
+Most operation-based CRDTs and OT algorithms require that operations are processed in an order that
+is \emph{consistent with causality}. Informally, this means that later operations may depend on
+earlier operations; for example, the deletion of a list element depends on the prior insertion of
+that list element. It makes no sense for a replica to apply the deletion before it applies the
+insertion, because that would mean deleting an element that does not yet exist at that time.
+
+In this context, referring to operations as ``earlier'' or ``later'' does not mean comparing the
+physical time in UTC at which those operations occurred; relying on physical time is often
+problematic in distributed systems \cite{Sheehy:2015jm}. Instead we say that an operation
+$\mathit{op}_1$ \emph{happens before} another operation $\mathit{op}_2$ if the node that generated
+$\mathit{op}_2$ ``knew about'' $\mathit{op}_1$ at the time $\mathit{op}_2$ was generated (i.e., if
+$\mathit{op}_1$ had already been applied at that time). If the node knew about $\mathit{op}_1$, then
+$\mathit{op}_2$ may somehow be caused by it, but if it didn't know about $\mathit{op}_1$, we can be
+certain that $\mathit{op}_2$ does not depend on it.
+
+We write $\mathit{op}_1 \prec \mathit{op}_2$ if $\mathit{op}_1$ happens before $\mathit{op}_2$. (In
+the distributed systems literature, the happens-before relation is usually written
+$\mathit{op}_1 \longrightarrow \mathit{op}_2$, but we reserve the arrow to refer to logical
+implication.) Following the definition by \citet{Lamport:1978jq}, we say that
+$\mathit{op}_1 \prec \mathit{op}_2$ if any of the following is true:
+
+\begin{itemize}
+\item $\mathit{op}_1$ and $\mathit{op}_2$ were generated by the same node, and that node generated
+    $\mathit{op}_1$ before it generated $\mathit{op}_2$.
+\item The node that generated $\mathit{op}_2$ had received and applied $\mathit{op}_1$ before it
+    generated $\mathit{op}_2$.
+\item There exists some operation $\mathit{op}_3$ such that
+    $\mathit{op}_1 \prec \mathit{op}_3$ and $\mathit{op}_3 \prec \mathit{op}_2$.
+\end{itemize}
+
+\begin{figure}
+\centering
+\input{happens-before}
+\caption{Illustrating the happens-before relation}\label{fig.happens-before}
+\end{figure}
+
+Figure~\ref{fig.happens-before} illustrates these three cases, and the formalization of this
+definition appears in Section~\ref{sect.network}.
+
+In practice, the happens-before relationship can be captured using vector timestamps
+\cite{Schwarz:1994gl,Fidge:1988tv}, which are used to implement protocols for causally ordered
+delivery \cite{Cachin:2011wt}. As these protocols are widely known and well understood, we leave
+them out of scope for this paper.
 
 \subsection{The Replicated Growable Array (RGA)}\label{sect.rga.background}
+
+In order to develop an intuition for the problems that arise in concurrent editing systems, we now
+discuss an example execution of the \emph{Replicated Growable Array} (RGA) algorithm, a CRDT for
+ordered lists that supports insertion and deletion of arbitrary elements. RGA was developed by
+\citet{Roh:2011dw}, although our presentation of the algorithm more closely follows that of
+\citet{Shapiro:2011wy}. We start with the informal example illustrated in
+Figure~\ref{fig.two-lists}, and leave the formal specification of RGA until Section~\ref{sect.rga}.
+
+There are also other CRDTs for ordered lists, such as Treedoc \cite{Preguica:2009fz}, WOOT
+\cite{Oster:2006wj}, Logoot \cite{Weiss:2010hx}, and LSEQ \cite{Nedelec:2013ky}. In this paper we
+choose to analyze RGA because it is a subtle algorithm that benefits from formal verification
+\cite{Attiya:2016kh}, because it has been shown to have good performance \cite{Mehdi:2011ke}, and
+because it has been generalized to more general data structures such as JSON
+\cite{Kleppmann:2016ve}, enabling our work to be extended towards those more general data structures
+in future.
+
+RGA is based on the idea of assigning a unique identifier (ID) to each list element, and using a
+total ordering relation over IDs to ensure convergence. When the list is modified through insertion
+and deletion operations, the ID of an existing element is used to identify the position in the list
+being modified. Using an ID has the advantage that it continues to refer to the same list element
+regardless of any concurrent operations, whereas list indexes change (for example, inserting a list
+element at the beginning increases the index of every subsequent list element by 1).
+
+We use the logical timestamps defined by \citet{Lamport:1978jq} as IDs.
+
+% In this setting, causally ordered delivery is the strongest
+% guarantee that can reliably be provided \cite{Attiya:2015dm}.
+
+% \subsubsection{Causal Ordering}
+
+% Total order broadcast ensures that when nodes broadcast a set of messages to other nodes on the
+% network, they are delivered in the same order to all recipients. By contrast, causal ordering is a
+% weaker guarantee that allows greater concurrency and thus greater nondeterminism in the network.
+% However, it has the advantage that it makes no assumptions about the number of nodes that are
+% online.
+
+% TODO happens-before
+
+
+% There are two families of algorithms for collaborative editing: \emph{operational transformation}
+% (OT)~\cite{Ellis:1989ue,Ressel:1996wx,Oster:2006tr,Sun:1998vf,Sun:1998un,Suleiman:1998eu,Nichols:1995fd}
+% and \emph{conflict-free replicated datatypes}
+% (CRDTs)~\cite{Shapiro:2011wy,Roh:2011dw,Preguica:2009fz,Oster:2006wj,Weiss:2010hx,Nedelec:2013ky,Kleppmann:2016ve}.
+% Both allow a document to be modified concurrently on different replicas, with changes applied
+% immediately to the local copy, while asynchronously propagating changes to other replicas. The
+% goal of these algorithms is to ensure that for all concurrent executions, the replicas converge
+% toward the same state without any edits being lost, a property known as \emph{strong eventual
+% consistency}~\cite{Shapiro:2011un}.
+
+
+% CRDTs are a more recent development~\cite{Shapiro:2011un}. While OT is based on transforming
+% non-commutative operations so that they have the same effect when reordered, CRDTs define operations
+% in a way that makes them commutative by design, making them more amenable to peer-to-peer settings
+% in which each node may apply edits in a different order. CRDTs also have attractive performance
+% characteristics~\cite{Mehdi:2011ke}.
+
+% TODO Various decentralised algorithms have been proposed and all but one (Oster 2006) have
+% subsequently been shown to be incorrect.
 
 \begin{figure}
 \centering
