@@ -154,10 +154,11 @@ Local definitions, within the body of a term, may be made with a let-in construc
 Terms with type $\isa{bool}$ are called \emph{formulae}.
 We write $\isa{True}$ and $\isa{False}$ for the logical truthity and falsity constants, respectively.
 We write $\isa{t} \longrightarrow \isa{u}$, $\isa{t} \wedge \isa{u}$, and $\isa{t} \vee \isa{u}$ for material implication, conjunction, and disjunction, respectively, between formulae, and write $\neg t$ for the negation of a formula.
-We write $\forall{x}.t$ and $\exists{x}.t$ for universal and existential quantification---and write $\forall{x{\in}t}.u$ and $\exists{x{\in}t}.u$ for their bounded forms, restricted to members of a set $\isa{t}$.
 Isabelle/HOL's equality constant is polymorphic: we write $t = u$ for an assertion of equality between two terms of the same type.
-Note that Isabelle/HOL is an impredicative logic, unlike the logic implemented by other proof assistants: $\forall{x::\isa{bool}}. t$ is itself a formula, i.e. term of type $\isa{bool}$.
-Further, no distinction is made between the type of propositions, and the type of Booleans: these two notions are collapsed into a single concept---the $\isa{bool}$ type---in higher-order logic.
+We write $\forall{x}.t$ and $\exists{x}.t$ for universal and existential quantification---and write $\forall{x{\in}t}.u$ and $\exists{x{\in}t}.u$ for their bounded forms, restricted to members of a set $\isa{t}$.
+An alternative implication arrow $\isa{t} \Longrightarrow \isa{u}$ may sometimes be used, and is in fact required by Isabelle in certain contexts.
+The presence of this implication arrow is an artefact of Isabelle's status as a logical framework with object logics embedding into a meta-logic.
+The reader may simply ignore this distinction between the `fat' and `thin' implication arrows as minor syntactic bureaucracy with no effect on their understanding.
 
 New non-recursive definitions are entered into Isabelle's global context via the $\mathbf{definition}$ keyword.
 Recursive functions are entered via the $\mathbf{fun}$ keyword, with functions being defined piecewise by pattern matching on inputs with a series of equations.
