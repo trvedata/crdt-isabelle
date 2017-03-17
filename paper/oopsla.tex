@@ -562,16 +562,22 @@ Here $\isa{broadcast{\isacharunderscore}before{\isacharunderscore}delivery}$ cap
 
 Note also that the first line of the $\isa{network}$ local theory declaration is doing two important things.
 First, the $\isa{network}$ local theory is being defined as an \emph{extension} of the $node{\isacharunderscore}histories$ local theory, meaning all functions and axioms fixed or defined within the context of the latter become available in the former.
-This is why the axiom $\isa{broadcast{\isacharunderscore}before{\isacharunderscore}delivery}$, which mentions both the $\isa{history}$ function and the history order relation, both within the scope of the $node{\isacharunderscore}histories$ local theory, is a well-formed formula.
+This is why, for example, the axiom $\isa{broadcast{\isacharunderscore}before{\isacharunderscore}delivery}$---which mentions both the $\isa{history}$ function and the history order relation, defined within the scope of the $node{\isacharunderscore}histories$ local theory---is a well-formed formula.
 Second, $\isa{network}$ is not just extending the $node{\isacharunderscore}histories$ local theory, but also \emph{specialising} it at the same time.
-The $\isa{history}$ function is now being declared as returning a list of elements of type $\isa{event}$, declared above, rather than some abstract type variable.
+The fixed $\isa{history}$ function is now being constrained to return a list of elements of type $\isa{event}$, declared above, rather than some abstract type variable, using the $\isacommand{for}$ construct.
 
-A message \isa{m1} (or operation) \emph{happens before} a message \isa{m2},
-that is $\isa{m1} \prec \isa{m2}$, if both messages have been broadcasted by the
-same node and the broadcast of \isa{m1} \emph{comes before} the broadcast of
-\isa{m2}; or for some node, the deliver of \isa{m1} \emph{comes before}
-the broadcast \isa{m2}; or finally, there is another message that
-happens after \isa{m1}, but before \isa{m2}.  This is defined in Isabelle by an
+Now that we have some knowledge of broadcast and deliver events, we may define an important concept: the \emph{happens before} relation.
+A message (or operation) $\isa{m1}$ is said to \emph{happens before} a message \isa{m2}, whenever:
+\begin{enumerate}
+\item
+If both messages have been broadcast by the same node, and the broadcast event for message $\isa{m1}$ \emph{comes before} the broadcast event for message $\isa{m2}$,
+\item
+Or, if at some node, the delivery event for message $\isa{m1}$ \emph{comes before} the broadcast event for message \isa{m2},
+\item
+Or, if there is another event for some message that interpolates the two other events, happening after the event for message \isa{m1}, but before the event for message \isa{m2}.
+\end{enumerate}
+
+This is defined in Isabelle by an
 inductive predicate \isa{hb}.
 It can be shown that this definition of \isa{hb} forms a
 preorder.
