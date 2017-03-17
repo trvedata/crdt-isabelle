@@ -88,11 +88,10 @@ Thus, the key correctness property for SEC is \emph{convergence}. It is a safety
 \cite{Alpern:1985dg}~-- that is, it must hold at every point in the execution: whenever two replicas
 have seen the same set of updates, but perhaps in a different order, they must be in an equivalent
 state. Two states are equivalent if all reads return the same result in both states. Convergence is
-much stronger than eventual consistency, a liveness property, since eventual consistency does not
-constrain the values that reads may return until such time as consistency is eventually reached
-\cite{Bailis:2013jc}.
+much stronger than eventual consistency (a liveness property), since the definition of convergence
+constrains the values that reads may return at any time, even if the system is never quiescent.
 
-\subsection{Properties of Networks}
+\subsection{Properties of Networks}\label{sect.background.networks}
 
 The consistency properties that a replication algorithm can achieve depend on the assumptions that
 can be made about the network and its connectedness.
@@ -133,12 +132,12 @@ broadcast} \cite{Cachin:2011wt}. However, it is expensive: total order broadcast
 consensus \cite{Chandra:1996cp}, making it unattainable in the asynchronous model. Even if we
 introduce timing assumptions, total order broadcast requires a quorum of nodes (typically a
 majority) to be reachable in order to make progress; in a peer-to-peer network of mobile devices, it
-is likely that less than a majority of devices is online at any one time, and so total order
-broadcast would be stalled.
+is likely that less than a majority of devices is online at any one time, and so an algorithm for
+total order broadcast would be stalled.
 
 If we require any subset of nodes to be able to synchronize data independently from the remaining
 nodes (for example, two devices connected by a wireless link but disconnected from the internet), we
-cannot rely on total order broadcast, and causally ordered delivery is the strongest ordering
+cannot rely on total order broadcast. In this setting, causally ordered delivery is the strongest
 guarantee that can reliably be provided \cite{Attiya:2015dm}.
 
 \subsubsection{Causal Ordering}
