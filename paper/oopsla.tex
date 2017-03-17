@@ -604,22 +604,21 @@ This increases modularity and makes our definitions adaptable for other formalis
 \ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ causal{\isacharunderscore}delivery{\isacharcolon}\ {\isachardoublequoteopen}Deliver\ m{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{2}}\ {\isasymLongrightarrow}\ Deliver\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup j\ Deliver\ m{\isadigit{2}}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{\baselineskip}
+Here, $causal{\isacharunderscore}delivery$ captures the causality constraint that asynchronous causal networks must satisfy.
+Note that the local theory $causal{\isacharunderscore}network$ is declared to be an extension of the $network$ local theory on the first line of the declaration above.
 
-We can now instantiate the local theory \isa{happens-before} defined in
-Section~\ref{sect.convergence}. This involves providing a concrete
-implementation for the happens before relation (\isa{hb} in this case) and
-proving that it forms indeed a preorder. Once interpreted, all functions,
-definitions, and theorems made within the \isa{happens-before} locale become
-available to use in the locale \isa{network} prefixed by \isa{hb}, particularly
-the definitions of \isa{hb.concurrent}, \isa{hb.concurrent-ops-commute} and
-\isa{hb.hb-consistent}; and the convergence theorem: \isa{hb.convergence}.
-This is done in Isabelle by a \isa{sublocale} statement.
-
+At this point, we now have sufficient machinery to instantiate the \isa{happens-before} local theory that was defined in Section~\ref{sect.convergence}.
+Doing this requires that we provide a concrete implementation for the happens before relation fixed by that local theory and proving that it forms indeed a preorder.
+Here, we will use the $\isa{hb}$ inductive relation, defined earlier in this section, as the implementation of the strict happens before relation fixed by the \isa{happens-before} local theory.
+Once interpreted, all functions, definitions, and theorems made within the \isa{happens-before} locale become available to use in the locale \isa{network}, prefixed by \isa{hb}.
+In effect, we are `composing' the definitions made within the $\isa{happens-before}$ local theory with our $\isa{hb}$ inductive relation.
+In particular, the definitions of \isa{hb.concurrent}, \isa{hb.concurrent-ops-commute} and \isa{hb.hb-consistent}; and the convergence theorem \isa{hb.convergence}.
+This instantiation is achieved in Isabelle by a \isa{sublocale} statement:
+\\
 \begin{isabellebody}
-\isanewline
-\isacommand{sublocale}\isamarkupfalse%
-\ hb{\isacharcolon}\ happens{\isacharunderscore}before\ weak{\isacharunderscore}hb\ hb\isanewline
+\ \ \ \ \ \ \ \ \isacommand{sublocale} hb{\isacharcolon}\ happens{\isacharunderscore}before\ weak{\isacharunderscore}hb\ hb
 \end{isabellebody}
+\vspace{\baselineskip}
 
 Since the deliver event is the only type of event that modifies the state of
 the CRDT dealt with, we can consider the function \isa{node-deliver-messages}
