@@ -523,8 +523,7 @@ We write $\isa{xs}\ \isa{prefix}\ \isa{of}\ \isa{i}$ when this property holds, a
 We now move to a slightly less abstract setting.
 In particular, the networks that we are modelling consider two different type of events: \emph{broadcast} and \emph{deliver}.
 A node can either broadcast a message to every other node on the network, in which case a broadcast event is registered, or can receive a message that has been broadcast by some other node, in which case a deliver event is registered.
-In this setting, though broadcast and deliver events have been made concrete, precisely what is being broadcast and delivered is still left unspecified: a message is still an abstract object that will be modelled with a type variable.
-By remaining abstract as long as possible, we make our definitions more general.
+In this setting, though broadcast and deliver events have been made concrete, precisely what is being broadcast and delivered is still left unspecified: a message is still an abstract object that will be modelled with a type variable, as by remaining abstract as long as possible, we make our definitions more general.
 For operation-based CRDTs messages can be further specified to be a type of operations (like we consider in this work, and where this specification will be made later in this section), or can be specified to be the data structure itself, as in state-based CRDTs.
 We define a type of events as a tagged union type, like so:
 \\
@@ -536,20 +535,21 @@ We define a type of events as a tagged union type, like so:
 \vspace{\baselineskip}
 Here, the type variable $\isacharprime\ \isa{a}$ parameterising the type declaration is used in stead of a concrete representation of messages.
 
-Our networks possess several properties, or `laws', that relate broadcast and deliver messages appearing in the history of various nodes with each other.
+Our asynchronous networks possess several properties, or `laws', that relate broadcast and deliver messages appearing in the history of various nodes with each other.
 In particular, every message received by a node---in a deliver event---must have been broadcast by some node previously.
-Using this law, we can assert that no messages are created `out of thin air' by the network itself.
+Using this law, we can assert that no messages are created `out of thin air' by the network itself, and the only source of messages are the nodes of the network.
 
-Note that messages in our network, broadcast by a node, may be delayed, reordered, or even lost entirely.
-When a node broadcasts some message, our network does not guarantee that every other node will receive this message in a corresponding deliver event.
-We do, however, guarantee that every node will receive its own broadcast messages in delivery events, though when precisely this happens we do not specify.
-In particular, we make no guarantee that a node will receive its own messages immediately after broadcast.
+Our network is not guaranteed to be reliable.
+Messages in our network, broadcast by a node, may be delayed, reordered, or even lost entirely, and when a node broadcasts some message, our network does not guarantee that every other node will receive this message in a corresponding deliver event.
+The only guarantee that our networks are able to make is that every node will receive its own broadcast messages in delivery events.
+When a node recieves its own broadcast messages is not specified, however.
+In particular, we make no guarantee that a node will receive its own messages immediately after broadcast, and there may in fact be a significant delay between the two events.
 
 Finally, our network's laws assert that all messages are unique.
-If some node has broadcast a message $\isa{m}$, it cannot be the case that some other node has also broadcast that message.
-This is a reasonable assumption to make, as we may always assume that nodes on a real network implementation stamp messages with their own identifiers, when broadcasting, which we have already assumed are unique.
+If some node has broadcast a message $\isa{m}$, it cannot be the case that some other node has also broadcast that same message.
+This is a reasonable assumption to make, as we may always assume that nodes on a real network implementation stamp messages with their own identifiers, when broadcasting, which are already unique by assumption, coupled with a timestamp, or other disambiguating device.
 
-The notion of a law-abiding network is captured with the $\isa{network}$ local theory, in Isabelle:
+We bundle all of these laws up, defining the notion of a law-abiding asynchronous network, with the $\isa{network}$ local theory, in Isabelle:
 \\
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{locale} network\ {\isacharequal}\ node{\isacharunderscore}histories\ history\ \isakeyword{for}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharprime}a\ event\ list{\isachardoublequoteclose}\ {\isacharplus}\isanewline
@@ -572,39 +572,34 @@ A message (or operation) $\isa{m1}$ is said to \emph{happens before} a message \
 \item
 If both messages have been broadcast by the same node, and the broadcast event for message $\isa{m1}$ \emph{comes before} the broadcast event for message $\isa{m2}$,
 \item
-Or, if at some node, the delivery event for message $\isa{m1}$ \emph{comes before} the broadcast event for message \isa{m2},
+Or, if at some node, the delivery event for message $\isa{m1}$ \emph{comes before} the broadcast event for message $\isa{m2}$,
 \item
-Or, if there is another event for some message that interpolates the two other events, happening after the event for message \isa{m1}, but before the event for message \isa{m2}.
+Or, if there is another event for some message that interpolates the two other events, happening after the event for message $\isa{m1}$, but before the event for message $\isa{m2}$.
 \end{enumerate}
-
-This is defined in Isabelle by an
-inductive predicate \isa{hb}.
-It can be shown that this definition of \isa{hb} forms a
-preorder.
-
+We may capture this in Isabelle/HOL using an inductive relation, which we call $\isa{hb}$, alternatively using the syntax $\isa{m1} \prec \isa{m2}$ to assert that $\isa{m1}$ \emph{happens before} $\isa{m2}$ per the definition of $\isa{hb}$:
+\\
 \begin{isabellebody}
-\isanewline
-\isacommand{inductive}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ network{\isacharparenright}\ hb\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}{\isasymlbrakk}\ Broadcast\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup i\ Broadcast\ m{\isadigit{2}}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{2}}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ {\isachardoublequoteopen}{\isasymlbrakk}\ Deliver\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup i\ Broadcast\ m{\isadigit{2}}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{2}}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ {\isachardoublequoteopen}{\isasymlbrakk}\ m{\isadigit{1}}\ $\prec$\  m{\isadigit{2}}{\isacharsemicolon}\ m{\isadigit{2}}\ $\prec$\ m{\isadigit{3}}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{3}}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{inductive} {\isacharparenleft}\isakeyword{in}\ network{\isacharparenright}\ hb\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}{\isasymlbrakk}\ Broadcast\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup i\ Broadcast\ m{\isadigit{2}}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{2}}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}{\isasymlbrakk}\ Deliver\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup i\ Broadcast\ m{\isadigit{2}}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{2}}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}{\isasymlbrakk}\ m{\isadigit{1}}\ $\prec$\  m{\isadigit{2}}{\isacharsemicolon}\ m{\isadigit{2}}\ $\prec$\ m{\isadigit{3}}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{3}}{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{\baselineskip}
+Each of the three clauses in the definition of $\isa{hb}$ above corresponds to one of the three conditions previously enumerated.
+The fact that the \emph{happens before} relation is a preorder is easily established, and is omitted here.
 
-Additionally, the correctness of operation-based CRDTs relies on \emph{causal
-networks}.  Since this is a stronger requirement, we separate this axiom into a
-new locale, making the whole implementation modular and adaptable to new
-formalisations that do not depend on causality.  We say that the network
-satisfy the causality property if a message \isa{m1} happens before \isa{m2}
-and whenever a node \isa{j} has received the message \isa{m2}, then the node
-has also previously received the message \isa{m1}.
+Our convergence proof requires that our asynchronous networks abide by an additional law: \emph{causality}.
+We say that an asynchronous network is causal if delivery of events corresponding to messages $\isa{m1}$ and $\isa{m2}$ at a node respect the happens before relationship between those two events.
+In particular, we only require that the happens before relation's ordering is respected at nodes which have the delivery of the second message in their local histories.
 
+Since causal asynchronous networks are a special form of asynchronous network, we describe these networks with a new local theory.
+This increases modularity and makes our definitions adaptable for other formalisations that do not depend on causality:
+\\
 \begin{isabellebody}
-\isanewline
-\isacommand{locale}\isamarkupfalse%
-\ causal{\isacharunderscore}network\ {\isacharequal}\ network\ {\isacharplus}\isanewline
-\ \ \isakeyword{assumes}\ causal{\isacharunderscore}delivery{\isacharcolon}\ {\isachardoublequoteopen}Deliver\ m{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{2}}\ {\isasymLongrightarrow}\ Deliver\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup j\ Deliver\ m{\isadigit{2}}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{locale} causal{\isacharunderscore}network\ {\isacharequal}\ network\ {\isacharplus}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ causal{\isacharunderscore}delivery{\isacharcolon}\ {\isachardoublequoteopen}Deliver\ m{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{2}}\ {\isasymLongrightarrow}\ Deliver\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup j\ Deliver\ m{\isadigit{2}}{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{\baselineskip}
 
 We can now instantiate the local theory \isa{happens-before} defined in
 Section~\ref{sect.convergence}. This involves providing a concrete
