@@ -9,14 +9,14 @@ section\<open>Model of the network\<close>
 subsection\<open>Node histories\<close>
 
 locale node_histories = 
-  fixes history :: "nat \<Rightarrow> 'a list"
+  fixes history :: "nat \<Rightarrow> 'evt list"
   assumes histories_distinct [intro!, simp]: "distinct (history i)"
 
 lemma (in node_histories) history_finite:
   shows "finite (set (history i))"
 by auto
     
-definition (in node_histories) history_order :: "'a \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> bool" ("_/ \<sqsubset>\<^sup>_/ _" [50,1000,50]50) where
+definition (in node_histories) history_order :: "'evt \<Rightarrow> nat \<Rightarrow> 'evt \<Rightarrow> bool" ("_/ \<sqsubset>\<^sup>_/ _" [50,1000,50]50) where
   "x \<sqsubset>\<^sup>i z \<equiv> \<exists>xs ys zs. xs@x#ys@z#zs = history i"
 
 lemma (in node_histories) node_total_order_trans:
@@ -57,7 +57,7 @@ lemma (in node_histories) node_order_is_total:
   using assms unfolding history_order_def
   by (metis list_split_two_elems histories_distinct)
 
-definition (in node_histories) prefix_of_node_history :: "'a list \<Rightarrow> nat \<Rightarrow> bool" (infix "prefix of" 50) where
+definition (in node_histories) prefix_of_node_history :: "'evt list \<Rightarrow> nat \<Rightarrow> bool" (infix "prefix of" 50) where
   "xs prefix of i \<equiv> \<exists>ys. xs@ys = history i"
 
 lemma (in node_histories) carriers_head_lt:
@@ -122,29 +122,36 @@ done
 
 subsection\<open>Networks\<close>
 
-datatype 'a event
-  = Broadcast 'a
-  | Deliver 'a
+datatype 'msg event
+  = Broadcast 'msg
+  | Deliver 'msg
 
-locale network = node_histories history for history :: "nat \<Rightarrow> 'a event list" +
+locale network = node_histories history for history :: "nat \<Rightarrow> 'msg event list" +
+  fixes msg_id :: "'msg \<Rightarrow> 'msgid"
   (* Broadcast/Deliver interaction *)
   assumes broadcast_before_delivery: "Deliver m \<in> set (history i) \<Longrightarrow> \<exists>j. Broadcast m \<sqsubset>\<^sup>j Deliver m"
-        and deliver_locally: "Broadcast m \<in> set (history i) \<Longrightarrow> Broadcast m \<sqsubset>\<^sup>i Deliver m"
-      and broadcasts_unique: "i \<noteq> j \<Longrightarrow> Broadcast m \<in> set (history i) \<Longrightarrow> Broadcast m \<notin> set (history j)"
-      
+      and deliver_locally: "Broadcast m \<in> set (history i) \<Longrightarrow> Broadcast m \<sqsubset>\<^sup>i Deliver m"
+      and msg_id_unique: "Broadcast m1 \<in> set (history i) \<Longrightarrow> Broadcast m2 \<in> set (history j) \<Longrightarrow> i \<noteq> j \<or> m1 \<noteq> m2 \<Longrightarrow> msg_id m1 \<noteq> msg_id m2"
+
 lemma (in network) delivery_has_a_cause:
   assumes "Deliver m \<in> set (history i)"
   shows "\<exists>j. Broadcast m \<in> set (history j)"
   by (meson assms broadcast_before_delivery insert_subset local_order_carrier_closed)
 
-inductive (in network) hb :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
+lemma (in network) broadcasts_unique:
+  assumes "i \<noteq> j"
+    and "Broadcast m \<in> set (history i)"
+  shows "Broadcast m \<notin> set (history j)"
+  using assms msg_id_unique by blast
+
+inductive (in network) hb :: "'msg \<Rightarrow> 'msg \<Rightarrow> bool" where
   "\<lbrakk> Broadcast m1 \<sqsubset>\<^sup>i Broadcast m2 \<rbrakk> \<Longrightarrow> hb m1 m2" |
   "\<lbrakk> Deliver m1 \<sqsubset>\<^sup>i Broadcast m2 \<rbrakk> \<Longrightarrow> hb m1 m2" |
   "\<lbrakk> hb m1 m2; hb m2 m3 \<rbrakk> \<Longrightarrow> hb m1 m3"
   
 inductive_cases (in network) hb_elim: "hb x y"
         
-definition (in network) weak_hb :: "'a \<Rightarrow> 'a \<Rightarrow> bool" where
+definition (in network) weak_hb :: "'msg \<Rightarrow> 'msg \<Rightarrow> bool" where
   "weak_hb m1 m2 \<equiv> hb m1 m2 \<or> m1 = m2"
 
 locale causal_network = network +
@@ -292,7 +299,7 @@ next
     using hb.intros(3) by blast
 qed
 
-definition (in network) node_deliver_messages :: "'a event list \<Rightarrow> 'a list" where
+definition (in network) node_deliver_messages :: "'msg event list \<Rightarrow> 'msg list" where
   "node_deliver_messages cs \<equiv> List.map_filter (\<lambda>e. case e of Deliver m \<Rightarrow> Some m | _ \<Rightarrow> None) cs"
 
 lemma (in network) node_deliver_messages_empty [simp]:
@@ -321,14 +328,14 @@ using assms
 done
 
 locale network_with_ops = causal_network history
-  for history :: "nat \<Rightarrow> 'a event list" +
-  fixes interp :: "'a \<Rightarrow> 'b \<rightharpoonup> 'b"
+  for history :: "nat \<Rightarrow> 'msg event list" +
+  fixes interp :: "'msg \<Rightarrow> 'state \<rightharpoonup> 'state"
 
 context network_with_ops begin
 
 sublocale hb: happens_before weak_hb hb
 proof
-  fix x y :: "'a"
+  fix x y :: "'msg"
   show "hb x y = (weak_hb x y \<and> \<not> weak_hb y x)"
     unfolding weak_hb_def using hb_antisym by blast
 next
@@ -349,16 +356,16 @@ section\<open>Example instantiations and interpretations\<close>
 interpretation trivial_node_histories: node_histories "\<lambda>m. []"
   by standard auto
 
-interpretation trivial_network: network "\<lambda>m. []"
+interpretation trivial_network: network "\<lambda>m. []" id
   by standard auto
     
-interpretation trivial_causal_network: causal_network "\<lambda>m. []"
+interpretation trivial_causal_network: causal_network "\<lambda>m. []" id
   by standard auto
 
 interpretation non_trivial_node_histories: node_histories "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else []"
   by standard auto
 
-interpretation non_trivial_network: network "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else []"
+interpretation non_trivial_network: network "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else []" id
   apply standard
     apply(auto split: if_split_asm)
     apply(rule_tac x=0 in exI)
@@ -366,7 +373,7 @@ interpretation non_trivial_network: network "\<lambda>m. if m = 0 then [Broadcas
   apply (metis append.left_neutral non_trivial_node_histories.history_order_def)
   done
     
-interpretation non_trivial_causal_network: causal_network "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else []"
+interpretation non_trivial_causal_network: causal_network "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else []" id
   oops
     
 end

@@ -14,15 +14,23 @@ fun interpret_opers :: "('id::linorder, 'v) operation \<Rightarrow> ('id, 'v) el
   "interpret_opers (Delete n)   xs  = delete xs n"
   
 (* Replicated Growable Array Network *)
-locale rga = network_with_ops _ interpret_opers +
+locale rga = network_with_ops msg_id _ interpret_opers
+  for msg_id :: "('id::linorder, 'v) operation \<Rightarrow> 'id" +
+  assumes insert_msg_id: "Broadcast (Insert e n) \<in> set (history i) \<Longrightarrow> fst e = msg_id (Insert e n)"
   assumes allowed_insert: "Broadcast (Insert e n) \<in> set (history i) \<Longrightarrow> n = None \<or> 
                             (\<exists>e' n'. n = Some (fst e') \<and> Deliver (Insert e' n') \<sqsubset>\<^sup>i Broadcast (Insert e n))"
-  assumes insert_id_unique: "fst e1 = fst e2 \<Longrightarrow> Broadcast (Insert e1 n1) \<in> set (history i) \<Longrightarrow> Broadcast (Insert e2 n2) \<in> set (history j) \<Longrightarrow> Insert e1 n1 = Insert e2 n2"
   assumes allowed_delete: "Broadcast (Delete x) \<in> set (history i) \<Longrightarrow> (\<exists>n' v b. Deliver (Insert (x, v, b) n') \<sqsubset>\<^sup>i Broadcast (Delete x))"
     
 locale id_consistent_rga_network = rga +
   assumes ids_consistent: "hb (Insert e2 n2) (Insert e1 n1) \<Longrightarrow> fst e2 < fst e1"
-    
+
+lemma (in rga) insert_id_unique:
+  assumes "fst e1 = fst e2"
+  and "Broadcast (Insert e1 n1) \<in> set (history i)"
+  and "Broadcast (Insert e2 n2) \<in> set (history j)"
+  shows "Insert e1 n1 = Insert e2 n2"
+using assms insert_msg_id msg_id_unique by fastforce
+
 lemma (in rga) allowed_delete_deliver:
   assumes "Deliver (Delete x) \<in> set (history i)"
     shows "\<exists>n' v b. Deliver (Insert (x, v, b) n') \<sqsubset>\<^sup>i Deliver (Delete x)"
@@ -58,7 +66,7 @@ lemma (in rga) allowed_insert_deliver_in_set:
 by(metis assms Un_insert_right insert_subset list.simps(15) set_append prefix_to_carriers
     allowed_insert_deliver local_order_prefix_closed_last)
 
-abbreviation (in rga) apply_operations :: "('a, 'b) operation event list \<Rightarrow> ('a, 'b) elt list option" where
+abbreviation (in rga) apply_operations :: "('id, 'v) operation event list \<Rightarrow> ('id, 'v) elt list option" where
   "apply_operations es \<equiv> hb.apply_operations (node_deliver_messages es) []"
 
 lemma (in rga) apply_operations_empty [simp]:
@@ -73,7 +81,7 @@ lemma (in rga) apply_operations_Deliver [simp]:
   shows "apply_operations (xs @ [Deliver m]) = (apply_operations xs \<bind> \<langle>m\<rangle>)"
 by(auto simp add: node_deliver_messages_def map_filter_def kleisli_def)
 
-definition indices :: "('a, 'b) operation event list \<Rightarrow> 'a list" where
+definition indices :: "('id, 'v) operation event list \<Rightarrow> 'id list" where
   "indices xs \<equiv>
      List.map_filter (\<lambda>x. case x of Deliver (Insert e i) \<Rightarrow> Some (fst e) | _ \<Rightarrow> None) xs"
 
