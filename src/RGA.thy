@@ -1,7 +1,7 @@
 theory
   RGA
 imports
-  Causal_CRDT
+  Network
   Ordered_List
 begin
   
@@ -12,9 +12,9 @@ datatype ('id, 'v) operation =
 fun interpret_opers :: "('id::linorder, 'v) operation \<Rightarrow> ('id, 'v) elt list \<rightharpoonup> ('id, 'v) elt list" ("\<langle>_\<rangle>" [0] 1000) where
   "interpret_opers (Insert e n) xs  = insert xs e n" |
   "interpret_opers (Delete n)   xs  = delete xs n"
-  
+
 (* Replicated Growable Array Network *)
-locale rga = network_with_ops msg_id _ interpret_opers
+locale rga = network_with_ops msg_id _ interpret_opers "[]"
   for msg_id :: "('id::linorder, 'v) operation \<Rightarrow> 'id" +
   assumes insert_msg_id: "Broadcast (Insert e n) \<in> set (history i) \<Longrightarrow> fst e = msg_id (Insert e n)"
   assumes allowed_insert: "Broadcast (Insert e n) \<in> set (history i) \<Longrightarrow> n = None \<or> 
@@ -65,9 +65,6 @@ lemma (in rga) allowed_insert_deliver_in_set:
   shows   "m = None \<or> (\<exists>m' n v b. m = Some m' \<and> Deliver (Insert (m', v, b) n) \<in> set es)"
 by(metis assms Un_insert_right insert_subset list.simps(15) set_append prefix_to_carriers
     allowed_insert_deliver local_order_prefix_closed_last)
-
-abbreviation (in rga) apply_operations :: "('id, 'v) operation event list \<Rightarrow> ('id, 'v) elt list option" where
-  "apply_operations es \<equiv> hb.apply_operations (node_deliver_messages es) []"
 
 lemma (in rga) apply_operations_empty [simp]:
   shows "apply_operations [] = Some []"
@@ -162,7 +159,7 @@ lemma (in rga) Insert_equal:
     shows "Insert e1 n1 = Insert e2 n2"
 using assms
   apply(subgoal_tac "e1 = e2")
-  apply(metis surjective_pairing insert_id_unique)
+  apply(metis insert_id_unique)
   apply(cases e1, cases e2; clarsimp)
   using insert_id_unique by force
 
@@ -225,55 +222,11 @@ lemma (in rga) Insert_Delete_concurrent:
     shows "n' \<noteq> fst e"
 by (metis assms Insert_equal allowed_delete delivery_has_a_cause fst_conv hb.concurrent_def hb.intros(2) insert_subset local_order_carrier_closed)
 
-lemma (in network_with_ops) node_deliver_messages_distinct:
-  assumes "xs prefix of i"
-  shows "distinct (node_deliver_messages xs)"
-using assms
-  apply(induction xs rule: rev_induct)
-  apply simp
-  apply(clarsimp simp add: node_deliver_messages_append)
-  apply safe
-  apply force
-  apply(clarsimp simp: node_deliver_messages_def map_filter_def)
-  apply clarsimp
-  apply(frule prefix_distinct)
-  apply clarsimp
-  apply(subst (asm) node_deliver_messages_def) back back back
-  apply(clarsimp simp add: map_filter_def)
-  apply(case_tac x; clarsimp)
-  apply(subst (asm) node_deliver_messages_def) back
-  apply(clarsimp simp add: map_filter_def)
-  apply(case_tac x; clarsimp)
-  done
-    
 lemma (in rga) apply_operations_distinct:
   assumes "xs prefix of i"
       and "apply_operations xs = Some ys"
     shows "distinct (map fst ys)"
 oops
-
-lemma (in network_with_ops) hb_consistent_prefix:
-  assumes "xs prefix of i"
-    shows "hb.hb_consistent (node_deliver_messages xs)"
-using assms
-  apply(clarsimp simp: prefix_of_node_history_def)
-  apply(rule_tac i=i in hb_consistent_technical)
-  apply(subst history_order_def)
-  apply(subgoal_tac "xs = [] \<or> (\<exists>c. xs = [c]) \<or> (length (xs) > 1)")
-  apply(erule disjE)
-  apply clarsimp
-  apply(erule disjE)
-  apply clarsimp
-  apply(drule list_nth_split)
-  apply assumption
-  apply clarsimp
-  apply clarsimp
-  apply(rule_tac x=xsa in exI)
-  apply(rule_tac x=ysa in exI)
-  apply(rule_tac x="zs@ys" in exI)
-  apply(metis Cons_eq_appendI append_assoc)
-  apply force
-  done
 
 lemma (in rga) concurrent_operations_commute:
   assumes "xs prefix of i"
