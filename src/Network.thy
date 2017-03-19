@@ -129,14 +129,14 @@ datatype 'msg event
 locale network = node_histories history for history :: "nat \<Rightarrow> 'msg event list" +
   fixes msg_id :: "'msg \<Rightarrow> 'msgid"
   (* Broadcast/Deliver interaction *)
-  assumes broadcast_before_delivery: "Deliver m \<in> set (history i) \<Longrightarrow> \<exists>j. Broadcast m \<sqsubset>\<^sup>j Deliver m"
+  assumes delivery_has_a_cause: "Deliver m \<in> set (history i) \<Longrightarrow> \<exists>j. Broadcast m \<in> set (history j)"
       and deliver_locally: "Broadcast m \<in> set (history i) \<Longrightarrow> Broadcast m \<sqsubset>\<^sup>i Deliver m"
       and msg_id_unique: "Broadcast m1 \<in> set (history i) \<Longrightarrow> Broadcast m2 \<in> set (history j) \<Longrightarrow> i \<noteq> j \<or> m1 \<noteq> m2 \<Longrightarrow> msg_id m1 \<noteq> msg_id m2"
 
-lemma (in network) delivery_has_a_cause:
+lemma (in network) broadcast_before_delivery:
   assumes "Deliver m \<in> set (history i)"
-  shows "\<exists>j. Broadcast m \<in> set (history j)"
-  by (meson assms broadcast_before_delivery insert_subset local_order_carrier_closed)
+  shows "\<exists>j. Broadcast m \<sqsubset>\<^sup>j Deliver m"
+  using assms deliver_locally delivery_has_a_cause by blast
 
 lemma (in network) broadcasts_unique:
   assumes "i \<noteq> j"
@@ -368,9 +368,7 @@ interpretation non_trivial_node_histories: node_histories "\<lambda>m. if m = 0 
 interpretation non_trivial_network: network "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else []" id
   apply standard
     apply(auto split: if_split_asm)
-    apply(rule_tac x=0 in exI)
    apply (metis append.left_neutral non_trivial_node_histories.history_order_def)
-  apply (metis append.left_neutral non_trivial_node_histories.history_order_def)
   done
     
 interpretation non_trivial_causal_network: causal_network "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else []" id
