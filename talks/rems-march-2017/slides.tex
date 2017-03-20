@@ -1,0 +1,117 @@
+\documentclass[professionalfonts,smallfonts]{beamer}
+
+\usepackage[british]{babel}
+\usepackage{microtype}
+
+\usetheme{metropolis}
+
+\author{Dominic Mulligan \\ Joint work with Victor Gomes, Martin Kleppmann, and Alastair Beresford}
+\title{Verifying Conflict Free Replicated Datatypes}
+\date{Cambridge-Imperial REMS Meeting, 2017}
+
+\begin{document}
+
+\begin{frame}
+\maketitle
+\end{frame}
+
+% What are CRDTs?
+% Why are they useful?
+% Why is verification necessary?
+% What was the problem with previous proofs?
+% Our proof: network model, abstract convergence, implementation of RGA
+% Conclusion
+
+\begin{frame}
+\frametitle{Consistency models in distributed systems}
+\emph{Strong consistency} model impossible or costly to achieve
+\\[1.5ex]
+Must seek weaker consistency guarantees
+\\[1.5ex]
+Popular alternative is \emph{eventual consistency}
+\\[1.5ex]
+Informally:
+\begin{enumerate}
+\item
+If no changes are made to some component of shared global state
+\item
+Eventually all replicas will converge to some consensus on value of that component
+\end{enumerate}
+\end{frame}
+
+\begin{frame}
+\frametitle{Eventual consistency}
+Eventual consistency is very weak consistency model!
+\\[1.5ex]
+Model:
+\begin{itemize}
+\item
+makes no guarantees in case where updates never cease,
+\item
+and does not constrain return value of intermediate reads
+\end{itemize}
+\vspace{\baselineskip}
+Achieving consensus requires some conflict resolution policy
+\begin{itemize}
+\item
+Simple policies cause data loss
+\item
+More complex ones are error prone, and often buggy
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Trade-offs}
+Range of consistency models exists because of a tradeoff:
+\begin{center}
+Performance vs. guarantees offered by model
+\end{center}
+\vspace{\baselineskip}
+However: recent work (Shapiro, 2011) has shown it is possible to:
+\begin{itemize}
+\item
+Obtain stronger guarantees than those provided by eventual consistency
+\item
+Without inheriting the inherent costs of strong consistency
+\end{itemize}
+\vspace{\baselineskip}
+This consistency model is called \emph{strong eventual consistency}
+\end{frame}
+
+\begin{frame}
+\frametitle{Conflict Free Replicated Datatypes (CRDTs)}
+\end{frame}
+
+\begin{frame}
+\frametitle{Where are CRDTs used?}
+\end{frame}
+
+\begin{frame}
+\frametitle{Why is verification necessary here?}
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagnosing bugs in previous proofs}
+\end{frame}
+
+\begin{frame}
+\frametitle{Our contributions}
+\end{frame}
+
+\begin{frame}
+\frametitle{Modelling asynchronous causal networks}
+\end{frame}
+
+\begin{frame}
+\frametitle{An abstract convergence theorem}
+\end{frame}
+
+\begin{frame}
+\frametitle{Instantiating our framework: the RGA}
+\end{frame}
+
+\begin{frame}
+\frametitle{Conclusions}
+\end{frame}
+
+\end{document}
