@@ -38,31 +38,31 @@ Collaborative editing applications such as Google Docs, Microsoft Word Online, a
 increasing in popularity. A common feature of these tools is that they allow several users to
 concurrently modify a document without having to send the document back and forth manually (e.g., by
 email), and without requiring any exclusive locking or manual resolution of merge conflicts. Similar
-features are found in applications that synchronize data between devices owned by the same user,
+features are found in applications that synchronise data between devices owned by the same user,
 such as calendars, address books, note-taking apps, password managers, and so on: they also allow
 data to be independently modified on different devices, and any changes are propagated to copies of
 the data on other devices when an internet connection is available.
 
-As we show in Section~\ref{sect.background}, all currently deployed algorithms for such
-collaborative editing and data synchronization rely on a central server that is trusted to hold the
+As we show in Section~\ref{sect.relatedwork}, all currently deployed algorithms for such
+collaborative editing and data synchronisation rely on a central server that is trusted to hold the
 authoritative copy of the data. The use of a central server introduces a number of limitations:
 \begin{itemize}
-\item It limits offline usage: for example, a user cannot synchronize changes between their
+\item It limits offline usage: for example, a user cannot synchronise changes between their
     smartphone and laptop via a local wireless connection, but must instead connect both devices to
     the internet. It also rules out a group of users collaborating on a local network disconnected
     from the server, for example in a remote location without reliable internet connectivity.
 \item Since the central server holds the authoritative copy of the data, all participants must be
     willing to trust it to a high degree. If the server were compromised by attackers, or subverted
-    by a malicious insider, it could tamper with the data or grant access to unauthorized parties.
+    by a malicious insider, it could tamper with the data or grant access to unauthorised parties.
 \item Finally, a central server requires high availability and is also susceptible to blocking and
     censorship. For sensitive scenarios, such as communication among journalists and dissidents
-    under a repressive regime, such centralization is problematic.
+    under a repressive regime, such centralisation is problematic.
 \end{itemize}
 
-Decentralized peer-to-peer systems therefore look attractive in scenarios where reliance on a
+Decentralised peer-to-peer systems therefore look attractive in scenarios where reliance on a
 central server is impractical or undesirable. Unfortunately, we currently have a poor understanding
-of algorithms that enable collaborative editing and data synchronization in peer-to-peer networks.
-In Section~\ref{sect.background} we highlight several algorithms for peer-to-peer collaboration,
+of algorithms that enable collaborative editing and data synchronisation in peer-to-peer networks.
+In Section~\ref{sect.relatedwork} we highlight several algorithms for peer-to-peer collaboration,
 published in peer-reviewed venues, that claimed to work correctly but were subsequently shown to violate
 their supposed guarantees. Informal reasoning in this domain has repeatedly produced algorithms that
 look plausible, but actually turn out to be flawed.
@@ -72,11 +72,11 @@ by establishing techniques for formally verifying their correctness. We use Isab
 proof assistant tool \cite{DBLP:conf/tphol/WenzelPN08}, to create formal specifications of an
 asynchronous network and distributed algorithms executing in such a system. We then use this
 framework to produce a machine-checked proof of correctness of one particular algorithm for
-peer-to-peer collaboration~-- the Replicated Growable Array (RGA) of \citet{Roh:2011dw}, an example
+peer-to-peer collaboration---the Replicated Growable Array (RGA) of \citet{Roh:2011dw}, an example
 of a Conflict-Free Replicated Data Type (CRDT) as introduced by
 \citet{Shapiro:2011wy,Shapiro:2011un}.
-The algorithm is subtle~-- \citet{Attiya:2016kh} wrote, ``the reason why RGA actually works has been
-a bit of a mystery''~-- which makes formal verification particularly important.
+The algorithm is subtle---\citet{Attiya:2016kh} wrote, ``the reason why RGA actually works has been
+a bit of a mystery''---which makes formal verification particularly important.
 
 \dots something about how the formal verification is generally applicable, not just for this
 particular algorithm \dots
