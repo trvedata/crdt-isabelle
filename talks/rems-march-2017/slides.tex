@@ -50,14 +50,6 @@ makes no guarantees in case where updates never cease,
 \item
 and does not constrain return value of intermediate reads
 \end{itemize}
-\vspace{\baselineskip}
-Achieving consensus requires some conflict resolution policy
-\begin{itemize}
-\item
-Simple policies cause data loss
-\item
-More complex ones are error prone, and often buggy
-\end{itemize}
 \end{frame}
 
 \begin{frame}
@@ -67,7 +59,7 @@ Range of consistency models exists because of a tradeoff:
 Performance vs. guarantees offered by model
 \end{center}
 \vspace{\baselineskip}
-However: recent work (Shapiro, 2011) has shown it is possible to:
+However, it is possible to:
 \begin{itemize}
 \item
 Obtain stronger guarantees than those provided by eventual consistency
@@ -75,19 +67,80 @@ Obtain stronger guarantees than those provided by eventual consistency
 Without inheriting the inherent costs of strong consistency
 \end{itemize}
 \vspace{\baselineskip}
-This consistency model is called \emph{strong eventual consistency}
+One such consistency model is \emph{strong eventual consistency}
+\end{frame}
+
+\begin{frame}
+\frametitle{Strong eventual consistency}
+Strong eventual consistency (Shapiro, 2011) has:
+\begin{itemize}
+\item
+Performance and fault-tolerance characteristics similar to eventual consistency
+\item
+Provides stronger guarantees
+\end{itemize}
+A system satisfying strong eventual consistency must satisfy:
+\begin{itemize}
+\item
+Correct replicas that have received same updates have same state,
+\item
+Update delivered at a replica is eventually delivered to all replicas,
+\item
+All executions must terminate
+\end{itemize}
+First property (`convergence') most important
 \end{frame}
 
 \begin{frame}
 \frametitle{Conflict Free Replicated Datatypes (CRDTs)}
+Achieving consensus in SEC:
+\begin{itemize}
+\item
+Typically requires conflict resolution policy
+\item
+Simple policies cause data loss, complex ones are error prone
+\end{itemize}
+Observation:
+\begin{itemize}
+\item
+Some operations naturally commutative
+\item
+Operations can therefore be applied in any order
+\item
+Generalise this to other data structures and operations
+\end{itemize}
+CRDTs = replicated data types with commutative operations
 \end{frame}
 
 \begin{frame}
-\frametitle{Where are CRDTs used?}
+\frametitle{Three families of CRDT}
+Three different types of CRDT are known:
+\begin{itemize}
+\item
+Operation based CRDTs: construct operations so they are commutative
+\item
+State based CRDTs: broadcast entire state of replica when it changes
+\item
+Delta-CRDTs: broadcast changes to states, not entire states
+\end{itemize}
+We consider operation based CRDTs in this work.
 \end{frame}
 
 \begin{frame}
 \frametitle{Why is verification necessary here?}
+\emph{Operational Transformation} is a closely related technique
+\\[1.5ex]
+Algorithms have claimed to satisfy $TP_2$ but later shown incorrect
+\\[1.5ex]
+Algorithms have been presented without any proof
+\\[1.5ex]
+In classic formulation of OT, later shown impossible to achieve $TP_2$
+\\[1.5ex]
+Hand-written proofs of convergence tend to be gigantic
+\\[1.5ex]
+Several wrong machine checked proofs presented (!)
+\\[1.5ex]
+Moral: reasoning about replicated data structures is hard
 \end{frame}
 
 \begin{frame}
