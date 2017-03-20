@@ -131,7 +131,7 @@ locale network = node_histories history for history :: "nat \<Rightarrow> 'msg e
   (* Broadcast/Deliver interaction *)
   assumes delivery_has_a_cause: "Deliver m \<in> set (history i) \<Longrightarrow> \<exists>j. Broadcast m \<in> set (history j)"
       and deliver_locally: "Broadcast m \<in> set (history i) \<Longrightarrow> Broadcast m \<sqsubset>\<^sup>i Deliver m"
-      and msg_id_unique: "Broadcast m1 \<in> set (history i) \<Longrightarrow> Broadcast m2 \<in> set (history j) \<Longrightarrow> i \<noteq> j \<or> m1 \<noteq> m2 \<Longrightarrow> msg_id m1 \<noteq> msg_id m2"
+      and msg_id_unique: "Broadcast m1 \<in> set (history i) \<Longrightarrow> Broadcast m2 \<in> set (history j) \<Longrightarrow> msg_id m1 = msg_id m2 \<Longrightarrow> i = j \<and> m1 = m2"
 
 lemma (in network) broadcast_before_delivery:
   assumes "Deliver m \<in> set (history i)"

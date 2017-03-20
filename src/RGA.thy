@@ -29,7 +29,7 @@ lemma (in rga) insert_id_unique:
   and "Broadcast (Insert e1 n1) \<in> set (history i)"
   and "Broadcast (Insert e2 n2) \<in> set (history j)"
   shows "Insert e1 n1 = Insert e2 n2"
-using assms insert_msg_id msg_id_unique by fastforce
+using assms insert_msg_id msg_id_unique by metis
 
 lemma (in rga) allowed_delete_deliver:
   assumes "Deliver (Delete x) \<in> set (history i)"
