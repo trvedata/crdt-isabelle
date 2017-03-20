@@ -5,372 +5,87 @@ Distributed systems are conventionally modeled as a set of \emph{nodes} (or \emp
 can communicate only by sending and receiving messages over a network. In practice, nodes may be
 servers in datacenters, end-user devices such as laptops and smartphones, or any other kind of
 device with network connectivity. We assume that messages sent via the network may be delayed,
-reordered, or lost entirely~-- an assumption that matches the behavior of many networks in practice
+reordered, or lost entirely---an assumption that matches the behaviour of many networks in practice
 \cite{Bailis:2014jx}.
 
 Moreover, nodes or network links may fail at any time, and the non-faulty parts of the system need
 to continue working in spite of such partial failures. Programming such systems is far more
-difficult than writing programs that execute on a single machine. Consequently, it is valuable for
-application developers to have access to abstractions that simplify the development of distributed
-programs. The \emph{collaborative editing} (or \emph{data synchronization}) model discussed in this
-paper is an example of such an abstraction.
+difficult than writing programs that execute on a single machine. To simplify the programming model,
+application developers may rely on abstractions that guarantee certain properties in all possible
+executions of a system, even in the face of faults.
 
-The goal of an abstraction for distributed programming is to provide certain guarantees that hold in
-all possible executions of a system, so that higher-level programs may rely on the abstraction
-without having to worry about how it is implemented. In this paper, the abstraction we discuss is
-\emph{replicated data}, that is, ensuring that each replica node has a local copy of some data
-structure (such as a document). Each node may independently read and modify the data, and any
-updates (modifications) are propagated to other replicas via the network.
-
-\subsection{Consistency Models for Replicated Data}\label{sect.consistencymodels}
-
-The purpose of replication is to ensure that you have a copy of the same data on each node that is
-acting as a replica. However, when multiple nodes are concurrently reading and modifying the data,
-they do not have a single shared view of the data, since each node only has direct access to its
-local storage, and can observe the state of another node only by exchanging messages with it via the
-unreliable network.
-
-For this reason, it is likely that at any given moment in time, two replicas are not in the same
-state, for example because one has received a message that has not yet been delivered to the other.
-A replication algorithm must ensure that nevertheless, all replicas eventually end up in the same
-state. In order to describe how and when this happens, a \emph{consistency model} defines the
-guarantees provided by the replication algorithm.
-
-\subsubsection{Strong and Eventual Consistency}
-
-There is a spectrum of consistency models that are used in practice
-\cite{Terry:1994fp}, with the two extremes of the spectrum being \emph{strong} and \emph{eventual}
-consistency, respectively:
-
-\begin{description}
-\item[Strong consistency] in the context of replicated data is usually understood as linearizability
-\cite{Herlihy:1990jq,Gilbert:2002il}. A linearizable system can be informally described as follows:
-each operation takes effect atomically at one moment in time, and concurrent operations behave as if
-there were only one copy of the data, even if in reality each replica has a separate copy. In
-particular, after a write has completed, all subsequent reads must return the written value (or a
-later one), since that is the behavior of a single memory location without caching or buffering. In
-the context of databases, strong consistency typically refers to serializable isolation and
-transaction atomicity \cite{Davidson:1985hv}.
-\item[Eventual consistency] is less formally defined than linearizability, but is usually described
-as ``if no new updates are made to an object, eventually all reads will return the last updated
-value'' \cite{Bailis:2013jc,Burckhardt:2014hy,Terry:1994fp,Vogels:2009ca}. However, this property is
-very weak: it does not define what happens if the updates to the object never cease, nor does it
-constrain the values that reads may return before consistency is eventually reached.
-\end{description}
-
-The spectrum of consistency models exists due to a trade-off: systems with stronger guarantees may
-have lower performance or be less fault-tolerant than systems with weaker guarantees
-\cite{Davidson:1985hv,Terry:1994fp,Gilbert:2002il}. However, it is possible to strengthen the
-guarantees of eventual consistency without incurring the costs inherent in strong consistency.
-
-\subsubsection{Strong Eventual Consistency (SEC)}
-
-One such intermediate consistency model for replicated data is \emph{strong eventual consistency} or
-SEC \cite{Shapiro:2011un}. It has performance and fault-tolerance characteristics that are similar
-to eventual consistency, but provides stronger guarantees. An algorithm providing SEC is defined as
-satisfying the following properties:
-
-\begin{description}
-\item[Convergence:] Correct replicas that have delivered the same updates have equivalent state.
-\item[Eventual delivery:] An update delivered at some replica is eventually delivered to all correct
-replicas.
-\item[Termination:] All executions of the algorithm eventually terminate.
-\end{description}
-
-A node is defined to be \emph{correct} if it is not faulty, i.e. if it does not crash and if it is
-not permanently disconnected from the network. Although the network may be interrupted for periods
-of time, a correct node will eventually be able to communicate with other correct nodes, and so the
-eventual delivery property can be achieved by re-sending messages until they arrive. A faulty node
-is by definition not required to deliver any messages. Termination is also straightforward to show
-for many algorithms.
-
-Thus, the key correctness property for SEC is \emph{convergence}. It is a safety property
-\cite{Alpern:1985dg}~-- that is, it must hold at every point in the execution: whenever two replicas
-have seen the same set of updates, but perhaps in a different order, they must be in an equivalent
-state. Two states are equivalent if all reads return the same result in both states. Convergence is
-much stronger property than eventual consistency (a liveness property), since the definition of
-convergence constrains the values that reads may return at any time, even if the system is never
-quiescent.
+In this paper, the abstraction we discuss is \emph{replicated data}, that is, ensuring that each
+node has a local copy of some data structure (such as a document). A node that has a copy of the
+data is called a \emph{replica}. Each node may independently read and modify the data, and a
+replication algorithm propagates any updates (modifications) to other replicas via the network.
 
 \subsection{Properties of Networks}\label{sect.background.networks}
 
-The consistency properties that a replication algorithm can achieve depend on the assumptions that
-can be made about the network and its connectedness.
+Various replication algorithms provide different consistency guarantees, and the most appropriate
+choice depends on the properties of the network. For example, many online services today rely on a
+central server that maintains the authoritative copy of the data. In this architecture, clients that
+want to modify the data send their updates to the central server (often called \emph{master} or
+\emph{leader}), which in turn forwards the updates to all of the replicas. The server can attach a
+sequence number to each update, enabling all replicas to apply the updates in the same order. This
+notion of total ordering enables strong consistency models such as linearizability
+\cite{Herlihy:1990jq} and serializable transactions.
 
-\subsubsection{Asynchronous System Model}
+However, peer-to-peer networks have no such central server that can be assumed to be always
+reachable. It is possible to provide the same guarantee of totally ordered delivery in peer-to-peer
+networks; this abstraction is known as \emph{total order broadcast} or \emph{atomic broadcast}
+\cite{Cachin:2011wt}. Unfortunately, it is expensive: it requires a quorum of nodes (typically a
+majority) to be reachable in order to make progress \cite{Chandra:1996cp}; in a peer-to-peer network
+of mobile devices, it is likely that less than a majority of devices is online at any one time, and
+so any algorithm for total order broadcast would be stalled.
 
-In this paper, we discuss an approach for achieving SEC in \emph{asynchronous} systems. In the
-asynchronous system model, we make no timing assumptions at all: messages may suffer unbounded
-network delays, and nodes may stop executing for unbounded periods of time or fail completely
-\cite{Cachin:2011wt}. Our formal definition of the asynchronous model appears in
-Section~\ref{sect.network}.
+As discussed in Section~\ref{sect.introduction}, we aim to support scenarios in which subsets of
+nodes can communicate with each other, but some are disconnected (\emph{partitioned}) from others.
+For example, consider some data shared between two users, each of whom has two devices. Each user
+may want to synchronise the data between their two devices using a local wireless link, even if they
+are temporarily disconnected from the internet, and re-synchronize with the other user when they are
+next online. In this scenario, strong consistency across both users could only be achieved by
+preventing users from making any offline updates; if updates are allowed, weaker consistency is
+inevitable \cite{Attiya:2015dm,Davidson:1985hv}.
+
+We model this kind of system as an \emph{asynchronous} network, which means that we make no timing
+assumptions: messages sent over the network may suffer unbounded delays before they are delivered,
+or they may never arrive at all. Nodes may pause their execution for unbounded periods of time, or
+fail permanently \cite{Cachin:2011wt}. If a user makes updates while offline, and the device
+re-synchronises when it is next online, we can simply model that interaction as very large network
+delay. Our formal definition of the asynchronous model appears in Section~\ref{sect.network}.
 
 Although most practical systems have fairly low network delay and fairly brief execution pauses most
-of the time \cite{Bailis:2014jx}, the asynchronous model is a useful lower bound for the assumptions
-that a distributed algorithm may make. Any algorithm that is proved correct under the assumptions of
-the asynchronous model is also guaranteed to be correct in a system that provides stronger
-guarantees, for example around timing and reliability.
+of the time, the asynchronous model is a useful lower bound for the assumptions that a distributed
+algorithm may make. Any algorithm that is proved correct under the assumptions of the asynchronous
+model is also guaranteed to be correct in a system that provides stronger guarantees, for example
+around timing and reliability.
 
-Some guarantees cannot be provided in the asynchronous model; for example, there is no consensus
-algorithm that is guaranteed to terminate in this system model \cite{Fischer:1985tt}. On the other
-hand, consensus becomes possible if the algorithm is allowed to make certain weak timing assumptions
-\cite{Chandra:1996cp}. However, SEC \emph{can} be achieved in the asynchronous model, so we use it
-here in order to keep our assumptions minimal.
+\subsection{Strong Eventual Consistency (SEC)}\label{sect.eventual.consistency}
 
-\subsubsection{Centralized Versus Peer-to-Peer Networks}\label{sect.central.vs.p2p}
+When replicas concurrently modify their local copy of the data, their states may diverge. In
+peer-to-peer networks such as those described in Section~\ref{sect.background.networks}, enforcing
+strong consistency would cause an application to become unavailable. Instead, we can only make a
+weaker guarantee, namely that replicas \emph{eventually} converge to a consistent state.
 
-Many online services today rely on a central server that maintains the authoritative copy of the
-data. In this architecture, clients that want to modify the data send their updates to the central
-server (often called \emph{master} or \emph{leader}), which in turn forwards the updates to all of
-the replicas. The server can attach a sequence number to each update, enabling all replicas to apply
-the updates in the same order. Being able to assume totally ordered delivery across all replicas
-significantly simplifies replication algorithms, which is why this architecture is so popular today.
+A frequently-used definition of \emph{eventual consistency} is: ``if no new updates are made to an
+object, eventually all reads will return the last updated value''
+\cite{Bailis:2013jc,Burckhardt:2014hy,Terry:1994fp,Vogels:2009ca}. However, this property is very
+weak: it does not define what happens if the updates to the object never cease, nor does it
+constrain the values that reads may return before consistency is eventually reached.
 
-As discussed in Section~\ref{sect.introduction}, peer-to-peer networks have no such central server
-that can be assumed to be always reachable. It is possible to provide the same ordering guarantee in
-peer-to-peer networks; this abstraction is known as \emph{total order broadcast} or \emph{atomic
-broadcast} \cite{Cachin:2011wt}. However, it is expensive: total order broadcast is equivalent to
-consensus \cite{Chandra:1996cp}, making it unattainable in the asynchronous model.
+\emph{Strong eventual consistency} (SEC) is a more refined definition that we can use in this
+context \cite{Shapiro:2011un}. It requires \emph{convergence} of replicas, which is defined
+informally as: ``whenever any two replicas have delivered the same set of updates, they have
+equivalent state'' (we present our formal definition in Section~\ref{sect.convergence}). Two states
+are equivalent if all reads return the same result in both states. A replica can perform reads and
+writes using only its local state, without waiting for network communication, and exchange updates
+with other replicas asynchronously when a network connection is available. This definition
+constrains the values that reads may return at any time, making it a stronger property than eventual
+consistency.
 
-Even if we introduce timing assumptions, total order broadcast requires a quorum of nodes (typically
-a majority) to be reachable in order to make progress; in a peer-to-peer network of mobile devices,
-it is likely that less than a majority of devices is online at any one time, and so an algorithm for
-total order broadcast would be stalled. If we require any subset of nodes to be able to synchronize
-data independently from the remaining nodes (for example, two devices connected by a wireless link
-but disconnected from the internet), we cannot rely on total order broadcast, and must assume weaker
-ordering guarantees in the network.
-
-\subsection{Collaborative Editing and Data Synchronization}\label{sect.datasync}
-
-In a strongly consistent system, as long as a node is disconnected (also known as
-\emph{partitioned}) from all other nodes, read and write operations cannot return on that node,
-because they need to wait for communication with other nodes to complete in order to find out about
-writes that occurred on other nodes. This observation is popularly known as the CAP theorem
-\cite{Gilbert:2002il}, and it makes linearizability impossible for applications that need to
-continue working if a network connection is slow or unavailable.
-
-On the other hand, SEC systems can serve reads and writes entirely from a local replica without
-waiting for network communication, and exchange updates with other replicas asynchronously when a
-network connection is available. For example, this mode of data exchange is familiar from calendar
-sync on mobile devices: a user can view and enter calendar entries while the device is offline, and
-any changes are propagated to replicas of the calendar on other devices when an internet connection
-is available.
-
-\subsubsection{The Need for Conflict Resolution}
-
-In SEC systems, different replicas may concurrently execute conflicting operations without being
-aware of each other, causing their states to diverge, and requiring \emph{conflict resolution}
-(reconciliation) at a later time. Some systems place the burden of conflict resolution on the user,
-or leave it to application code, which is often error-prone (for example, \citet{DeCandia:2007ui}
-describe an anomaly at Amazon that arose due to poor conflict resolution). The definition of SEC
-requires convergence, which implies automatic conflict resolution: the replication algorithm must
-ensure that once the updates have been propagated, the states of replicas are equivalent.
-
-The simplest way of achieving convergence is a \emph{last write wins} (LWW) policy, in which a
-unique timestamp is assigned to each version of the data structure, and when there is a conflict,
-the system picks the version with the highest timestamp. In this approach, concurrent updates with a
-lower timestamp are simply discarded. Although LWW achieves convergence, it does so at the cost of
-losing user input, which is often unacceptable. Better algorithms are able to preserve concurrent
-updates while still ensuring automatic convergence.
-
-\subsubsection{Conflict-Free Replicated Data Types (CRDTs)}
-
-Some operations, such as addition of numbers, are naturally commutative. Thus, if the replicated
-data structure is a number whose value can only be incremented or decremented (a counter),
-convergence can be achieved by applying the increment and decrement operations in any order at each
-replica.
-
-\emph{Conflict-free replicated data types} (CRDTs) generalize this idea to other data structures and
-operations
-\cite{Shapiro:2011wy,Shapiro:2011un,Roh:2011dw,Preguica:2009fz,Oster:2006wj,Weiss:2010hx,Nedelec:2013ky,Kleppmann:2016ve}.
-For example, an ordered list (sequence) of values can be modified by inserting or deleting elements
-at specified positions, and a map (dictionary) datatype can be modified by setting the value
-associated with a key or deleting a key-value pair from the map. In a CRDT, those modification
-operations are made commutative by attaching additional metadata to the data structure.
-
-Three families of CRDTs are distinguished in the literature:
-\begin{description}
-\item[Operation-based CRDTs] construct update operations such that they are commutative. Every
-update operation that is performed on one replica is broadcast to other replicas, where the
-operation is applied when it is delivered. Due to the commutativity of operations, replicas converge
-towards the same state, even when each node applies the operation in a different order.
-\item[State-based CRDTs] do not capture individual update operations, but instead broadcast the
-entire state of a replica after it has changed. The CRDT defines a \emph{merge} function over a
-join-semilattice, allowing states to be combined such that the result reflects changes made in
-either replica.
-\item[$\delta$-CRDTs] \cite{Almeida:2015fc} are a middle ground between operation-based and state-based
-CRDTs: rather than broadcasting the entire state after an update, they only send deltas reflecting
-the modification. Like state-based CRDTs, $\delta$-CRDTs are based on an associative, commutative,
-and idempotent merge operation, whereas operation-based CRDTs only use operation commutativity.
-\end{description}
-
-In this paper we focus on operation-based CRDTs, and in particular the RGA algorithm for ordered
-lists described in Section~\ref{sect.rga.background}. For this algorithm, we formally prove the
-commutativity of operations, and prove that it achieves convergence on an asynchronous network.
-
-\subsubsection{Operational Transformation (OT)}
-
-Another family of algorithms for achieving convergence of replicas uses the \emph{operational
-transformation} (OT) approach
-\cite{Ellis:1989ue,Ressel:1996wx,Oster:2006tr,Sun:1998vf,Sun:1998un,Suleiman:1998eu,Nichols:1995fd}.
-These algorithms are intended for collaborative editing, that is, multiple users concurrently
-modifying a document on their local device, and propagating updates asynchronously to other users'
-devices. The replicated data structure is usually assumed to be a text document, represented as an
-ordered list of characters that may be modified by inserting or deleting characters at arbitrary
-positions in the string.
-
-Unlike CRDTs, in which update operations are commutative by definition, OT allows non-commutative
-operations. Instead, OT relies on \emph{transforming} concurrent operations, allowing them to be
-reordered on different nodes while ensuring the same outcome. For example, if two nodes started in
-the same state, and then concurrently generated operations $\mathit{op}_1$ and $\mathit{op}_2$
-respectively, the transformation $T$ of those operations must satisfy
-\[
-  T(\mathit{op}_1, \mathit{op}_2) = (\mathit{op}_1', \mathit{op}_2') \quad\text{ such that }\quad
-  \mathit{op}_1 \circ \mathit{op}_2' \equiv \mathit{op}_2 \circ \mathit{op}_1' \;.
-\]
-
-This property is known as the \emph{transformation property 1} ($\mathit{TP}_1$), as defined by
-\citet{Ressel:1996wx}. It allows two operations that were generated concurrently to be applied
-sequentially in different orders at each replica. It is sufficient for ensuring convergence in
-systems that deliver operations in the same order to all replicas, for example by sequencing them
-through a central server. This design was originally pioneered by the Jupiter system
-\cite{Nichols:1995fd} and is now used by all widely-deployed OT-based collaboration systems,
-including Google Docs \cite{DayRichter:2010tt}, Microsoft Word Online, Etherpad
-\cite{Etherpad:2011um}, and Novell Vibe \cite{Spiewak:2010vw}.
-
-However, in decentralized systems that cannot ensure total order broadcast
-(Section~\ref{sect.central.vs.p2p}), the $\mathit{TP}_1$ property is not sufficient, and the
-transformation must also satisfy a second, more subtle property $\mathit{TP}_2$
-\cite{Ressel:1996wx}. This latter property has a checkered history: several OT algorithms have
-claimed to satisfy $\mathit{TP}_2$, but were later shown to be incorrect
-\cite{Imine:2003ks,Imine:2006kn,Oster:2005vi}. It has even been shown that in the classic
-formulation of OT it is impossible to achieve $\mathit{TP}_2$ \cite{Randolph:2015gj}, and that the
-transformation needs to be defined differently in order to satisfy this property
-\cite{Oster:2006tr}.
-
-Hand-written proofs of the $\mathit{TP}_2$ property are laborious and difficult to check by hand
-\cite{Li:2008hw,Li:2005jq}, so several OT algorithms have been presented without proof.
-\citet{Suleiman:1998eu} developed transformation functions with a hand-written proof of
-$\mathit{TP}_2$, but \citet{Oster:2005vi} showed that this proof was incorrect.
-\citet{Imine:2003ks} used a theorem prover to check $\mathit{TP}_2$ for their transformation
-functions, but unfortunately there was an error in the specification, as documented by
-\citet{Oster:2005vi}: it relied on an assumption that was not guaranteed by the algorithm, making
-the proofs invalid. Removing the incorrect assumption yielded a counterexample that violated
-$\mathit{TP}_2$.
-
-In our formalization we hope to avoid the trap of making incorrect assumptions by proving not only
-the commutativity of operations, but also that the preconditions of operations are guaranteed to
-hold in all executions of our network model. The network model in turn is specified by a small set
-of axioms whose correctness can be robustly defended.
-
-\subsection{Causality and the Happens-Before Relation}\label{sect.causality}
-
-Most operation-based CRDTs and OT algorithms require that operations are processed in an order that
-is \emph{consistent with causality}. Informally, this means that later operations may depend on
-earlier operations; for example, the deletion of a list element depends on the prior insertion of
-that list element. It makes no sense for a replica to apply the deletion before it applies the
-insertion, because that would mean deleting an element that does not yet exist at that time.
-
-In this context, referring to operations as ``earlier'' or ``later'' does not mean comparing the
-physical time in UTC at which those operations occurred; relying on physical time is often
-problematic in distributed systems \cite{Sheehy:2015jm}. Instead we say that an operation
-$\mathit{op}_1$ \emph{happens before} another operation $\mathit{op}_2$ if the node that generated
-$\mathit{op}_2$ ``knew about'' $\mathit{op}_1$ at the time $\mathit{op}_2$ was generated (i.e., if
-$\mathit{op}_1$ had already been applied at that time). If the node knew about $\mathit{op}_1$, then
-$\mathit{op}_2$ may somehow be caused by it, but if it didn't know about $\mathit{op}_1$, we can be
-certain that $\mathit{op}_2$ does not depend on it.
-
-We write $\mathit{op}_1 \prec \mathit{op}_2$ if $\mathit{op}_1$ happens before $\mathit{op}_2$. (In
-the distributed systems literature, the happens-before relation is usually written
-$\mathit{op}_1 \longrightarrow \mathit{op}_2$, but we reserve the arrow to refer to logical
-implication.) Following the definition by \citet{Lamport:1978jq}, we say that
-$\mathit{op}_1 \prec \mathit{op}_2$ if any of the following is true:
-
-\begin{itemize}
-\item $\mathit{op}_1$ and $\mathit{op}_2$ were generated by the same node, and that node generated
-    $\mathit{op}_1$ before it generated $\mathit{op}_2$.
-\item The node that generated $\mathit{op}_2$ had received and applied $\mathit{op}_1$ before it
-    generated $\mathit{op}_2$.
-\item There exists some operation $\mathit{op}_3$ such that
-    $\mathit{op}_1 \prec \mathit{op}_3$ and $\mathit{op}_3 \prec \mathit{op}_2$.
-\end{itemize}
-
-\begin{figure}
-\centering
-\input{happens-before}
-\caption{Illustrating the happens-before relation}\label{fig.happens-before}
-\end{figure}
-
-Figure~\ref{fig.happens-before} illustrates these three cases, and the formalization of this
-definition appears in Section~\ref{sect.network}.
-
-In practice, the happens-before relationship can be captured using vector timestamps
-\cite{Schwarz:1994gl,Fidge:1988tv}, which are used to implement protocols for causally ordered
-delivery \cite{Cachin:2011wt}. As these protocols are widely known and well understood, we leave
-them out of scope for this paper.
-
-\subsection{The Replicated Growable Array (RGA)}\label{sect.rga.background}
-
-In order to develop an intuition for the problems that arise in concurrent editing systems, we now
-discuss an example execution of the \emph{Replicated Growable Array} (RGA) algorithm, a CRDT for
-ordered lists that supports insertion and deletion of arbitrary elements. RGA was developed by
-\citet{Roh:2011dw}, although our presentation of the algorithm more closely follows that of
-\citet{Shapiro:2011wy}. We start with the informal example illustrated in
-Figure~\ref{fig.two-lists}, and leave the formal specification of RGA until Section~\ref{sect.rga}.
-
-There are also other CRDTs for ordered lists, such as Treedoc \cite{Preguica:2009fz}, WOOT
-\cite{Oster:2006wj}, Logoot \cite{Weiss:2010hx}, and LSEQ \cite{Nedelec:2013ky}. In this paper we
-choose to analyze RGA because it is a subtle algorithm that benefits from formal verification
-\cite{Attiya:2016kh}, because it has been shown to have good performance \cite{Mehdi:2011ke}, and
-because it has been generalized to more general data structures such as JSON
-\cite{Kleppmann:2016ve}, enabling our work to be extended towards those more general data structures
-in future.
-
-RGA is based on the idea of assigning a unique identifier (ID) to each list element, and using a
-total ordering relation over IDs to ensure convergence. When the list is modified through insertion
-and deletion operations, the ID of an existing element is used to identify the position in the list
-being modified. Using an ID has the advantage that it continues to refer to the same list element
-regardless of any concurrent operations, whereas list indexes change (for example, inserting a list
-element at the beginning increases the index of every subsequent list element by 1).
-
-We use the logical timestamps defined by \citet{Lamport:1978jq} as IDs.
-
-% In this setting, causally ordered delivery is the strongest
-% guarantee that can reliably be provided \cite{Attiya:2015dm}.
-
-% \subsubsection{Causal Ordering}
-
-% Total order broadcast ensures that when nodes broadcast a set of messages to other nodes on the
-% network, they are delivered in the same order to all recipients. By contrast, causal ordering is a
-% weaker guarantee that allows greater concurrency and thus greater nondeterminism in the network.
-% However, it has the advantage that it makes no assumptions about the number of nodes that are
-% online.
-
-% TODO happens-before
-
-
-% There are two families of algorithms for collaborative editing: \emph{operational transformation}
-% (OT)~\cite{Ellis:1989ue,Ressel:1996wx,Oster:2006tr,Sun:1998vf,Sun:1998un,Suleiman:1998eu,Nichols:1995fd}
-% and \emph{conflict-free replicated datatypes}
-% (CRDTs)~\cite{Shapiro:2011wy,Roh:2011dw,Preguica:2009fz,Oster:2006wj,Weiss:2010hx,Nedelec:2013ky,Kleppmann:2016ve}.
-% Both allow a document to be modified concurrently on different replicas, with changes applied
-% immediately to the local copy, while asynchronously propagating changes to other replicas. The
-% goal of these algorithms is to ensure that for all concurrent executions, the replicas converge
-% toward the same state without any edits being lost, a property known as \emph{strong eventual
-% consistency}~\cite{Shapiro:2011un}.
-
-
-% CRDTs are a more recent development~\cite{Shapiro:2011un}. While OT is based on transforming
-% non-commutative operations so that they have the same effect when reordered, CRDTs define operations
-% in a way that makes them commutative by design, making them more amenable to peer-to-peer settings
-% in which each node may apply edits in a different order. CRDTs also have attractive performance
-% characteristics~\cite{Mehdi:2011ke}.
-
-% TODO Various decentralised algorithms have been proposed and all but one (Oster 2006) have
-% subsequently been shown to be incorrect.
-
-\begin{figure}
-\centering
-\input{rga-example}
-\caption{RGA example}\label{fig.two-lists}
-\end{figure}
+If network interruptions between nodes last only for a finite time, every update can be eventually
+delivered to every non-failed node by re-sending messages until they arrive. Thus, all non-failed
+nodes will eventually deliver the same set of updates (although perhaps in a different order), and
+so SEC will ensure that they all converge to an equivalent state. If nodes are partitioned from each
+other forever, they will not converge, but that is the case for any replication algorithm, since the
+network is assumed to be the only communication channel.
