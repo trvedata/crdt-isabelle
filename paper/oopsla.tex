@@ -593,7 +593,7 @@ Each of the three clauses in the definition of $\isa{hb}$ above corresponds to o
 The fact that the \emph{happens before} relation is a preorder is easily established, and is omitted here.
 
 Our convergence proof requires that our asynchronous networks abide by an additional law: \emph{causality}.
-We say that an asynchronous network is causal if delivery of events corresponding to messages $\isa{m1}$ and $\isa{m2}$ at a node respect the happens before relationship between those two events.
+We say that an asynchronous network is \emph{causal} if delivery of events corresponding to messages $\isa{m1}$ and $\isa{m2}$ at a node respect the happens before relationship between those two events.
 In particular, we only require that the happens before relation's ordering is respected at nodes which have the delivery of the second message in their local histories.
 
 Since causal asynchronous networks are a special form of asynchronous network, we describe these networks with a new local theory.
@@ -609,62 +609,50 @@ Note also that the local theory $causal{\isacharunderscore}network$ is declared 
 
 At this point, we now have sufficient machinery to instantiate the \isa{happens-before} local theory that was defined in Section~\ref{sect.convergence}.
 Doing this requires that we provide a concrete implementation for the happens before relation fixed by that local theory and thereafter proving that it forms indeed a preorder, so this proof obligation can easily be discharged.
-Here, we will use the $\isa{hb}$ inductive relation, defined earlier in this section, as that implementation.
-We have already noted that it does indeed form a preorder.
+Here, we will use the $\isa{hb}$ relation, defined earlier in this section, as that implementation, and we have already noted that this relation does indeed satisfies the laws of a preorder.
 Once interpreted, all functions, definitions, and theorems made within the \isa{happens-before} locale become available to use in the locale \isa{network}, prefixed by \isa{hb}--- a `composing' of the definitions made within the $\isa{happens-before}$ local theory with our $\isa{hb}$ inductive relation.
 In particular, the definitions of \isa{hb.concurrent}, \isa{hb.concurrent-ops-commute} and \isa{hb.hb-consistent}; and the convergence theorem \isa{hb.convergence}.
-This instantiation is achieved in Isabelle by a \isa{sublocale} statement:
+This instantiation is achieved in Isabelle using a \isa{sublocale} statement:
 \\
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{sublocale} hb{\isacharcolon}\ happens{\isacharunderscore}before\ weak{\isacharunderscore}hb\ hb
 \end{isabellebody}
 \vspace{\baselineskip}
+\noindent
+We end this section by describing an analogue of the convergence theorem in Section~\ref{sect.convergence}.
 
-We end this section by describing an analogue of the convergence theorem in Section
+We first define a function, $node{\isacharunderscore}deliver{\isacharunderscore}messages$ which filters a list of events to obtain a list of delivered messages.
+Note in particular that deliver events for messages are the only type of network event that can and will modify the state of a CRDT.
+We therefore only need to consider these messages in our convergence theorem.
+We elide the definition of $node{\isacharunderscore}deliver{\isacharunderscore}messages$ here, as it is a simple filter/map of a node's local history.
 
-Since the deliver event is the only type of event that modifies the state of
-the CRDT dealt with, we can consider the function \isa{node-deliver-messages}
-which maps a list of events to a list of delivered messages.
-
+A node's local history satisfies two important properties in causal asynchronous networks.
+First, the delivered messages of a prefix of a node's history are necessarily distinct:
+\\
 \begin{isabellebody}
-\isanewline
-\isacommand{definition}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ network{\isacharparenright}\ node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ event\ list\ {\isasymRightarrow}\ {\isacharprime}a\ list{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}node{\isacharunderscore}deliver{\isacharunderscore}messages\ cs\ {\isasymequiv}\ List{\isachardot}map{\isacharunderscore}filter\ {\isacharparenleft}{\isasymlambda}e{\isachardot}\ case\ e\ of\ Deliver\ m\ {\isasymRightarrow}\ Some\ m\ {\isacharbar}\ {\isacharunderscore}\ {\isasymRightarrow}\ None{\isacharparenright}\ cs{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{lemma} {\isacharparenleft}\isakeyword{in}\ causal{\isacharunderscore}network{\isacharparenright}\ node{\isacharunderscore}deliver{\isacharunderscore}messages{\isacharunderscore}distinct{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}distinct\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
-
-We can show that for any prefix of the history of a node in the network, their
-delivered messages are distinct and consistent to the happens before relation.
-That is, in any point in time, the messages received by a node are distinct
-and satisfy the consistency requirement defined in Section~\ref{sect.convergence}.
-
+\vspace{\baselineskip}
+Second, the delivered messages of a prefix of a node's history are also necessarily compatible with the happens before relation, the $hb$ relation defined above:
+\\
 \begin{isabellebody}
-\isanewline
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ causal{\isacharunderscore}network{\isacharparenright}\ node{\isacharunderscore}deliver{\isacharunderscore}messages{\isacharunderscore}distinct{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}distinct\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
-
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ causal{\isacharunderscore}network{\isacharparenright}\ hb{\isacharunderscore}consistent{\isacharunderscore}prefix{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isachardot}hb{\isacharunderscore}consistent\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{lemma} {\isacharparenleft}\isakeyword{in}\ causal{\isacharunderscore}network{\isacharparenright}\ hb{\isacharunderscore}consistent{\isacharunderscore}prefix{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isachardot}hb{\isacharunderscore}consistent\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
-
-The convergence theorem can then be refined in this setting to consider
-prefixes of two different nodes with the same set of delivered messages, if
-concurrent messages commute, then both nodes converge to the same state.
-
+\vspace{\baselineskip}
+Taken together, these two properties imply that at any point in time, the messages received by a node are distinct and satisfy the consistency requirement defined in Section~\ref{sect.convergence}.
+With this, the abstract convergence theorem of Section~\ref{sect.convergence} can be refined to consider the prefixes of two different nodes with the same set of delivered messages.
+We then obtain a theorem that states that if concurrent messages commute, then both nodes converge to the same state:
+\\
 \begin{isabellebody}
-\isanewline
-\isacommand{corollary}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ causal{\isacharunderscore}network{\isacharparenright}\ network{\isacharunderscore}convergence{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}
-\ \isakeyword{and}\ {\isachardoublequoteopen}ys\ prefix\ of\ j{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{and}\ {\isachardoublequoteopen}set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb.apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ hb.apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{corollary} {\isacharparenleft}\isakeyword{in}\ causal{\isacharunderscore}network{\isacharparenright}\ network{\isacharunderscore}convergence{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose} \isakeyword{and}\ {\isachardoublequoteopen}ys\ prefix\ of\ j{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose} \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb.apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ hb.apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
