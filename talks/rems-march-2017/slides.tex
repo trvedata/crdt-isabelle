@@ -6,7 +6,7 @@
 \usetheme{metropolis}
 
 \author{Dominic Mulligan \\ Joint work with Victor Gomes, Martin Kleppmann, and Alastair Beresford}
-\title{Verifying Conflict Free Replicated Datatypes}
+\title{A framework for verifying Conflict-free Replicated Data Types (CRDTs)}
 \date{Cambridge-Imperial REMS Meeting, 2017}
 
 \begin{document}
@@ -16,12 +16,31 @@
 \end{frame}
 
 \begin{frame}
+\frametitle{Distributed systems: quick introduction}
+Distributed systems characterised by:
+\begin{itemize}
+\item
+A number of nodes/processes
+\item
+Potentially widely geographically distributed
+\item
+Performing local processing
+\item
+Passing message back and forth across a network
+\end{itemize}
+\onslide<2->{
+Implicit shared global state}
+\end{frame}
+
+\begin{frame}
 \frametitle{Consistency models in distributed systems}
 \onslide<1->{
-\emph{Strong consistency} model impossible or costly to achieve}
+\emph{Strong consistency} model: e.g. in relational databases
+\\[1.5ex]
+Costly to achieve, or not desired: e.g. in calendar applications}
 \\[1.5ex]
 \onslide<2->{
-Must seek weaker consistency guarantees
+Various weaker consistency guarantees
 \\[1.5ex]
 Popular alternative is \emph{eventual consistency}}
 \\[1.5ex]
@@ -132,13 +151,17 @@ State based CRDTs: broadcast entire state of replica when it changes
 Delta-CRDTs: broadcast changes to states, not entire states
 \end{itemize}}
 \onslide<2->{
+Operation based CRDTs require stronger network behaviour
+\\[1.5ex]
 We consider operation based CRDTs in this work}
 \end{frame}
 
 \begin{frame}
 \frametitle{Why is verification necessary here?}
 \onslide<1->{
-\emph{Operational Transformation} is a closely related technique}
+\emph{Operational Transformation} is a closely related technique
+\\[1.5ex]
+Technology behind Google Documents}
 \\[1.5ex]
 \onslide<2->{
 Algorithms have claimed to satisfy $TP_2$ but later shown incorrect}
@@ -150,13 +173,13 @@ Algorithms have been presented without any proof}
 In classic formulation of OT, later shown impossible to achieve $TP_2$}
 \\[1.5ex]
 \onslide<5->{
-Hand-written proofs of convergence tend to be gigantic}
+Hand-written proofs of convergence tend to be long and complex}
 \\[1.5ex]
 \onslide<6->{
 Several wrong machine checked proofs presented (!)}
 \\[1.5ex]
 \onslide<7->{
-Moral: reasoning about replicated data structures is hard}
+Moral: reasoning about distributed systems is hard}
 \end{frame}
 
 \begin{frame}
@@ -172,7 +195,7 @@ Wrong axioms are therefore hard to spot
 Need to think of all possible network behaviours to spot them!}
 \\[1.5ex]
 \onslide<3->{
-Moral: need end-to-end verification to ensure correctness
+Claim: need end-to-end verification to ensure correctness
 \\[1.5ex]
 Ensure required properties hold in all network executions}
 \end{frame}
@@ -206,7 +229,7 @@ In one component, we:
 \item
 Model a standard class of networks, axiomatically
 \item
-Our axioms are easy to defend
+Our axioms are easy to defend, only 5 of them
 \item
 Use standard broadcast/deliver event model for network
 \item
@@ -251,6 +274,8 @@ In a final component, we:
 \item
 Formalise the Replicated Growable Array (RGA) CRDT
 \item
+Another technology for implementing e.g. shared-documenting editing
+\item
 Show operations commute with themselves, and with each other, under assumptions
 \item
 Work in terms of insert/delete messages with concrete elements to insert into array
@@ -289,6 +314,27 @@ Then applying these insert/delete operations to an initial state yields the same
 \\[1.5ex]
 \onslide<5->{
 Convergence, from definition of strong eventual consistency}
+\end{frame}
+
+\begin{frame}
+\frametitle{A note}
+Abstract convergence theorem does not mention:
+\begin{itemize}
+\item
+Network,
+\item
+Concrete CRDT implementation
+\end{itemize}
+\onslide<2->{
+Purely a theorem about preorders, and lists of ordered elements
+\\[1.5ex]
+Claim: this theorem is `essence' of CRDT convergence}
+\\[1.5ex]
+\onslide<3->{
+If true, other CRDTs should be verifiable using it}
+\\[1.5ex]
+\onslide<4->{
+Distributed increment/decrement counter: 40 lines of Isabelle}
 \end{frame}
 
 \begin{frame}
