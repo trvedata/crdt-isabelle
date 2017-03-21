@@ -2,6 +2,7 @@
 
 \usepackage[british]{babel}
 \usepackage{microtype}
+\usepackage{prooftree}
 
 \usetheme{metropolis}
 
@@ -355,6 +356,72 @@ Must use end-to-end verification for confidence}
 Developed a framework for end-to-end verification of CRDTs
 \\[1.5ex]
 Verified RGA CRDT implementation as an example}
+\end{frame}
+
+\begin{frame}
+\frametitle{Our network axioms}
+Write $hist_i$ for local (totally ordered) history of node $i$
+\\[1.5ex]
+Write $m \sqsubset^i n$ for local message ordering at node $i$
+\\[1.5ex]
+Write $mid_m$ for message identifier of message $m$
+\\[1.5ex]
+All messages are either a $Broadcast$ or a $Delivery$
+\end{frame}
+
+\begin{frame}
+\frametitle{Delivery has a cause}
+\begin{displaymath}
+Deliver\ m \in hist_i \longrightarrow \exists j.\ Broadcast\ m \in hist_j
+\end{displaymath}
+\end{frame}
+
+\begin{frame}
+\frametitle{Deliver locally}
+\begin{displaymath}
+Broadcast\ m \in hist_i \longrightarrow Broadcast\ m \sqsubset^i Deliver\ m
+\end{displaymath}
+\end{frame}
+
+\begin{frame}
+\frametitle{Message identifiers unique}
+\begin{gather*}
+Broadcast\ m \in hist_i\ \wedge \\
+Broadcast\ n \in hist_j\ \wedge \\
+mid_m = mid_n \longrightarrow m = n \wedge i = j
+\end{gather*}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Causal networks}
+Write $hb\ m\ n$ for happens before relation, defined by:
+\vspace{\baselineskip}
+\begin{gather*}
+\begin{prooftree}
+Broadcast\ m \sqsubset^i Deliver\ n
+\justifies
+hb\ m\ n
+\end{prooftree}
+\\[3ex]
+\begin{prooftree}
+Deliver\ m \sqsubset^i Broadcast\ n
+\justifies
+hb\ m\ n
+\end{prooftree}
+\\[3ex]
+\begin{prooftree}
+hb\ m\ n \quad hb\ n\ o
+\justifies
+hb\ m\ o
+\end{prooftree}
+\end{gather*}
+\end{frame}
+
+\begin{frame}
+\frametitle{Causality}
+\begin{displaymath}
+Deliver\ m \in hist_j \wedge hb\ n\ m \longrightarrow Deliver\ n \sqsubset^j Deliver\ m
+\end{displaymath}
 \end{frame}
 
 \end{document}
