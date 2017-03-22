@@ -670,27 +670,31 @@ We then obtain a theorem that states that if concurrent messages commute, then b
 \section{Replicated Growable Array}
 \label{sect.rga}
 
-\subsection{Operations definitions}
-\label{sect.rga.operations}
+In this section, we discuss our implementation of the Replicated Growable Array (RGA) CRDT, and various theorems related to its correctness.
+We finish the section with a proof that the RGA implementation converges.
 
-We use Isabelle's functional list to implement RGAs. We provide two operations:
-insertion and deletion. Any operations that do not modify the list can easily be
-added without changing its correctness. Update functions can be seen as
-combination of deletion and insertion.
+\noindent
+\paragraph{Definition}
+The RGA is a replicated sequential data type supporting two operations: \emph{insert} and \emph{delete}.
+Two aspects of the RGA ensure convergence.
+First, all elements stored in the list have associated identifiers, which are totally ordered, with the RGA's insertion operation ensuring any new element inserted into the list is placed in the `correct' place with respect to that ordering.
+Second, the RGA's delete operation does not \emph{remove} elements from the list, but merely flips a `tombstone' flag associated with the element to indicate that the element is marked as having been deleted.
+Properly working with the RGA, for example in an application which wishes to print out the elements stored in the array, therefore requires that the application layer be made aware of these tombstones.
 
-An item in the array is a tuple composed of an unique identifier, an arbitrary
-element (the data to be stored) and a boolean flag, which indicates if the
-element is still presented in the array or was deleted by some node.  Setting
-this flag to true is the equivalent of making a \emph{tombstone} in
-\cite{Roh:2011dw}'s implementation. In addition, we assume that the identifiers
-form a total linear order.
-
+Accordingly, we fix a type of `elements' which will be stored in our RGA implementation:
+\\
 \begin{isabellebody}
-\isanewline
-\isacommand{type{\isacharunderscore}synonym}\isamarkupfalse%
-\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ {\isacharequal}\ {\isachardoublequoteopen}{\isacharprime}id\ {\isasymtimes}\ {\isacharprime}v\ {\isasymtimes}\ bool{\isachardoublequoteclose}%
-\isanewline
+\ \ \ \ \ \ \ \ \isacommand{type{\isacharunderscore}synonym} {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ {\isacharequal}\ {\isachardoublequoteopen}{\isacharprime}id\ {\isasymtimes}\ {\isacharprime}v\ {\isasymtimes}\ bool{\isachardoublequoteclose}%
 \end{isabellebody}
+\vspace{\baselineskip}
+Here, we instruct Isabelle/HOL to treat the type ${\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt$ as a mere alias for the product type ${\isacharprime}id\ {\isasymtimes}\ {\isacharprime}v\ {\isasymtimes}\ bool$.
+Note that the type alias is parameterised by two type variables, ${\isacharprime}id$ and ${\isacharprime}v$, the former of which stands for some arbitrary type of identifiers, whilst the latter stands for the type of data we are actually trying to stored in the RGA.
+The last component of the product is the boolean tombstone flag, indicating deletion, as discussed above.
+
+We now define the RGA's insertion operation.
+An element may be inserted at the head (or first position) of an RGA, or may be inserted into the body.
+As a result, in our formalisation, we found it easier to factor the definition of insertion into two functions.
+The first function, $\isa{insert-body}$ never fails, and is used by the main insertion function, $\isa{insert}$, to insert an element at the head of the list.
 
 The function \isa{insert\ xs\ e\ i} adds an element \isa{e} to the list
 \isa{xs} after the element with identifier \isa{i}. More precisely, it first
