@@ -327,6 +327,72 @@ using assms
   using prefix_to_carriers apply auto
 done
 
+lemma (in network) prefix_contains_msg:
+  assumes "es prefix of i"
+      and "m \<in> set (node_deliver_messages es)"
+    shows "Deliver m \<in> set es"
+using assms
+  apply(auto simp: node_deliver_messages_def map_filter_def split: event.split_asm)
+done
+
+lemma (in network) node_deliver_messages_distinct:
+  assumes "xs prefix of i"
+  shows "distinct (node_deliver_messages xs)"
+using assms
+  apply(induction xs rule: rev_induct)
+  apply simp
+  apply(clarsimp simp add: node_deliver_messages_append)
+  apply safe
+  apply force
+  apply(clarsimp simp: node_deliver_messages_def map_filter_def)
+  apply clarsimp
+  apply(frule prefix_distinct)
+  apply clarsimp
+  apply(subst (asm) node_deliver_messages_def) back back back
+  apply(clarsimp simp add: map_filter_def)
+  apply(case_tac x; clarsimp)
+  apply(subst (asm) node_deliver_messages_def) back
+  apply(clarsimp simp add: map_filter_def)
+  apply(case_tac x; clarsimp)
+done
+
+lemma (in network) drop_last_message:
+  assumes "evts prefix of i"
+  and "node_deliver_messages evts = msgs @ [last_msg]"
+  shows "\<exists>pre. pre prefix of i \<and> node_deliver_messages pre = msgs"
+using assms apply -
+  apply(subgoal_tac "\<exists>pre suf. evts = pre @ (Deliver last_msg) # suf \<and> node_deliver_messages suf = []")
+  apply(erule exE)+
+  apply(simp)
+  apply(rule_tac x=pre in exI)
+  apply(rule conjI)
+  using prefix_of_appendD apply blast
+  apply(subgoal_tac "node_deliver_messages ([Deliver last_msg] @ suf) = [last_msg]")
+  apply(simp add: node_deliver_messages_append)
+  apply(metis append_Nil2 node_deliver_messages_append node_deliver_messages_Deliver)
+  apply(subgoal_tac "Deliver last_msg \<in> set evts")
+  defer
+  apply(simp add: prefix_contains_msg)
+  apply(subgoal_tac "\<exists>idx. idx < length evts \<and> evts ! idx = Deliver last_msg")
+  apply(erule exE)
+  apply(subgoal_tac "\<exists>pre suf. evts = pre @ (evts ! idx) # suf")
+  defer
+  using list_nth_split_technical id_take_nth_drop apply blast
+  apply(simp add: set_elem_nth)
+  apply(erule exE)+
+  apply(rule_tac x=pre in exI, rule_tac x=suf in exI)
+  apply(rule conjI, simp, simp)
+  apply(subgoal_tac "node_deliver_messages (pre @ Deliver last_msg # suf) =
+         (node_deliver_messages pre) @ (node_deliver_messages (Deliver last_msg # suf))")
+  apply(subgoal_tac "node_deliver_messages ([Deliver last_msg] @ suf) = [last_msg] @ []")
+  apply(metis node_deliver_messages_Deliver node_deliver_messages_append self_append_conv)
+  apply(auto simp add: node_deliver_messages_append)
+  apply(subgoal_tac "node_deliver_messages ([Deliver last_msg] @ suf) = [last_msg] @ []")
+  apply(simp add: node_deliver_messages_append)
+  apply(metis append_Cons node_deliver_messages_Deliver node_deliver_messages_append
+    node_deliver_messages_distinct not_Cons_self2 pre_suf_eq_distinct_list self_append_conv2)
+done
+
 locale network_with_ops = causal_network history
   for history :: "nat \<Rightarrow> 'msg event list" +
   fixes interp :: "'msg \<Rightarrow> 'state \<rightharpoonup> 'state"
@@ -355,27 +421,6 @@ end
 abbreviation (in network_with_ops) apply_operations :: "'msg event list \<rightharpoonup> 'state" where
   "apply_operations es \<equiv> hb.apply_operations (node_deliver_messages es) initial_state"
 
-lemma (in network_with_ops) node_deliver_messages_distinct:
-  assumes "xs prefix of i"
-  shows "distinct (node_deliver_messages xs)"
-using assms
-  apply(induction xs rule: rev_induct)
-  apply simp
-  apply(clarsimp simp add: node_deliver_messages_append)
-  apply safe
-  apply force
-  apply(clarsimp simp: node_deliver_messages_def map_filter_def)
-  apply clarsimp
-  apply(frule prefix_distinct)
-  apply clarsimp
-  apply(subst (asm) node_deliver_messages_def) back back back
-  apply(clarsimp simp add: map_filter_def)
-  apply(case_tac x; clarsimp)
-  apply(subst (asm) node_deliver_messages_def) back
-  apply(clarsimp simp add: map_filter_def)
-  apply(case_tac x; clarsimp)
-  done
-    
 lemma (in network_with_ops) hb_consistent_technical:
   assumes "\<And>m n. m < length cs \<Longrightarrow> n < m \<Longrightarrow> cs ! n \<sqsubset>\<^sup>i cs ! m"
   shows   "hb.hb_consistent (node_deliver_messages cs)"
