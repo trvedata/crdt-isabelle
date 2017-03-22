@@ -812,47 +812,63 @@ This is shown in the following lemma:
 
 \paragraph{RGA-Network}
 
-We now refine our network with two types of messages, corresponding to the two
-possible operations. The correspondence is made by an interpretation function
-\isa{interpret-opers}.
-
+The RGA replicated data type only converges when its insert and delete operations are used in a certain mode.
+Informally, one may think of an associated `protocol' which guarantees that the RGA will converge providing that users only call insert and delete operations in a certain order.
+We now refine our model of the network, considering only those network executions which follow this RGA `protocol', which is made manifest as three new laws---relating broadcast and deliver events---that networks must possess.
+In this new setting, we also refine the type of messages being passed around the network.
+We now work with a concrete type of messages, which corresponds to the $\isa{insert}$ and $\isa{delete}$ operations supported by the RGA:
+\\
 \begin{isabellebody}
-\isanewline
-\isacommand{datatype}\isamarkupfalse%
-\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ operation\ {\isacharequal}\isanewline
-\ \ Insert\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt{\isachardoublequoteclose}\ {\isachardoublequoteopen}{\isacharprime}id\ option{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ Delete\ {\isachardoublequoteopen}{\isacharprime}id{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{datatype} {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ operation\ \isanewline
+\ \ \ \ \ \ \ \ \ \ {\isacharequal} Insert\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt{\isachardoublequoteclose}\ {\isachardoublequoteopen}{\isacharprime}id\ option{\isachardoublequoteclose}\ \isanewline
+\ \ \ \ \ \ \ \ \ \ {\isacharbar} Delete\ {\isachardoublequoteopen}{\isacharprime}id{\isachardoublequoteclose}
 \end{isabellebody}
-
+\vspace{\baselineskip}
+Here, the $\isa{Insert}$ constructor of the $\isa{operation}$ data type packages up an element to be inserted into the RGA, and a position in which to insert it, whereas the $\isa{Delete}$ constructor packages the identifier of the element to be deleted.
+The connection between the $\isa{operation}$ data type, and the RGA's supported operations, is made apparent using the $\isa{interpret-opers}$ function, which decodes a message (of type $\isa{operation}$) and lifts it into a partial function from lists of elements to lists of elements:
+\\
 \begin{isabellebody}
-\isacommand{fun}\isamarkupfalse%
-\ interpret{\isacharunderscore}opers\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}linorder{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ operation\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymrightharpoonup}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list{\isachardoublequoteclose}\ {\isacharparenleft}{\isachardoublequoteopen}{\isasymlangle}{\isacharunderscore}{\isasymrangle}{\isachardoublequoteclose}\ {\isacharbrackleft}{\isadigit{0}}{\isacharbrackright}\ {\isadigit{1}}{\isadigit{0}}{\isadigit{0}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}interpret{\isacharunderscore}opers\ {\isacharparenleft}Insert\ e\ n{\isacharparenright}\ xs\ \ {\isacharequal}\ insert\ xs\ e\ n{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ {\isachardoublequoteopen}interpret{\isacharunderscore}opers\ {\isacharparenleft}Delete\ n{\isacharparenright}\ \ \ xs\ \ {\isacharequal}\ delete\ xs\ n{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{fun} interpret{\isacharunderscore}opers\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}linorder{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ operation\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymrightharpoonup}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list{\isachardoublequoteclose}\ {\isacharparenleft}{\isachardoublequoteopen}{\isasymlangle}{\isacharunderscore}{\isasymrangle}{\isachardoublequoteclose}\ {\isacharbrackleft}{\isadigit{0}}{\isacharbrackright}\ {\isadigit{1}}{\isadigit{0}}{\isadigit{0}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}interpret{\isacharunderscore}opers\ {\isacharparenleft}Insert\ e\ n{\isacharparenright}\ xs\ \ {\isacharequal}\ insert\ xs\ e\ n{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}interpret{\isacharunderscore}opers\ {\isacharparenleft}Delete\ n{\isacharparenright}\ \ \ xs\ \ {\isacharequal}\ delete\ xs\ n{\isachardoublequoteclose}
 \end{isabellebody}
-
-We instantiate the network locale with the given interpretation function and
-assume \emph{healthiness} conditions for the network. First, we assume that a
-node is only allowed to broadcast a message \isa{Insert\ e\ n} if \isa{n} is
-\isa{None}, that is, the node is inserting the element at the head of the list,
-or the node has received previously an insertion message in which the element
-to be inserted had id \isa{n} (\isa{allowed-insert}). Second, if two nodes
-\isa{i} and \isa{j} try to broadcast insertions of elements with the same id,
-then the messages are the same (\isa{insert-id-unique}). Furthermore, one can
-prove that \isa{i} is equal to \isa{j}, since every broadcasted message is
-unique. Finally, similarly if a node broadcast a message \isa{Delete n}, then
-it has previously received an insertion message in which the element inserted
-had id \isa{n} (\isa{allowed-delete}).
-
+\vspace{\baselineskip}
+We now begin to develop the RGA `protocol'.
+First, we introduce a small extension of the $\isa{causal-network}$ local theory, which we call a $\isa{network-with-ops}$:
+\\
 \begin{isabellebody}
-\isanewline
+\ \ \ \ \ \ \ \ \isacommand{locale} network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharequal}\ causal{\isacharunderscore}network\ history\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{for}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharprime}a\ event\ list{\isachardoublequoteclose}\ {\isacharplus}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ interp\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}b\ {\isasymrightharpoonup}\ {\isacharprime}b{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{\baselineskip}
+Intuitively, this local theory does not do much more than $\isa{causal-network}$ does, other than provide a fixed function called $\isa{interp}$ which interprets an abstract message and produces a partial function that transforms states.
+Here, `states' are also kept abstract, simply modelled as a type variable, ${\isacharprime}b$, at this stage.
+
+We now extend $\isa{network-with-ops}$, instantiating the interpretation function with the $\isa{interpret-opers}$ function above, which decodes RGA messages and maps lists to lists.\footnote{One may wonder why we define the $\isa{network-with-ops}$ local theory at all.
+Why not, instead, push $\isa{interp}$ into the $\isa{rga}$ local theory?
+The $\isa{rga}$ local theory is CRDT-specific, tied intimately to the RGA CRDT being verified here, and any convergence proof for another CRDT will define a new local theory specific to that CRDT, describing `legal' network executions.
+On the other hand, $\isa{network-with-ops}$ is a piece of generic proof machinery that can be shared amongst multiple CRDT convergence proofs.}
+Further, we add three new laws to the network, describing the RGA `protocol':
+\begin{enumerate}
+\item
+A node may only broadcast an insert message when trying to insert into the head of the list, or if trying to insert after some element already existing in the list, the node has previously received an insertion message for some element with the identifier of the element to insert after.
+\item
+If two nodes try to broadcast insert messages of elements with the same identifier then the messages are the same.
+In short, every broadcast message is unique.
+\item
+A node may only broadcast a delete message for some element if it has previously received an insert message for an element with the same identifier.
+\end{enumerate}
+We define a new local theory, $\isa{rga}$, which captures these three laws, extending the $\isa{causal-network}$ local theory, and specialising it:
+\\
+\begin{isabellebody}
 \isacommand{locale}\isamarkupfalse%
 \ rga\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharunderscore}\ interpret{\isacharunderscore}opers\ {\isacharplus}\isanewline
 \ \ \isakeyword{assumes}\ allowed{\isacharunderscore}insert{\isacharcolon}\ {\isachardoublequoteopen}Broadcast\ {\isacharparenleft}Insert\ e\ n{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ \isanewline
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n\ {\isacharequal}\ None\ {\isasymor}\ {\isacharparenleft}{\isasymexists}e{\isacharprime}\ n{\isacharprime}{\isachardot}\ n\ {\isacharequal}\ Some\ {\isacharparenleft}fst\ e{\isacharprime}{\isacharparenright}\ {\isasymand}\ Deliver\ {\isacharparenleft}Insert\ e{\isacharprime}\ n{\isacharprime}{\isacharparenright}\ {\isasymsqsubset}\isactrlsup i\ Broadcast\ {\isacharparenleft}Insert\ e\ n{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}\isanewline
 \ \ \isakeyword{and}\ insert{\isacharunderscore}id{\isacharunderscore}unique{\isacharcolon}\ {\isachardoublequoteopen}{\isasymlbrakk}fst\ e{\isadigit{1}}\ {\isacharequal}\ fst\ e{\isadigit{2}};\ Broadcast\ {\isacharparenleft}Insert\ e{\isadigit{1}}\ n{\isadigit{1}}{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright};\ Broadcast\ {\isacharparenleft}Insert\ e{\isadigit{2}}\ n{\isadigit{2}}{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}{\isasymrbrakk}\ {\isasymLongrightarrow}\isanewline
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Insert\ e{\isadigit{1}}\ n{\isadigit{1}}\ {\isacharequal}\ Insert\ e{\isadigit{2}}\ n{\isadigit{2}}{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{and}\ allowed{\isacharunderscore}delete{\isacharcolon}\ {\isachardoublequoteopen}Broadcast\ {\isacharparenleft}Delete\ x{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ {\isacharparenleft}{\isasymexists}n{\isacharprime}\ v\ b{\isachardot}\ Deliver\ {\isacharparenleft}Insert\ {\isacharparenleft}x{\isacharcomma}\ v{\isacharcomma}\ b{\isacharparenright}\ n{\isacharprime}{\isacharparenright}\ {\isasymsqsubset}\isactrlsup i\ Broadcast\ {\isacharparenleft}Delete\ x{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{and}\ allowed{\isacharunderscore}delete{\isacharcolon}\ {\isachardoublequoteopen}Broadcast\ {\isacharparenleft}Delete\ x{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ {\isacharparenleft}{\isasymexists}n{\isacharprime}\ v\ b{\isachardot}\ Deliver\ {\isacharparenleft}Insert\ {\isacharparenleft}x{\isacharcomma}\ v{\isacharcomma}\ b{\isacharparenright}\ n{\isacharprime}{\isacharparenright}\ {\isasymsqsubset}\isactrlsup i\ Broadcast\ {\isacharparenleft}Delete\ x{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 
 Under these assumptions, it is straightforward to prove that the
