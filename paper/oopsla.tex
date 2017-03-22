@@ -676,10 +676,13 @@ We finish the section with a proof that the RGA implementation converges.
 \noindent
 \paragraph{Definition}
 The RGA is a replicated sequential data type supporting two operations: \emph{insert} and \emph{delete}.
-Two aspects of the RGA ensure convergence.
-First, all elements stored in the list have associated identifiers, which are totally ordered, with the RGA's insertion operation ensuring any new element inserted into the list is placed in the `correct' place with respect to that ordering.
+Three aspects of the RGA ensure convergence.
+First, all elements stored in the list have associated identifiers, which are totally ordered, with the insertion operation using this ordering to find a suitable index to place an element into the list.
 Second, the RGA's delete operation does not \emph{remove} elements from the list, but merely flips a `tombstone' flag associated with the element to indicate that the element is marked as having been deleted.
 Properly working with the RGA---for example in an application which wishes to print out the elements stored in the array---therefore requires that the application layer be made aware of these tombstones.
+Finally, the RGA---like many CRDTs---comes with preconditions on its operations that are guaranteed by a `protocol', or restriction on message event histories within the network.
+These restrictions are reflected as hypotheses in our convergence theorems, presented below, and are reified as a new local theory, within Isabelle, specialising the network local theories presented in previous sections to capture those network behaviours that respect the RGA protocol.
+This will be further discussed below.
 
 Accordingly, we fix a type of `elements' which will be stored in our RGA implementation:
 \\
@@ -687,95 +690,93 @@ Accordingly, we fix a type of `elements' which will be stored in our RGA impleme
 \ \ \ \ \ \ \ \ \isacommand{type{\isacharunderscore}synonym} {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ {\isacharequal}\ {\isachardoublequoteopen}{\isacharprime}id\ {\isasymtimes}\ {\isacharprime}v\ {\isasymtimes}\ bool{\isachardoublequoteclose}%
 \end{isabellebody}
 \vspace{\baselineskip}
-Here, we instruct Isabelle/HOL to treat the type ${\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt$ as a mere alias for the product type ${\isacharprime}id\ {\isasymtimes}\ {\isacharprime}v\ {\isasymtimes}\ bool$.
-Note that the type alias is parameterised by two type variables, ${\isacharprime}id$\footnote{Almost always, we will be working in a context where the type variable ${\isacharprime}id$ is assumed to have an associated total (or linear) order.
-We will indicate this syntactically to Isabelle using the syntax ${\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}\isa{linorder}{\isacharbraceright}$, which indicates that ${\isacharprime}id$ should be substitutable only for types with an associated total order.
-Here, $\isa{linorder}$ is the name of an Isabelle \emph{type class}, capturing the notion of a total ordering.} and ${\isacharprime}v$, the former of which stands for some arbitrary type of identifiers, whilst the latter stands for the type of data we are actually trying to stored in the RGA.
+Here, we instruct Isabelle/HOL to treat the type ${\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt$ as an alias for the product type ${\isacharprime}id\ {\isasymtimes}\ {\isacharprime}v\ {\isasymtimes}\ bool$.
+Note that the type alias is parameterised by two type variables, ${\isacharprime}id$ and ${\isacharprime}v$, the former of which stands for some arbitrary type of identifiers\footnote{Almost always, we will be working in a context where the type variable ${\isacharprime}id$ is assumed to have an associated total (or linear) order.
+We will indicate this syntactically to Isabelle using the syntax ${\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}\isa{linorder}{\isacharbraceright}$ in type expressions, which asserts that ${\isacharprime}id$ should be substitutable only for types with an associated total order.
+Here, $\isa{linorder}$ is the name of a type class supplied by the Isabelle/HOL library, capturing the notion of a total ordering.}, whilst the latter stands for the type of data we will be storing in the RGA.
 The last component of the product is the boolean tombstone flag, indicating deletion, as discussed above.
 By convention, we assume this flag having the value $\isa{True}$ indicates that the containing element has been deleted.
 
 We now define the RGA's insertion operation.
-An element may be inserted at the head (or first position) of an RGA, or may be inserted into the body.
-As a result, in our mechanisation, we found it convenient in later proofs to factor the definition of insertion into two functions.
-The first function, $\isa{insert-body}$ never fails, and is used by the second (and main) insertion function, $\isa{insert}$, to insert an element at the head of the list.
-When called, $\isa{insert\ xs\ e\ i}$ adds an element $\isa{e}$ to the list $\isa{xs}$ after the element with identifier \isa{i}.
-More precisely, it scans the list searching for an element with the identifier $\isa{i}$, and then adds the element $\isa{e}$ after it, but before any element with a smaller identifier.
-This latter step is facilitated by $\isa{insert-body}$.
-This
-makes insertion of concurrent operations deterministic, since it always puts
-the element of higher id first.  If \isa{i} is \isa{None}, the element is added
-to the head of the list.  Note that \isa{insert} is a partial function, if an
-element with identifier \isa{i} is not found in the list \isa{xs}, the function
-returns \isa{None}, essentially failing.
+The RGA's insertion operates in two modes, reflecting the data type's use as a means of implementing collaborative editing applications.
+In one mode, an element may be inserted automatically into the body of the array, using the ordered identifiers of each element as a guide for where to place the new element.
+In another mode, the user may specifically request that an element is placed \emph{after} another.
+As a result in our mechanisation we found it convenient for later proofs to factor the definition of insertion into two functions.
+The first function, $\isa{insert-body}$ never fails, and is used by the second (and main) insertion function, $\isa{insert}$, to insert an element within the body of the list.
 
+The function $\isa{insert\ xs\ e\ i}$ performs a case analysis on its third argument, $\isa{i}$.
+If $\isa{i}$ is $\isa{None}$, then this is taken to mean that the user wishes the element to be placed in the body of the ordered list, and $\isa{insert-body}$ is therefore immediately called.
+Otherwise, $\isa{i}$ is of the form $\isa{Some\ i'}$ for some identifier $\isa{i'}$, in which case the user wishes the new element to appear after some existing element in the list.
+This is done recursively by $\isa{insert}$ itself.
+Note that \isa{insert} is a partial function, if an element with identifier \isa{i} is not found in the list \isa{xs}, the function returns \isa{None}, indicating failure.
+
+The definition of the $\isa{insert-body}$ function is straightforward, with the function being defined by recursion over the list of elements, using Isabelle's pattern matching to destructure the list:
+\\
 \begin{isabellebody}
-\isanewline
-\isacommand{fun}\isamarkupfalse%
-\ insert{\isacharunderscore}body\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}linorder{\isacharbraceright}{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}insert{\isacharunderscore}body\ {\isacharbrackleft}{\isacharbrackright}\ \ \ \ \ e\ {\isacharequal}\ {\isacharbrackleft}e{\isacharbrackright}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ {\isachardoublequoteopen}insert{\isacharunderscore}body\ {\isacharparenleft}x{\isacharhash}xs{\isacharparenright}\ e\ {\isacharequal}\isanewline
-\ \ \ \ \ {\isacharparenleft}if\ fst\ x\ {\isacharless}\ fst\ e\ then\isanewline
-\ \ \ \ \ \ \ \ e{\isacharhash}x{\isacharhash}xs\isanewline
-\ \ \ \ \ \ else\ x{\isacharhash}insert{\isacharunderscore}body\ xs\ e{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\isanewline
-\isacommand{fun}\isamarkupfalse%
-\ insert\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}linorder{\isacharbraceright}{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ {\isasymRightarrow}\ {\isacharprime}id\ option\ {\isasymrightharpoonup}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}insert\ xs\ \ \ \ \ e\ None\ \ \ \ \ {\isacharequal}\ Some\ {\isacharparenleft}insert{\isacharunderscore}body\ xs\ e{\isacharparenright}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ {\isachardoublequoteopen}insert\ {\isacharbrackleft}{\isacharbrackright}\ \ \ \ \ e\ {\isacharparenleft}Some\ i{\isacharparenright}\ {\isacharequal}\ None{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ {\isachardoublequoteopen}insert\ {\isacharparenleft}x{\isacharhash}xs{\isacharparenright}\ e\ {\isacharparenleft}Some\ i{\isacharparenright}\ {\isacharequal}\isanewline
-\ \ \ \ \ {\isacharparenleft}if\ fst\ x\ {\isacharequal}\ i\ then\isanewline
-\ \ \ \ \ \ \ \ Some\ {\isacharparenleft}x{\isacharhash}insert{\isacharunderscore}body\ xs\ e{\isacharparenright}\isanewline
-\ \ \ \ \ \ else\isanewline
-\ \ \ \ \ \ \ \ do\ {\isacharbraceleft}\ t\ {\isasymleftarrow}\ insert\ xs\ e\ {\isacharparenleft}Some\ i{\isacharparenright}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ {\isacharsemicolon}\ Some\ {\isacharparenleft}x{\isacharhash}t{\isacharparenright}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ {\isacharbraceright}{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{fun} insert{\isacharunderscore}body\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}linorder{\isacharbraceright}{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert{\isacharunderscore}body\ {\isacharbrackleft}{\isacharbrackright}\ \ \ \ \ e\ {\isacharequal}\ {\isacharbrackleft}e{\isacharbrackright}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert{\isacharunderscore}body\ {\isacharparenleft}x{\isacharhash}xs{\isacharparenright}\ e\ {\isacharequal}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharparenleft}if\ fst\ x\ {\isacharless}\ fst\ e\ then\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ e{\isacharhash}x{\isacharhash}xs\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ else\ x{\isacharhash}insert{\isacharunderscore}body\ xs\ e{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
-
-The delete operation simply recursively search for the element with a given
-identifier and change its flag to true, effectively making it a tombstone.
-
+\vspace{\baselineskip}
+Note here that $\isa{fst}$ is an Isabelle library function that returns the first component of a tuple.
+Recalling the definition of the $\isa{elt}$ type alias, we see that $\isa{fst}\ x < \isa{fst}\ e$ in the conditional above is comparing the identifiers of the two elements.
+The definition of $\isa{insert}$ is slightly more complicated, but also essentially follows a recursive scheme, pattern matching on both the input list, and the third argument---i.e. the position where to place the new element in the list:
+\\
 \begin{isabellebody}
-\isanewline
-\isacommand{fun}\isamarkupfalse%
-\ delete\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}linorder{\isacharbraceright}{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymRightarrow}\ {\isacharprime}id\ {\isasymrightharpoonup}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}delete\ {\isacharbrackleft}{\isacharbrackright}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ i\ {\isacharequal}\ None{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ {\isachardoublequoteopen}delete\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}\ v{\isacharcomma}\ flag{\isacharparenright}{\isacharhash}xs{\isacharparenright}\ i\ {\isacharequal}\ \isanewline
-\ \ \ \ \ {\isacharparenleft}if\ i{\isacharprime}\ {\isacharequal}\ i\ then\isanewline
-\ \ \ \ \ \ \ \ Some\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}\ v{\isacharcomma}\ True{\isacharparenright}{\isacharhash}xs{\isacharparenright}\isanewline
-\ \ \ \ \ \ else\isanewline
-\ \ \ \ \ \ \ \ do\ {\isacharbraceleft}\ t\ {\isasymleftarrow}\ delete\ xs\ i\isanewline
-\ \ \ \ \ \ \ \ \ \ \ {\isacharsemicolon}\ Some\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}v{\isacharcomma}flag{\isacharparenright}{\isacharhash}t{\isacharparenright}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ {\isacharbraceright}{\isacharparenright}{\isachardoublequoteclose}%
-\isanewline
+\ \ \ \ \ \ \ \ \isacommand{fun} insert\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}linorder{\isacharbraceright}{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ {\isasymRightarrow}\ {\isacharprime}id\ option\ {\isasymrightharpoonup}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert\ xs\ \ \ \ \ e\ None\ \ \ \ \ {\isacharequal}\ Some\ {\isacharparenleft}insert{\isacharunderscore}body\ xs\ e{\isacharparenright}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert\ {\isacharbrackleft}{\isacharbrackright}\ \ \ \ \ e\ {\isacharparenleft}Some\ i{\isacharparenright}\ {\isacharequal}\ None{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert\ {\isacharparenleft}x{\isacharhash}xs{\isacharparenright}\ e\ {\isacharparenleft}Some\ i{\isacharparenright}\ {\isacharequal}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharparenleft}if\ fst\ x\ {\isacharequal}\ i\ then\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Some\ {\isacharparenleft}x{\isacharhash}insert{\isacharunderscore}body\ xs\ e{\isacharparenright}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ else\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ do\ {\isacharbraceleft}\ t\ {\isasymleftarrow}\ insert\ xs\ e\ {\isacharparenleft}Some\ i{\isacharparenright}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharsemicolon}\ Some\ {\isacharparenleft}x{\isacharhash}t{\isacharparenright}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharbraceright}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{\baselineskip}
+Here, $do {\isacharbraceleft} \ldots {\isacharbraceright}$ is a \emph{monadic sequencing block}, containing code in the option monad that could possibly fail.
+This block will collapse with a failure (i.e. $\isa{None}$) return value if any intermediate computation in the block fails.
 
-The operations used here are deliberately inefficient and easier to reason
-with. They can be seen as functional specifications for RGAs, one can create
-more efficient algorithms by data refinement.
-
-\subsection{Failure conditions}
-
-We are interested in proving that given that the network satisfy the conditions
-in Section~\ref{sect.network}, the operations can never fail. It can be proven
-that the operation \isa{insert\ xs\ e\ i} will never fail if \isa{i} is
-\isa{None} or there exists an element in \isa{xs} with identifier \isa{i}.
-
+Compared to insertion, the delete operation for the RGA is more straightforward---it simply searches recursively for the element with a given identifier and change its flag to $\isa{True}$.
+As previously mentioned, by convention we take this to mean that the element has been deleted:
+\\
 \begin{isabellebody}
-\isanewline
-\isacommand{lemma}\isamarkupfalse%
-\ insert{\isacharunderscore}no{\isacharunderscore}failure{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i\ {\isacharequal}\ None\ {\isasymor}\ {\isacharparenleft}{\isasymexists}i{\isacharprime}{\isachardot}\ i\ {\isacharequal}\ Some\ i{\isacharprime}\ {\isasymand}\ i{\isacharprime}\ {\isasymin}\ fst\ {\isacharbackquote}\ set\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}{\isasymexists}xs{\isacharprime}{\isachardot}\ insert\ xs\ e\ i\ {\isacharequal}\ Some\ xs{\isacharprime}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{fun} delete\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}linorder{\isacharbraceright}{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymRightarrow}\ {\isacharprime}id\ {\isasymrightharpoonup}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}delete\ {\isacharbrackleft}{\isacharbrackright}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ i\ {\isacharequal}\ None{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}delete\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}\ v{\isacharcomma}\ flag{\isacharparenright}{\isacharhash}xs{\isacharparenright}\ i\ {\isacharequal}\ \isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharparenleft}if\ i{\isacharprime}\ {\isacharequal}\ i\ then\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Some\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}\ v{\isacharcomma}\ True{\isacharparenright}{\isacharhash}xs{\isacharparenright}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ else\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ do\ {\isacharbraceleft}\ t\ {\isasymleftarrow}\ delete\ xs\ i\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharsemicolon}\ Some\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}v{\isacharcomma}flag{\isacharparenright}{\isacharhash}t{\isacharparenright}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharbraceright}{\isacharparenright}{\isachardoublequoteclose}%
 \end{isabellebody}
+\vspace{\baselineskip}
+Note that the operations presented here are deliberately inefficient, in order to make them easier to reason with.
+One can see our implementations of $\isa{insert-body}$, $\isa{insert}$, and $\isa{delete}$ as functional specifications for RGAs, which could be refined into more efficient algorithms using data refinement, if desired.
 
-Similarly, \isa{delete\ xs\ i} will never fail if there exists an element in \isa{xs} with identifier \isa{i}.
+We mention here, briefly, two useful lemmas that will be used later, and which characterise the conditions under which the $\isa{insert}$ and the $\isa{delete}$ functions can fail, i.e. return $\isa{None}$.
 
+For $\isa{insert\ xs\ e\ i}$, the function will will never fail if $\isa{i}$ is $\isa{None}$ or there exists an element in $\isa{xs}$ with identifier $\isa{i}$.
+This is captured by the lemma $insert{\isacharunderscore}no{\isacharunderscore}failure$:
+\\
 \begin{isabellebody}
-\isanewline
-\isacommand{lemma}\isamarkupfalse%
-\ delete{\isacharunderscore}no{\isacharunderscore}failure{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i\ {\isasymin}\ fst\ {\isacharbackquote}\ set\ xs{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}{\isasymexists}xs{\isacharprime}{\isachardot}\ delete\ xs\ i\ {\isacharequal}\ Some\ xs{\isacharprime}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{lemma} insert{\isacharunderscore}no{\isacharunderscore}failure{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i\ {\isacharequal}\ None\ {\isasymor}\ {\isacharparenleft}{\isasymexists}i{\isacharprime}{\isachardot}\ i\ {\isacharequal}\ Some\ i{\isacharprime}\ {\isasymand}\ i{\isacharprime}\ {\isasymin}\ fst\ {\isacharbackquote}\ set\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}{\isasymexists}xs{\isacharprime}{\isachardot}\ insert\ xs\ e\ i\ {\isacharequal}\ Some\ xs{\isacharprime}{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{\baselineskip}
+Similarly, for $\isa{delete\ xs\ i}$, the function will never fail if there exists an element in $\isa{xs}$ with identifier $\isa{i}$.
+This is captured by the lemma $\isa{delete{\isacharunderscore}no{\isacharunderscore}failure}$:
+\\
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{lemma} delete{\isacharunderscore}no{\isacharunderscore}failure{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i\ {\isasymin}\ fst\ {\isacharbackquote}\ set\ xs{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}{\isasymexists}xs{\isacharprime}{\isachardot}\ delete\ xs\ i\ {\isacharequal}\ Some\ xs{\isacharprime}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
 \subsection{Commutativity conditions}
