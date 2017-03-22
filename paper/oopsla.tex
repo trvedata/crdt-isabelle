@@ -679,7 +679,7 @@ The RGA is a replicated sequential data type supporting two operations: \emph{in
 Two aspects of the RGA ensure convergence.
 First, all elements stored in the list have associated identifiers, which are totally ordered, with the RGA's insertion operation ensuring any new element inserted into the list is placed in the `correct' place with respect to that ordering.
 Second, the RGA's delete operation does not \emph{remove} elements from the list, but merely flips a `tombstone' flag associated with the element to indicate that the element is marked as having been deleted.
-Properly working with the RGA, for example in an application which wishes to print out the elements stored in the array, therefore requires that the application layer be made aware of these tombstones.
+Properly working with the RGA---for example in an application which wishes to print out the elements stored in the array---therefore requires that the application layer be made aware of these tombstones.
 
 Accordingly, we fix a type of `elements' which will be stored in our RGA implementation:
 \\
@@ -688,18 +688,20 @@ Accordingly, we fix a type of `elements' which will be stored in our RGA impleme
 \end{isabellebody}
 \vspace{\baselineskip}
 Here, we instruct Isabelle/HOL to treat the type ${\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt$ as a mere alias for the product type ${\isacharprime}id\ {\isasymtimes}\ {\isacharprime}v\ {\isasymtimes}\ bool$.
-Note that the type alias is parameterised by two type variables, ${\isacharprime}id$ and ${\isacharprime}v$, the former of which stands for some arbitrary type of identifiers, whilst the latter stands for the type of data we are actually trying to stored in the RGA.
+Note that the type alias is parameterised by two type variables, ${\isacharprime}id$\footnote{Almost always, we will be working in a context where the type variable ${\isacharprime}id$ is assumed to have an associated total (or linear) order.
+We will indicate this syntactically to Isabelle using the syntax ${\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}\isa{linorder}{\isacharbraceright}$, which indicates that ${\isacharprime}id$ should be substitutable only for types with an associated total order.
+Here, $\isa{linorder}$ is the name of an Isabelle \emph{type class}, capturing the notion of a total ordering.} and ${\isacharprime}v$, the former of which stands for some arbitrary type of identifiers, whilst the latter stands for the type of data we are actually trying to stored in the RGA.
 The last component of the product is the boolean tombstone flag, indicating deletion, as discussed above.
+By convention, we assume this flag having the value $\isa{True}$ indicates that the containing element has been deleted.
 
 We now define the RGA's insertion operation.
 An element may be inserted at the head (or first position) of an RGA, or may be inserted into the body.
-As a result, in our formalisation, we found it easier to factor the definition of insertion into two functions.
-The first function, $\isa{insert-body}$ never fails, and is used by the main insertion function, $\isa{insert}$, to insert an element at the head of the list.
-
-The function \isa{insert\ xs\ e\ i} adds an element \isa{e} to the list
-\isa{xs} after the element with identifier \isa{i}. More precisely, it first
-scans the list, searching for the element with this given id, and then adds
-after it, but before any element with a smaller id (\isa{insert-body}). This
+As a result, in our mechanisation, we found it convenient in later proofs to factor the definition of insertion into two functions.
+The first function, $\isa{insert-body}$ never fails, and is used by the second (and main) insertion function, $\isa{insert}$, to insert an element at the head of the list.
+When called, $\isa{insert\ xs\ e\ i}$ adds an element $\isa{e}$ to the list $\isa{xs}$ after the element with identifier \isa{i}.
+More precisely, it scans the list searching for an element with the identifier $\isa{i}$, and then adds the element $\isa{e}$ after it, but before any element with a smaller identifier.
+This latter step is facilitated by $\isa{insert-body}$.
+This
 makes insertion of concurrent operations deterministic, since it always puts
 the element of higher id first.  If \isa{i} is \isa{None}, the element is added
 to the head of the list.  Note that \isa{insert} is a partial function, if an
