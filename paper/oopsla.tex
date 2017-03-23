@@ -401,14 +401,13 @@ Using this lemma, and the rest of the machinery defined above, we can now state 
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
-The entire proof is shown in Figure~\ref{fig.convergence}.  The proof follows
-by induction on \isa{xs}. The empty list case is immediate. Assuming the
-property for \isa{xs}, we prove the case when a new event \isa{x} is added to
-the end of \isa{xs}, that is, $\isa{xs}@[\isa{x}]$. Since both lists have the
-same elements, one can split \isa{ys} such that \isa{ys = prefix@x@suffix} for
-some suitable lists \isa{prefix} and \isa{suffix}. Moreover, all the events in
-the set of \isa{suffix} is concurrent to \isa{x}. By the induction hypothesis,
-\isa{apply-operations\ xs $=$ apply-operations\ (prefix $@$ suffix)}. Then
+We sketch the proof of this theorem, here.
+We proceed by induction on $\isa{xs}$---the case for the empty list is immediate, so we consider the step case only.
+Assuming the property holds for \isa{xs}, we prove the case when a new event $\isa{x}$ is added to the end of $\isa{xs}$, that is, $\isa{xs}@[\isa{x}]$.
+Since both $\isa{xs}$ and $\isa{ys}$ have the same elements, one may split $\isa{ys}$ such that $\isa{ys = prefix@x@suffix}$ for some suitable lists \isa{prefix} and \isa{suffix}.
+Moreover, all events in $\isa{suffix}$ are concurrent with $\isa{x}$.
+By the induction hypothesis, $\isa{\isa{apply-operations}\ xs = \isa{apply-operations}\ (prefix@suffix)}$.
+We then have a chain of equational reasoning, making use of $\isa{concurrent-ops-commute-concurrent-set}$ to move the element $\isa{x}$ from the back of the list past $\isa{suffix}$, and properties of folds (recalling that $\isa{apply-operations}$ is defined as a fold):
 \begin{align*}
   \isa{apply-operations}\ (\isa{xs}@[\isa{x}])
   &= \langle\isa{x}\rangle\ (\isa{apply-operations}\ \isa{xs}) \\
