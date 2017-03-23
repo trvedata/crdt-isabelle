@@ -344,36 +344,37 @@ We capture this idea using an inductive relation in Isabelle:
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}{\isasymlbrakk}\ hb{\isacharunderscore}consistent\ xs{\isacharsemicolon}\ {\isasymforall}x\ {\isasymin}\ set\ xs{\isachardot}\ {\isasymnot}\ y\ {\isasymprec}\ x\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ hb{\isacharunderscore}consistent\ {\isacharparenleft}xs\ {\isacharat}\ {\isacharbrackleft}y{\isacharbrackright}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{\baselineskip}
-Additionally, we say that concurrent operations commute in a list \isa{xs}
-whenever for all concurrent events \isa{x} and \isa{y} in the list \isa{xs},
-the Kleisli arrow composition of their operations commute $\langle \isa{x}
-\rangle \rhd \langle \isa{y} \rangle = \langle \isa{y} \rangle \rhd \langle
-\isa{x} \rangle$.
-
+Before introducing what it means for two events to be `commutative', we first introduce an auxiliary definition.
+For two partial functions, define their \emph{Kleisli arrow composition}, written $f\ {\isasymrhd}\ g$, by:
+\\
 \begin{isabellebody}
-  \isanewline
-\isacommand{definition}\isamarkupfalse%
-\ concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ list\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ xs\ {\isasymequiv}
-\ {\isasymforall}x\ y{\isachardot}\ {\isacharbraceleft}x{\isacharcomma}\ y{\isacharbraceright}\ {\isasymsubseteq}\ set\ xs\ {\isasymlongrightarrow}\ x\ {\isasymparallel}\ y\ {\isasymlongrightarrow}\ {\isasymlangle}x{\isasymrangle}{\isasymrhd}{\isasymlangle}y{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}y{\isasymrangle}{\isasymrhd}{\isasymlangle}x{\isasymrangle}{\isachardoublequoteclose}\isanewline
-
-\isacommand{definition}\isamarkupfalse%
-\ kleisli\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}b\ {\isasymRightarrow}\ {\isacharprime}b\ option{\isacharparenright}\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}b\ {\isasymRightarrow}\ {\isacharprime}b\ option{\isacharparenright}\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}b\ {\isasymRightarrow}\ {\isacharprime}b\ option{\isacharparenright}{\isachardoublequoteclose}\ {\isacharparenleft}\isakeyword{infixr}\ {\isachardoublequoteopen}{\isasymrhd}{\isachardoublequoteclose}\ {\isadigit{6}}{\isadigit{5}}{\isacharparenright}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}f\ {\isasymrhd}\ g\ {\isasymequiv}\ {\isasymlambda}x{\isachardot}\ f\ x\ {\isasymbind}\ {\isacharparenleft}{\isasymlambda}fx{\isachardot}\ g\ fx{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{definition} kleisli\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}b\ {\isasymRightarrow}\ {\isacharprime}b\ option{\isacharparenright}\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}b\ {\isasymRightarrow}\ {\isacharprime}b\ option{\isacharparenright}\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}b\ {\isasymRightarrow}\ {\isacharprime}b\ option{\isacharparenright}{\isachardoublequoteclose}\ {\isacharparenleft}\isakeyword{infixr}\ {\isachardoublequoteopen}{\isasymrhd}{\isachardoublequoteclose}\ {\isadigit{6}}{\isadigit{5}}{\isacharparenright}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}f\ {\isasymrhd}\ g\ {\isasymequiv}\ {\isasymlambda}x{\isachardot}\ f\ x\ {\isasymbind}\ {\isacharparenleft}{\isasymlambda}fx{\isachardot}\ g\ fx{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{\baselineskip}
+Here, $\isasymbind$ is the \emph{monadic bind} operation, defined on the option type that we are using to implement partial functions.
+Intuitively, the composition of two partial functions, $f\ {\isasymrhd}\ g$, creates a new partial function that first applies $f$ to its input, then if that succeeds, applies $g$ to the resulting value.
+Otherwise, the composition fails.
 
-Let \isa{xs} be a list of events, \isa{apply-operations\ xs} is the state
-transformer equivalent of applying in order each operation $\langle \isa{x}
-\rangle$ for events \isa{x} in the list.  In other words, it is the fold of
-the Kleisli arrow composition on the associated list of operations.
-
+Using this definition we say that two events, $\isa{x}$ and $\isa{y}$, \emph{commute} whenever $\langle x \rangle {\isasymrhd} \langle y \rangle = \langle y \rangle {\isasymrhd} \langle x \rangle$, i.e. when we can arbitrarily swap the order of the composition of their interpretations.
+For our purposes, requiring that this property holds at \emph{every} event is too strong.
+Rather, the commutation property is only required to hold at events that are concurrent, as captured in the next definition, which asserts that the interpretation of every pair of concurrent events in a list of events possesses the commutation property:
+\\
 \begin{isabellebody}
-  \isanewline
-\isacommand{definition}\isamarkupfalse%
-\ apply{\isacharunderscore}operations\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ list\ {\isasymRightarrow}\ {\isacharprime}b\ {\isasymrightharpoonup}\ {\isacharprime}b{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ es\ s\ {\isasymequiv}\ {\isacharparenleft}foldl\ {\isacharparenleft}op\ {\isasymrhd}{\isacharparenright}\ Some\ {\isacharparenleft}map\ interp\ es{\isacharparenright}{\isacharparenright}\ s{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{definition} concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ list\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ xs\ {\isasymequiv} {\isasymforall}x\ y{\isachardot}\ {\isacharbraceleft}x{\isacharcomma}\ y{\isacharbraceright}\ {\isasymsubseteq}\ set\ xs\ {\isasymlongrightarrow}\ x\ {\isasymparallel}\ y\ {\isasymlongrightarrow}\ {\isasymlangle}x{\isasymrangle}{\isasymrhd}{\isasymlangle}y{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}y{\isasymrangle}{\isasymrhd}{\isasymlangle}x{\isasymrangle}{\isachardoublequoteclose}
 \end{isabellebody}
-
+\vspace{\baselineskip}
+Suppose $\isa{xs}$ is a list of events.
+We define a function, $\isa{apply-operations}$ that `lifts' this list of events into a state transformer.
+This is a many-fold analogue of the interpretation function, $\langle-\rangle$, and can be seen as providing an interpretation to the list of events.
+Defining this interpretation function is straightforward---we first map $\isa{interp}$ across the list to obtain a list of discrete interpretations of events, and then collectively compose them using the Kleisli arrow composition combinator:
+\\
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{definition} apply{\isacharunderscore}operations\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ list\ {\isasymRightarrow}\ {\isacharprime}b\ {\isasymrightharpoonup}\ {\isacharprime}b{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ es\ s\ {\isasymequiv}\ {\isacharparenleft}foldl\ {\isacharparenleft}op\ {\isasymrhd}{\isacharparenright}\ Some\ {\isacharparenleft}map\ interp\ es{\isacharparenright}{\isacharparenright}\ s{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{\baselineskip}
 \begin{isabellebody}
 \isacommand{lemma}\isamarkupfalse%
 \ concurrent{\isacharunderscore}ops{\isacharunderscore}commute{\isacharunderscore}concurrent{\isacharunderscore}set{\isacharcolon}\isanewline
