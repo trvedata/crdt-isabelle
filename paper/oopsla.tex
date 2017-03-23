@@ -156,12 +156,8 @@ a bit of a mystery''---which makes formal verification particularly important.
 \subsection{An overview of Isabelle}
 \label{subsect.an.overview.of.isabelle}
 
-All of our proofs are checked with the Isabelle proof assistant~\cite{DBLP:conf/tphol/WenzelPN08}, which we now briefly introduce so that the reader can easily follow our work.
+All of our proofs are checked with the Isabelle/HOL proof assistant~\cite{DBLP:conf/tphol/WenzelPN08}, which we now briefly introduce so that the reader can easily follow our work.
 A more detailed introduction is provided by standard tutorial material~\cite{DBLP:books/sp/NipkowK14}.
-
-Isabelle is a logical framework, providing a weak meta-logic---a fragment of intuitionistic higher-order logic---within which object logics may be embedded as theories.
-We use one particular object logic, Isabelle/HOL---a more expressive implementation of Gordon's higher-order logic~\cite{DBLP:conf/tphol/Gordon91} than that provided by the meta-logic---as the arena for our mechanisation.
-Unlike systems based on Type Theory---such as Agda~\cite{DBLP:conf/tphol/BoveDN09}, Coq~\cite{DBLP:conf/popl/HuetH14}, or Matita~\cite{DBLP:conf/cade/AspertiRCT11}---Isabelle/HOL implements a classical logic.
 
 Isabelle/HOL is a logic with a strict, polymorphic type system resembling that of mainstream functional programming languages.
 \emph{Function types} are written $\tau_1 \Rightarrow \tau_2$, and are inhabited by \emph{total} functions, mapping elements of $\tau_1$ to elements of $\tau_2$.
