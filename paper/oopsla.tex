@@ -262,36 +262,36 @@ Once interpreted, all functions, definitions, and theorems made within the $\isa
 
 Before embarking on a detailed description of our formal proof of convergence in Isabelle, we provide a higher-level overview of the proof strategy used.
 
+In Section~\ref{sect.abstract.convergence} we present an `abstract convergence theorem'.
+The statement of this theorem does not mention networks, nor does it mention any machinery tied to any one particular CRDT implementation. 
+Rather, the theorem statement is phrased in terms of purely abstract `events', and functions that lift events into abstract `state formers'.
+As a result, the theorem may be viewed purely as a property of preorders---reflexive, transitive relations---or alternatively as a `distillation' of the notion of SEC convergence, which gives sufficient conditions for convergence in this setting.
+
+In Section~\ref{sect.network} we provide an axiomatic model of causal asynchronous networks, built around a broadcast-deliver event model.
+We develop a relation---\emph{happens before}---which captures the notion of `causality' within this network.
+It is easy to show that this relation is a preorder, and therefore the abstract convergence theorem of Section~\ref{sect.abstract.convergence} applies.
+We may therefore `compose' this theorem with our network model, to obtain a convergence theorem for our network.
+We present this derived theorem at the end of Section~\ref{sect.network}.
+
+Note that everything mentioned until this point is completely generic---we are not tied to any CRDT implementation.
+However, we may now use our abstract convergence theorems to prove concrete convergence theorems for given CRDT implementations.
+
+Accordingly, as a concrete example in Section~\ref{sect.rga} we present an implementation of an existing CRDT: the Replicated Growable Array (RGA).
+Our formalisation of the RGA consists of two halves.
+This first half is an implementation of the RGA's insert and delete operations, with proofs that each operation commutes with itself, and all operations commute with each other.
+Insertion and deletion only commute under various conditions.
+These conditions are codified in the second half of our RGA implementation: a constraining of all possible network behaviours to only those that guarantee that the RGA CRDT remains `well behaved'.
+This constraining can be viewed as an associated `protocol' for the RGA, detailing valid modes of usage of the data type.
+Combining the two halves of the formalisation together, we see that the constrained network provides the right conditions under which all operations commute with each other.
+Further, as a corollary of our abstract convergence theorem, we obtain a concrete convergence theorem for our RGA implementation in a constrained network.
+This is presented at the end of Section~\ref{sect.rga}.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Convergence
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Convergence}
-\label{sect.convergence}
-
-\subsection{Our consistency model, and main theorem statement}
-\label{subsect.consistency.model.main.theorem.statement}
-
-\emph{Strong eventual consistency} is a special case of eventual consistency.
-In a strongly eventual consistent system, the operations that a replica may use to modify subcomponents of the system's shared global state are constrained in such a way that pairs of operations naturally commute with each other.
-As a result, the system will eventually reach a consistent state, but the potentially error prone process of invoking conflict resolution strategies is no longer needed, as conflicts are impossible to introduce, by construction.
-This consistency model is impossible to achieve for many distributed systems, but it is the natural consistency model---and therefore notion of correctness---for Conflict-free Replicated Datatypes, whose operations are guaranteed to commute, as previously described.
-
-In this work, we prove that our Replicated Growable Array implementation possesses this convergence property in an abstract setting.
-Our final theorem states that two arbitrary lists of distinct events enriched by an order relation, that satisfy a consistency property defined in terms of a \emph{happens before} relation, converge to the same state.
-Formally, we prove:
-\\
-\begin{isabellebody}
-\ \ \ \ \isacommand{theorem} convergence{\isacharcolon}\isanewline
-\ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ xs\ {\isacharequal}\ set\ ys{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ ys{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}distinct\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}distinct\ ys{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ ys{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}\isanewline
-\end{isabellebody}
-That is, suppose $\isa{xs}$ and $\isa{ys}$ are two arbitrary list of distinct events, that contain the same set of elements, but are ordered in a way that respects our \emph{happens before} relation---that is, so earlier elements in the list all \emph{happen before} later ones.
-Suppose also that any two events in $\isa{xs}$ (respectively, $\isa{ys}$) that happen concurrently, per our \emph{happens before} relation, have a commuting property on states.
-Then the final state one obtains by applying
+\section{Abstract convergence}
+\label{sect.abstract.convergence}
 
 Let $\mathit{Events}$ be the set of events enriched with a preorder $\prec$. We
 write $\isa{x} \prec \isa{y}$ and say that the event \isa{x} \emph{happens
@@ -562,7 +562,7 @@ This increases modularity and makes our definitions adaptable for other formalis
 Here, $causal{\isacharunderscore}delivery$ captures the causality constraint, described above, that asynchronous causal networks must satisfy.
 Note also that the local theory $causal{\isacharunderscore}network$ is declared to be an extension of the $network$ local theory on the first line of the declaration above.
 
-At this point, we now have sufficient machinery to instantiate the \isa{happens-before} local theory that was defined in Section~\ref{sect.convergence}.
+At this point, we now have sufficient machinery to instantiate the \isa{happens-before} local theory that was defined in Section~\ref{sect.abstract.convergence}.
 Doing this requires that we provide a concrete implementation for the happens before relation fixed by that local theory and thereafter proving that it forms indeed a preorder, so this proof obligation can easily be discharged.
 Here, we will use the $\isa{hb}$ relation, defined earlier in this section, as that implementation, and we have already noted that this relation does indeed satisfies the laws of a preorder.
 Once interpreted, all functions, definitions, and theorems made within the \isa{happens-before} locale become available to use in the locale \isa{network}, prefixed by \isa{hb}--- a `composing' of the definitions made within the $\isa{happens-before}$ local theory with our $\isa{hb}$ inductive relation.
@@ -574,7 +574,7 @@ This instantiation is achieved in Isabelle using a \isa{sublocale} statement:
 \end{isabellebody}
 \vspace{\baselineskip}
 \noindent
-We end this section by describing an analogue of the convergence theorem in Section~\ref{sect.convergence}.
+We end this section by describing an analogue of the convergence theorem in Section~\ref{sect.abstract.convergence}.
 
 We first define a function, $node{\isacharunderscore}deliver{\isacharunderscore}messages$ which filters a list of events to obtain a list of delivered messages.
 Note in particular that deliver events for messages are the only type of network event that can and will modify the state of a CRDT.
@@ -598,8 +598,8 @@ Second, the delivered messages of a prefix of a node's history are also necessar
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isachardot}hb{\isacharunderscore}consistent\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{\baselineskip}
-Taken together, these two properties imply that at any point in time, the messages received by a node are distinct and satisfy the consistency requirement defined in Section~\ref{sect.convergence}.
-With this, the abstract convergence theorem of Section~\ref{sect.convergence} can be refined to consider the prefixes of two different nodes with the same set of delivered messages.
+Taken together, these two properties imply that at any point in time, the messages received by a node are distinct and satisfy the consistency requirement defined in Section~\ref{sect.abstract.convergence}.
+With this, the abstract convergence theorem of Section~\ref{sect.abstract.convergence} can be refined to consider the prefixes of two different nodes with the same set of delivered messages.
 We then obtain a theorem that states that if concurrent messages commute, then both nodes converge to the same state:
 \\
 \begin{isabellebody}
