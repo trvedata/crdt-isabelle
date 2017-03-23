@@ -265,7 +265,7 @@ Before embarking on a detailed description of our formal proof of convergence in
 In Section~\ref{sect.abstract.convergence} we present an `abstract convergence theorem'.
 The statement of this theorem does not mention networks, nor does it mention any machinery tied to any one particular CRDT implementation. 
 Rather, the theorem statement is phrased in terms of purely abstract `events', and functions that lift events into abstract `state formers'.
-As a result, the theorem may be viewed purely as a property of preorders---reflexive, transitive relations---or alternatively as a `distillation' of the notion of SEC convergence, which gives sufficient conditions for convergence in this setting.
+As a result, the theorem may be viewed purely as a property of preorders, or alternatively as a `distillation' of the notion of SEC convergence, which gives sufficient conditions for convergence in this setting.
 
 In Section~\ref{sect.network} we provide an axiomatic model of causal asynchronous networks, built around a broadcast-deliver event model.
 We develop a relation---\emph{happens before}---which captures the notion of `causality' within this network.
@@ -276,13 +276,13 @@ We present this derived theorem at the end of Section~\ref{sect.network}.
 Note that everything mentioned until this point is completely generic---we are not tied to any CRDT implementation.
 However, we may now use our abstract convergence theorems to prove concrete convergence theorems for given CRDT implementations.
 
-Accordingly, as a concrete example in Section~\ref{sect.rga} we present an implementation of an existing CRDT: the Replicated Growable Array (RGA).
-Our formalisation of the RGA consists of two halves.
+As a concrete example in Section~\ref{sect.rga} we present a mechanisation of an existing CRDT: the Replicated Growable Array (RGA).
+Our mechanisation consists of two parts.
 This first half is an implementation of the RGA's insert and delete operations, with proofs that each operation commutes with itself, and all operations commute with each other.
 Insertion and deletion only commute under various conditions.
 These conditions are codified in the second half of our RGA implementation: a constraining of all possible network behaviours to only those that guarantee that the RGA CRDT remains `well behaved'.
 This constraining can be viewed as an associated `protocol' for the RGA, detailing valid modes of usage of the data type.
-Combining the two halves of the formalisation together, we see that the constrained network provides the right conditions under which all operations commute with each other.
+Combining the two parts of the mechanisation together, we see that the constrained network provides the right conditions under which all operations commute with each other.
 Further, as a corollary of our abstract convergence theorem, we obtain a concrete convergence theorem for our RGA implementation in a constrained network.
 This is presented at the end of Section~\ref{sect.rga}.
 
@@ -293,23 +293,30 @@ This is presented at the end of Section~\ref{sect.rga}.
 \section{Abstract convergence}
 \label{sect.abstract.convergence}
 
-Let $\mathit{Events}$ be the set of events enriched with a preorder $\prec$. We
-write $\isa{x} \prec \isa{y}$ and say that the event \isa{x} \emph{happens
-before} the event \isa{y}.  Moreover we assume that there exists an
-interpretation partial function $\langle\_\rangle$ that maps events to
-\emph{operations}, which are \emph{state transformers} on a set of states
-$\Sigma$.  This is implemented in Isabelle by the following locale
-statement.
+In this section we develop an abstract theory of convergence.
+The section ends with the presentation of a theorem---imaginatively entitled $\isa{convergence}$---which can be interpreted purely as a result about a certain type of ordering relation.
+We will use this theorem, and corollaries of it, in later sections to derive concrete convergence theorems for a CRDT implementation.
 
+Recall that, mathematically, a \emph{preorder} is a reflexive and transitive relation over elements of a carrier set.
+In Isabelle/HOL, it is typical to elide carrier sets when working with algebraic or order-theoretic structures, and instead work only with types.
+Accordingly, throughout this section, we will work in a setting where an abstract \emph{type} of `events' is fixed with a preorder structure defined over those `events'.
+At this point, what `events' are is not specified, only that they exist.
+Pre-empting how this preorder relation will eventually be used later in our work, we will refer to the ordering as the \emph{happens before} relation, and will write $\isa{x} \prec \isa{y}$ to indicate that event $\isa{x}$ has \emph{happened before} event $\isa{y}$.
+
+Moreover, we will work in a context where there is a fixed \emph{type} of abstract `states'.
+Again, what `states' are need not be specified at this point.
+We will also require a means of decoding---or interpreting---an event and obtaining a state transformer, or partial map from states to states.
+We therefore assume that there exists a partial function $\langle\_\rangle$ which lifts `events' into state transformers.
+
+Concretely, this setting is captured in Isabelle with the following local theory declaration:
+\\
 \begin{isabellebody}
-  \isanewline
-\isacommand{locale}\isamarkupfalse%
-\ happens{\isacharunderscore}before\ {\isacharequal}\ preorder\ hb{\isacharunderscore}weak\ hb\isanewline
-\ \ \isakeyword{for}\ hb{\isacharunderscore}weak\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}{\isasympreceq}{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\isanewline
-\ \ \isakeyword{and}\ hb\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \ \ \ \ \ \ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}{\isasymprec}{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ {\isacharplus}\isanewline
-\ \ \isakeyword{fixes}\ interp\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}b\ {\isasymrightharpoonup}\ {\isacharprime}b{\isachardoublequoteclose}\ {\isacharparenleft}{\isachardoublequoteopen}{\isasymlangle}{\isacharunderscore}{\isasymrangle}{\isachardoublequoteclose}\ {\isacharbrackleft}{\isadigit{0}}{\isacharbrackright}\ {\isadigit{1}}{\isadigit{0}}{\isadigit{0}}{\isadigit{0}}{\isacharparenright}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{locale} happens{\isacharunderscore}before\ {\isacharequal}\ preorder\ hb{\isacharunderscore}weak\ hb\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{for}\ hb{\isacharunderscore}weak\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}{\isasympreceq}{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ hb\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \ \ \ \ \ \ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}{\isasymprec}{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ {\isacharplus}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ interp\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}b\ {\isasymrightharpoonup}\ {\isacharprime}b{\isachardoublequoteclose}\ {\isacharparenleft}{\isachardoublequoteopen}{\isasymlangle}{\isacharunderscore}{\isasymrangle}{\isachardoublequoteclose}\ {\isacharbrackleft}{\isadigit{0}}{\isacharbrackright}\ {\isadigit{1}}{\isadigit{0}}{\isadigit{0}}{\isadigit{0}}{\isacharparenright}
 \end{isabellebody}
-
+\vspace{\baselineskip}
 We say that two events (or operations) $x$ and $y$ are \emph{concurrent}
 whenever one does not happens before the other, that is, $\neg (\isa{x} \prec
 \isa{y})$ and $\neg (\isa{y} \prec \isa{x})$.
