@@ -33,10 +33,10 @@ notion of total ordering enables strong consistency models such as linearizabili
 However, peer-to-peer networks have no such central server that can be assumed to be always
 reachable. It is possible to provide the same guarantee of totally ordered delivery in peer-to-peer
 networks; this abstraction is known as \emph{total order broadcast} or \emph{atomic broadcast}
-\cite{Cachin:2011wt}. Unfortunately, it is expensive: it requires a quorum of nodes (typically a
-majority) to be reachable in order to make progress \cite{Chandra:1996cp}; in a peer-to-peer network
-of mobile devices, it is likely that less than a majority of devices is online at any one time, and
-so any algorithm for total order broadcast would be stalled.
+\cite{Cachin:2011wt,Defago:2004ji}. Unfortunately, it is expensive: it requires a quorum of nodes
+(typically a majority) to be reachable in order to make progress \cite{Chandra:1996cp}; in a
+peer-to-peer network of mobile devices, it is likely that less than a majority of devices is online
+at any one time, and so any algorithm for total order broadcast would be stalled.
 
 As discussed in Section~\ref{sect.introduction}, we aim to support scenarios in which subsets of
 nodes can communicate with each other, but some are disconnected (\emph{partitioned}) from others.
