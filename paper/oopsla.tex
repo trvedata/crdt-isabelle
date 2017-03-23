@@ -847,7 +847,7 @@ Here, `states' are also kept abstract, simply modelled as a type variable, ${\is
 
 We now extend $\isa{network-with-ops}$, instantiating the interpretation function with the $\isa{interpret-opers}$ function above, which decodes RGA messages and maps lists to lists.\footnote{One may wonder why we define the $\isa{network-with-ops}$ local theory at all.
 Why not, instead, push $\isa{interp}$ into the $\isa{rga}$ local theory?
-The $\isa{rga}$ local theory is CRDT-specific, tied intimately to the RGA CRDT being verified here, and any convergence proof for another CRDT will define a new local theory specific to that CRDT, describing `legal' network executions.
+The $\isa{rga}$ local theory is CRDT-specific, tied intimately to the RGA CRDT being verified here, and any convergence proof for another CRDT will define a new local theory specific to that CRDT, describing network executions that lead to convergence of that replicated data type.
 On the other hand, $\isa{network-with-ops}$ is a piece of generic proof machinery that can be shared amongst multiple CRDT convergence proofs.}
 Further, we add three new laws to the network, describing the RGA `protocol':
 \begin{enumerate}
