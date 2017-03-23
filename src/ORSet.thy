@@ -99,4 +99,22 @@ theorem (in orset) convergence:
 using assms by(auto intro: hb.convergence_ext concurrent_operations_commute
                 node_deliver_messages_distinct hb_consistent_prefix)
 
+context orset begin
+
+sublocale crdt: op_based_crdt weak_hb hb interpret_op
+  "\<lambda>ops.\<exists>xs i. xs prefix of i \<and> node_deliver_messages xs = ops" "Map.empty"
+  apply standard
+  apply(erule exE)+
+  using hb_consistent_prefix apply blast
+  apply(erule exE)+
+  using node_deliver_messages_distinct apply blast
+  apply(erule exE)+
+  using concurrent_operations_commute apply blast
+  apply(erule exE)+
+  unfolding interpret_op_def apply (metis (no_types, lifting) option.distinct(1))
+  apply(erule exE, erule exE)
+  using drop_last_message apply blast
+done
+
+end
 end
