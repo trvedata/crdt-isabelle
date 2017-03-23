@@ -389,7 +389,7 @@ We then have a chain of equational reasoning, making use of $\isa{concurrent-ops
 % Network
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Network}
+\section{An axiomatic network model}
 \label{sect.network}
 
 In this section, we incrementally work towards a definition of an asynchronous causal network, considering a number of intermediary abstractions.
@@ -508,7 +508,8 @@ At some node, the delivery event for message $\isa{m1}$ \emph{comes before} the 
 \item
 There is another event for some message that interpolates the two other events, happening after the event for message $\isa{m1}$, but before the event for message $\isa{m2}$.
 \end{enumerate}
-We may capture this in Isabelle/HOL using an inductive relation, which we call $\isa{hb}$, or alternatively using the syntax $\isa{m1} \prec \isa{m2}$, to assert that $\isa{m1}$ \emph{happens before} $\isa{m2}$ per rules (1)--(3), above:
+The fact that the \emph{happens before} relation is a preorder is easily established, and a proof is omitted here.
+We may capture the definition of \emph{happens before} in Isabelle/HOL using an inductive relation, which we call $\isa{hb}$, or alternatively using the syntax $\isa{m1} \prec \isa{m2}$, to assert that $\isa{m1}$ \emph{happens before} $\isa{m2}$ per rules (1)--(3), above:
 \\
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{inductive} {\isacharparenleft}\isakeyword{in}\ network{\isacharparenright}\ hb\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
@@ -517,13 +518,9 @@ We may capture this in Isabelle/HOL using an inductive relation, which we call $
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}{\isasymlbrakk}\ m{\isadigit{1}}\ $\prec$\  m{\isadigit{2}}{\isacharsemicolon}\ m{\isadigit{2}}\ $\prec$\ m{\isadigit{3}}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{3}}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{\baselineskip}
-Each of the three clauses in the definition of $\isa{hb}$ above corresponds to one of the three conditions previously enumerated.
-The fact that the \emph{happens before} relation is a preorder is easily established, and is omitted here.
-
 Our convergence proof requires that our asynchronous networks abide by an additional law: \emph{causality}.
-We say that an asynchronous network is \emph{causal} if delivery of events corresponding to messages $\isa{m1}$ and $\isa{m2}$ at a node respect the happens before relationship between those two events.
-In particular, we only require that the happens before relation's ordering is respected at nodes which have the delivery of the second message in their local histories.
-
+We say that an asynchronous network is \emph{causal} if delivery events at a node respect the happens before relationship between those two events.
+In our proof, we only require that the happens before relation's ordering is respected at nodes which have the delivery of the second message in their local histories.
 Since causal asynchronous networks are a special form of asynchronous network, we describe these networks with a new local theory.
 This increases modularity and makes our definitions adaptable for other formalisations that do not depend on causality:
 \\
@@ -535,26 +532,23 @@ This increases modularity and makes our definitions adaptable for other formalis
 Here, $causal{\isacharunderscore}delivery$ captures the causality constraint, described above, that asynchronous causal networks must satisfy.
 Note also that the local theory $causal{\isacharunderscore}network$ is declared to be an extension of the $network$ local theory on the first line of the declaration above.
 
-At this point, we now have sufficient machinery to instantiate the \isa{happens-before} local theory that was defined in Section~\ref{sect.abstract.convergence}.
-Doing this requires that we provide a concrete implementation for the happens before relation fixed by that local theory and thereafter proving that it forms indeed a preorder, so this proof obligation can easily be discharged.
-Here, we will use the $\isa{hb}$ relation, defined earlier in this section, as that implementation, and we have already noted that this relation does indeed satisfies the laws of a preorder.
+At this point, we now have sufficient machinery to interpret the \isa{happens-before} local theory that was defined in Section~\ref{sect.abstract.convergence}.
+Doing this requires that we provide a concrete implementation for the happens before relation fixed by that local theory and thereafter proving that it forms a preorder.
+Here, we will use the $\isa{hb}$ relation, defined earlier in this section, as that implementation, and we have already noted that this relation does indeed satisfies the laws of a preorder so the accompanying proof obligation is easily discharged.
 Once interpreted, all functions, definitions, and theorems made within the \isa{happens-before} locale become available to use in the locale \isa{network}, prefixed by \isa{hb}--- a `composing' of the definitions made within the $\isa{happens-before}$ local theory with our $\isa{hb}$ inductive relation.
 In particular, the definitions of \isa{hb.concurrent}, \isa{hb.concurrent-ops-commute} and \isa{hb.hb-consistent}; and the convergence theorem \isa{hb.convergence}.
-This instantiation is achieved in Isabelle using a \isa{sublocale} statement:
+This interpretation is achieved in Isabelle using a \isakeyword{sublocale} declaration:
 \\
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{sublocale} hb{\isacharcolon}\ happens{\isacharunderscore}before\ weak{\isacharunderscore}hb\ hb
 \end{isabellebody}
 \vspace{\baselineskip}
 \noindent
-We end this section by describing an analogue of the convergence theorem in Section~\ref{sect.abstract.convergence}.
+We end this section by describing an analogue of the convergence theorem in Section~\ref{sect.abstract.convergence} in the general setting of causal asynchronous networks.
 
-We first define a function, $node{\isacharunderscore}deliver{\isacharunderscore}messages$ which filters a list of events to obtain a list of delivered messages.
-Note in particular that deliver events for messages are the only type of network event that can and will modify the state of a CRDT.
-We therefore only need to consider these messages in our convergence theorem.
-We elide the definition of $node{\isacharunderscore}deliver{\isacharunderscore}messages$ here, as it is a simple filter/map of a node's local history.
-
-A node's local history satisfies two important properties in causal asynchronous networks.
+We first make a general observation: deliver events for messages are the only type of network event that can and will modify the state of a CRDT, and we therefore only need to consider these messages in our convergence theorem, as broadcast events for messages may be safely discarded, due to them having no effect on a replicated data type's state.
+Therefore, we define a function, $node{\isacharunderscore}deliver{\isacharunderscore}messages$ which filters a list of events to obtain a list of delivered messages.
+Next, we observe that a node's local history satisfies two important properties in causal asynchronous networks.
 First, the delivered messages of a prefix of a node's history are necessarily distinct:
 \\
 \begin{isabellebody}
@@ -563,7 +557,8 @@ First, the delivered messages of a prefix of a node's history are necessarily di
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}distinct\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{\baselineskip}
-Second, the delivered messages of a prefix of a node's history are also necessarily compatible with the happens before relation, the $hb$ relation defined above:
+\noindent
+Further, the delivered messages of a prefix of a node's local history are also necessarily compatible with the happens before relation, the $hb$ relation defined above:
 \\
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{lemma} {\isacharparenleft}\isakeyword{in}\ causal{\isacharunderscore}network{\isacharparenright}\ hb{\isacharunderscore}consistent{\isacharunderscore}prefix{\isacharcolon}\isanewline
@@ -573,7 +568,7 @@ Second, the delivered messages of a prefix of a node's history are also necessar
 \vspace{\baselineskip}
 Taken together, these two properties imply that at any point in time, the messages received by a node are distinct and satisfy the consistency requirement defined in Section~\ref{sect.abstract.convergence}.
 With this, the abstract convergence theorem of Section~\ref{sect.abstract.convergence} can be refined to consider the prefixes of two different nodes with the same set of delivered messages.
-We then obtain a theorem that states that if concurrent messages commute, then both nodes converge to the same state:
+We then obtain a theorem that states that if concurrent messages commute, then both nodes converge to the same state, or rather the interpretation of the delivered messages of both nodes are the same:
 \\
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{corollary} {\isacharparenleft}\isakeyword{in}\ causal{\isacharunderscore}network{\isacharparenright}\ network{\isacharunderscore}convergence{\isacharcolon}\isanewline
