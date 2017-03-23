@@ -302,12 +302,11 @@ In Isabelle/HOL, it is typical to elide carrier sets when working with algebraic
 Accordingly, throughout this section, we will work in a setting where an abstract \emph{type} of `events' is fixed with a preorder structure defined over those `events'.
 At this point, what `events' are is not specified, only that they exist.
 Pre-empting how this preorder relation will eventually be used later in our work, we will refer to the ordering as the \emph{happens before} relation, and will write $\isa{x} \prec \isa{y}$ to indicate that event $\isa{x}$ has \emph{happened before} event $\isa{y}$.
-
 Moreover, we will work in a context where there is a fixed \emph{type} of abstract `states'.
 Again, what `states' are need not be specified at this point.
 We will also require a means of decoding---or interpreting---an event and obtaining a state transformer, or partial map from states to states.
-We therefore assume that there exists a partial function $\langle\_\rangle$ which lifts `events' into state transformers.
-
+We therefore assume that there exists a partial function which lifts `events' into state transformers.
+We write $\langle\_\rangle$ for this interpretation, or lifting, function.
 Concretely, this setting is captured in Isabelle with the following local theory declaration:
 \\
 \begin{isabellebody}
@@ -317,31 +316,34 @@ Concretely, this setting is captured in Isabelle with the following local theory
 \ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ interp\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}b\ {\isasymrightharpoonup}\ {\isacharprime}b{\isachardoublequoteclose}\ {\isacharparenleft}{\isachardoublequoteopen}{\isasymlangle}{\isacharunderscore}{\isasymrangle}{\isachardoublequoteclose}\ {\isacharbrackleft}{\isadigit{0}}{\isacharbrackright}\ {\isadigit{1}}{\isadigit{0}}{\isadigit{0}}{\isadigit{0}}{\isacharparenright}
 \end{isabellebody}
 \vspace{\baselineskip}
-We say that two events (or operations) $x$ and $y$ are \emph{concurrent}
-whenever one does not happens before the other, that is, $\neg (\isa{x} \prec
-\isa{y})$ and $\neg (\isa{y} \prec \isa{x})$.
+Intuitively, the first three lines of the declaration above create a new local theory called $\isa{happens-before}$ which extends the $\isa{preorder}$ local theory provided by the Isabelle/HOL library.
+This $\isa{preorder}$ local theory provides two fixed constants---a weak and a strict ordering---which we rename here to $\isa{hb-weak}$ and $\isa{hb}$.
+Throughout, we only use $\isa{hb}$, and ignore $\isa{hb-weak}$.
+Further, on the last line of the declaration, we fix a function called $\isa{interp}$, which lifts elements of type ${\isacharprime}a$ into partial functions from ${\isacharprime}b$ to ${\isacharprime}b$.
+Here, ${\isacharprime}a$ is our abstract type of `events', whereas ${\isacharprime}b$ is our abstract type of `states'.
+Syntax declarations allow us to sugar the $\isa{hb}$ and $\isa{interp}$ constants, as mentioned above.
 
+We say that two events $x$ and $y$ are \emph{concurrent} whenever one does not happens before the other.
+That is, $\neg (\isa{x} \prec \isa{y})$ and $\neg (\isa{y} \prec \isa{x})$:
+\\
 \begin{isabellebody}
-  \isanewline
-\isacommand{definition}\isamarkupfalse%
-\ concurrent\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}{\isasymparallel}{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}x\ {\isasymparallel}\ y\ {\isasymequiv}\ {\isasymnot}\ {\isacharparenleft}x\ {\isasymprec}\ y{\isacharparenright}\ {\isasymand}\ {\isasymnot}\ {\isacharparenleft}y\ {\isasymprec}\ x{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{definition} {\isacharparenleft}\isakeyword{in}\ happens{\isacharunderscore}before{\isacharparenright}\ concurrent\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}{\isasymparallel}{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}x\ {\isasymparallel}\ y\ {\isasymequiv}\ {\isasymnot}\ {\isacharparenleft}x\ {\isasymprec}\ y{\isacharparenright}\ {\isasymand}\ {\isasymnot}\ {\isacharparenleft}y\ {\isasymprec}\ x{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{\baselineskip}
+Note that this definition is made within the $\isa{happens-before}$ local theory, so has access to the $\isa{hb}$ relation.
+We write $x\ {\isasymparallel}\ y$ when two events are concurrent.
 
-A list of events \isa{xs} is \emph{hb-consistent}, or simply \emph{consistent},
-whenever for any element \isa{y}, it is not the case that \isa{y} happens
-before \isa{x} for all \isa{x} that appears before \isa{y} in the list. That
-is, \isa{x} and \isa{y} are either concurrent or \isa{x} happens before
-\isa{y}.  This is implemented in Isabelle by an inductive predicate.
-
+We will often work with lists of events that are required to respect the happens before relation.
+We say that a list of events \isa{xs} is \emph{hb-consistent}, or simply \emph{consistent}, whenever elements appearing later in the list do not happen before elements appearing earlier in the list.
+We capture this idea using an inductive relation in Isabelle:
+\\
 \begin{isabellebody}
-  \isanewline
-\isacommand{inductive}\isamarkupfalse%
-\ hb{\isacharunderscore}consistent\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ list\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ {\isacharbrackleft}{\isacharbrackright}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ {\isachardoublequoteopen}{\isasymlbrakk}\ hb{\isacharunderscore}consistent\ xs{\isacharsemicolon}\ {\isasymforall}x\ {\isasymin}\ set\ xs{\isachardot}\ {\isasymnot}\ y\ {\isasymprec}\ x\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ hb{\isacharunderscore}consistent\ {\isacharparenleft}xs\ {\isacharat}\ {\isacharbrackleft}y{\isacharbrackright}{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{inductive} hb{\isacharunderscore}consistent\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ list\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ {\isacharbrackleft}{\isacharbrackright}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}{\isasymlbrakk}\ hb{\isacharunderscore}consistent\ xs{\isacharsemicolon}\ {\isasymforall}x\ {\isasymin}\ set\ xs{\isachardot}\ {\isasymnot}\ y\ {\isasymprec}\ x\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ hb{\isacharunderscore}consistent\ {\isacharparenleft}xs\ {\isacharat}\ {\isacharbrackleft}y{\isacharbrackright}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
-
+\vspace{\baselineskip}
 Additionally, we say that concurrent operations commute in a list \isa{xs}
 whenever for all concurrent events \isa{x} and \isa{y} in the list \isa{xs},
 the Kleisli arrow composition of their operations commute $\langle \isa{x}
