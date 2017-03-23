@@ -34,18 +34,48 @@ To be completed...
 \section{Introduction}
 \label{sect.introduction}
 
-Collaborative editing applications such as Google Docs, Microsoft Word Online, and Etherpad are
-increasing in popularity. A common feature of these tools is that they allow several users to
-concurrently modify a document without having to send the document back and forth manually (e.g., by
-email), and without requiring any exclusive locking or manual resolution of merge conflicts. Similar
-features are found in applications that synchronise data between devices owned by the same user,
-such as calendars, address books, note-taking apps, password managers, and so on: they also allow
-data to be independently modified on different devices, and any changes are propagated to copies of
-the data on other devices when an internet connection is available.
+It is almost a clich{\' e} to say that programming distributed systems is hard. Even the most basic
+needs of applications---such as \emph{replication}, that is, maintaining a consistent copy of some
+data on several nodes---turn out to be difficult to reliably achieve in the face of unreliable
+networks and node failures. In this context, a node can be any computer connected to a network, such
+as a server in a datacenter, a laptop, a smartphone, or a self-driving car.
 
-As we show in Section~\ref{sect.relatedwork}, all currently deployed algorithms for such
-collaborative editing and data synchronisation rely on a central server that is trusted to hold the
-authoritative copy of the data. The use of a central server introduces a number of limitations:
+Two instances of the replication problem are
+\begin{inparaenum}
+\item \emph{collaborative editing}, where the data in question is typically a document (text,
+    spreadsheet, graphics, CAD, etc.), and several users need to work on it;
+\item \emph{data synchronisation}---for example of calendars, address books, note-taking tools,
+    to-do lists, and password managers---which is used when a user owns several devices and wants
+    the data accessible on each device.
+\end{inparaenum}
+In both instances, the system must either enforce an exclusive lock for one node and prevent others
+from modifying the data concurrently, or deal with the conflicts that ensue when edits are made
+concurrently on different nodes.
+
+Enforcing an exclusive lock implies making the data unavailable for writes when a node is offline,
+i.e., when it cannot check whether another node already has the lock. Such unavailability is not
+acceptable in many applications, so the latter route of accepting and handling conflicts is widely
+used: most calendar, address book, and note-taking apps on smartphones, and popular collaborative
+editing applications such as Google Docs/Sheets and Microsoft Office Online, choose to allow
+conflicts and have mechanisms for resolving them.
+
+However, despite decades of work in both industry and academia, algorithms for achieving replication
+with conflict resolution in distributed systems are still poorly understood. As we document in
+Section~\ref{sect.relatedwork}, many published algorithms have been shown to be broken, corrupting
+the data they are supposed to replicate. Those that are correct tend to be very subtle and easy to
+get wrong.
+
+In this work we advance the state of the art of distributed programming by establishing a framework
+for formally verifying the correctness of algorithms for achieving consistency in replication,
+conflict resolution, and data synchronisation. We demonstrate, for the first time, machine-checked
+proofs of correctness of several replicated data structures. Our framework provides general-purpose
+tools for such correctness proofs, allowing other algorithms to be verified more easily in future.
+
+%%%%%
+
+Most deployed systems today address replication problems by relying on a central server that is
+trusted to hold the authoritative copy of the data, i.e. by making the distributed system less
+distributed. The use of a central server introduces a number of limitations:
 \begin{itemize}
 \item It limits offline usage: for example, a user cannot synchronise changes between their
     smartphone and laptop via a local wireless connection, but must instead connect both devices to
@@ -54,9 +84,11 @@ authoritative copy of the data. The use of a central server introduces a number 
 \item Since the central server holds the authoritative copy of the data, all participants must be
     willing to trust it to a high degree. If the server were compromised by attackers, or subverted
     by a malicious insider, it could tamper with the data or grant access to unauthorised parties.
-\item Finally, a central server requires high availability and is also susceptible to blocking and
-    censorship. For sensitive scenarios, such as communication among journalists and dissidents
-    under a repressive regime, such centralisation is problematic.
+\item Finally, a central server is a single point of failure that is susceptible to distributed
+    denial-of-service (DDoS) attacks, blocking, and censorship. For important services that require
+    high availability, the risk of being knocked offline by a DDoS attack might be unacceptable. In
+    sensitive situations, such as communication among journalists and dissidents under a repressive
+    regime, centralisation of communication is also problematic.
 \end{itemize}
 
 Decentralised peer-to-peer systems therefore look attractive in scenarios where reliance on a
@@ -78,9 +110,6 @@ of a Conflict-Free Replicated Data Type (CRDT) as introduced by
 The algorithm is subtle---\citet{Attiya:2016kh} wrote, ``the reason why RGA actually works has been
 a bit of a mystery''---which makes formal verification particularly important.
 
-\dots something about how the formal verification is generally applicable, not just for this
-particular algorithm \dots
-
 % TODO say more about our contributions. Can recycle some of the following text, but probably needs
 % adapting, as the explanation of CRDTs and OT has been moved to the background section...
 %
@@ -101,6 +130,7 @@ particular algorithm \dots
 % machine-checked correctness proofs of operation-based CRDTs. Our proofs are broken down into modules
 % with well-defined properties, allowing modules to be reused for proofs of new datatypes in future.
 % By making formal verification easier, we hope to provide a strong foundation for the development of
+
 % the next generation of algorithms for collaborative editing.
 
 % TODO put this in section on high-level proof strategy, and just have a forward reference here?
