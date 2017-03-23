@@ -387,22 +387,18 @@ This result will be used in the proof of $\isa{convergence}$, below:
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ {\isacharparenleft}prefix\ {\isacharat}\ suffix\ {\isacharat}\ {\isacharbrackleft}x{\isacharbrackright}{\isacharparenright}\ {\isacharequal}\ apply{\isacharunderscore}operations\ {\isacharparenleft}prefix\ {\isacharat}\ x\ {\isacharhash}\ suffix{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{\baselineskip}
-We can now formally state the abstract convergence theorem: two consistent list
-of distinct events in which concurrent operations commute that have the same
-set of elements yield the same state transformer.
+Here, $\isa{concurrent-set}\ \isa{x}\ \isa{suffix}$ asserts that the event $\isa{x}$ is concurrent with every element of $\isa{suffix}$.
+Intuitively, $\isa{concurrent-ops-commute-concurrent-set}$ captures the fact that in a CRDT, it does not matter what the relative ordering a node sees concurrent messages in, as all concurrent messages are guaranteed to commute, and therefore can arbitrarily be reordered.
 
+Using this lemma, and the rest of the machinery defined above, we can now state and then prove our main theorem, which states that two consistent lists of distinct events, which are permutations of each other, in which concurrent operations commute, have the same interpretation:
+\\
 \begin{isabellebody}
-  \isanewline
-\isacommand{theorem}\isamarkupfalse%
-\ \ convergence{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ xs\ {\isacharequal}\ set\ ys{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ xs{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ ys{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}distinct\ xs{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}distinct\ ys{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ xs{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ ys{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{theorem} convergence{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ xs\ {\isacharequal}\ set\ ys{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ ys{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}distinct\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}distinct\ ys{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ ys{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
 The entire proof is shown in Figure~\ref{fig.convergence}.  The proof follows
