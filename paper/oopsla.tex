@@ -241,31 +241,24 @@ Once interpreted, all functions, definitions, and theorems made within the $\isa
 \section{High-level proof strategy}
 \label{sect.high-level.proof.strategy}
 
-Before embarking on a detailed description of our formal proof of convergence in Isabelle, we provide a higher-level overview of the proof strategy used.
+In this section, we provide a high-level overview of our proof strategy, so readers can more easily understand our Isabelle development.
 
-In Section~\ref{sect.abstract.convergence} we present an `abstract convergence theorem'.
-The statement of this theorem does not mention networks, nor does it mention any machinery tied to any one particular CRDT implementation. 
+In Section~\ref{sect.abstract.convergence} we present an `abstract convergence theorem' which does not mention networks, nor does it mention any machinery tied to any one particular CRDT implementation. 
 Rather, the theorem statement is phrased in terms of purely abstract `events', and functions that lift events into abstract `state formers'.
 As a result, the theorem may be viewed purely as a property of preorders, or alternatively as a `distillation' of the notion of SEC convergence, which gives sufficient conditions for convergence in this setting.
 
 In Section~\ref{sect.network} we provide an axiomatic model of causal asynchronous networks, built around a broadcast-deliver event model.
-We develop a relation---\emph{happens before}---which captures the notion of `causality' within this network.
-It is easy to show that this relation is a preorder, and therefore the abstract convergence theorem of Section~\ref{sect.abstract.convergence} applies.
-We may therefore `compose' this theorem with our network model, to obtain a convergence theorem for our network.
-We present this derived theorem at the end of Section~\ref{sect.network}.
+We develop a relation---\emph{happens before}---which captures the notion of `causality' within this network---and is a preorder.
+The abstract convergence theorem of Section~\ref{sect.abstract.convergence} therefore applies, and we `compose' this theorem with our network model, to obtain a convergence theorem for our network.
 
 Note that everything mentioned until this point is completely generic---we are not tied to any CRDT implementation.
 However, we may now use our abstract convergence theorems to prove concrete convergence theorems for given CRDT implementations.
 
-As a concrete example in Section~\ref{sect.rga} we present a mechanisation of an existing CRDT: the Replicated Growable Array (RGA).
-Our mechanisation consists of two parts.
-This first half is an implementation of the RGA's insert and delete operations, with proofs that each operation commutes with itself, and all operations commute with each other.
-Insertion and deletion only commute under various conditions.
-These conditions are codified in the second half of our RGA implementation: a constraining of all possible network behaviours to only those that guarantee that the RGA CRDT remains `well behaved'.
+We present a concrete example in Section~\ref{sect.rga}: a mechanisation of the Replicated Growable Array (RGA).
+We first implement the RGA's insert and delete operations, with proofs that each operation commutes with itself, and all operations commute with each other.
+Insertion and deletion only commute under various conditions, which are reflected in a constraining of all possible network behaviours to only those that guarantee that the RGA CRDT remains `well behaved'.
 This constraining can be viewed as an associated `protocol' for the RGA, detailing valid modes of usage of the data type.
-Combining the two parts of the mechanisation together, we see that the constrained network provides the right conditions under which all operations commute with each other.
-Further, as a corollary of our abstract convergence theorem, we obtain a concrete convergence theorem for our RGA implementation in a constrained network.
-This is presented at the end of Section~\ref{sect.rga}.
+The constrained network provides the right conditions under which all operations commute with each other, and as a corollary of our abstract convergence theorem, we obtain a concrete convergence theorem for our RGA implementation in a constrained network.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Convergence
