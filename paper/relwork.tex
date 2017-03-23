@@ -75,22 +75,35 @@ The approach has also been generalised to other data structures such as XML tree
 
 Unlike CRDTs, in which update operations are commutative by definition, OT allows non-commutative
 operations. Instead, OT relies on \emph{transforming} concurrent operations, allowing them to be
-reordered on different nodes while ensuring the same outcome. For example, if two nodes started in
-the same state, and then concurrently generated operations $\mathit{op}_1$ and $\mathit{op}_2$
-respectively, the transformation $T$ of those operations must satisfy
-\[
-  T(\mathit{op}_1, \mathit{op}_2) = (\mathit{op}_1', \mathit{op}_2') \quad\text{ such that }\quad
-  \mathit{op}_1 \circ \mathit{op}_2' \equiv \mathit{op}_2 \circ \mathit{op}_1' \;.
-\]
+reordered on different nodes while ensuring a convergent outcome.
+
+The required properties of this transformation function depend on assumptions about the network.
+Many OT algorithms assume that operations are sequenced through a central server and delivered to
+all clients in the same order. This design was originally pioneered by the Jupiter system
+\cite{Nichols:1995fd} and is now used by all widely-deployed OT-based collaboration systems,
+including Google Docs \cite{DayRichter:2010tt}, Microsoft Word Online, Etherpad
+\cite{Etherpad:2011um}, and Novell Vibe \cite{Spiewak:2010vw}. With a central server, each client
+only needs to reorder its operations with respect to the server's operation sequence, which
+simplifies the transformation.
+
+On the other hand, as discussed in Section~\ref{sect.background.networks}, total order broadcast is
+too restrictive for many peer-to-peer systems. Without total order broadcast, OT algorithms must
+tolerate a higher degree of concurrency. Although a number of OT algorithms were purported to
+guarantee convergence in peer-to-peer networks, many of them were later proved to be incorrect, as
+discussed in the next section.
+
+\subsection{Formal Verification}\label{sect.related.verification}
+
+Even though a data structure such as an ordered list may seem as though it ought to be simple, the
+history of algorithms for achieving convergence in a distributed setting has been fraught with
+difficulty. Informal reasoning has repeatedly produced approaches that fail to converge in certain
+scenarios, and even several formal ``proofs'' later turned out to be false.
+
+
 
 This property is known as the \emph{transformation property 1} ($\mathit{TP}_1$), as defined by
 \citet{Ressel:1996wx}. It allows two operations that were generated concurrently to be applied
-sequentially in different orders at each replica. It is sufficient for ensuring convergence in
-systems that deliver operations in the same order to all replicas, for example by sequencing them
-through a central server. This design was originally pioneered by the Jupiter system
-\cite{Nichols:1995fd} and is now used by all widely-deployed OT-based collaboration systems,
-including Google Docs \cite{DayRichter:2010tt}, Microsoft Word Online, Etherpad
-\cite{Etherpad:2011um}, and Novell Vibe \cite{Spiewak:2010vw}.
+sequentially in different orders at each replica.
 
 However, in decentralised systems that cannot ensure total order broadcast
 (Section~\ref{sect.background.networks}), the $\mathit{TP}_1$ property is not sufficient, and the
@@ -132,7 +145,6 @@ the network. A previous formalization of CRDTs~\cite{Zeller:2014fl}, also using 
 other datatypes (sets, registers, counters) but not the ordered sequence datatype provided by RGA.
 
 
-\subsection{Formal Verification}\label{sect.related.verification}
 
 Zeller et al. have used Isabelle to formally specify and verify a number of state-based CRDTs~\cite{Zeller:2014fl}.
 
