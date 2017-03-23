@@ -267,20 +267,16 @@ The constrained network provides the right conditions under which all operations
 \section{Abstract convergence}
 \label{sect.abstract.convergence}
 
-In this section we develop an abstract theory of convergence.
-The section ends with the presentation of a theorem---imaginatively entitled $\isa{convergence}$---which can be interpreted purely as a result about a certain type of ordering relation.
-We will use this theorem, and corollaries of it, in later sections to derive concrete convergence theorems for a CRDT implementation.
-
 Recall that, mathematically, a \emph{preorder} is a reflexive and transitive relation over elements of a carrier set.
 In Isabelle/HOL, it is typical to elide carrier sets when working with algebraic or order-theoretic structures, and instead work only with types.
-Accordingly, throughout this section, we will work in a setting where an abstract \emph{type} of `events' is fixed with a preorder structure defined over those `events'.
-At this point, what `events' are is not specified, only that they exist.
-Pre-empting how this preorder relation will eventually be used later in our work, we will refer to the ordering as the \emph{happens before} relation, and will write $\isa{x} \prec \isa{y}$ to indicate that event $\isa{x}$ has \emph{happened before} event $\isa{y}$.
-Moreover, we will work in a context where there is a fixed \emph{type} of abstract `states'.
+Throughout this section we therefore work in a setting where an abstract \emph{type} of `events' is fixed with a preorder structure defined over those `events'.
+At this point, what `events' actually are is not specified.
+However, pre-empting how this preorder relation will eventually be used later in our work, we will refer to the ordering as the \emph{happens before} relation, and will write $\isa{x} \prec \isa{y}$ to indicate that event $\isa{x}$ has \emph{happened before} event $\isa{y}$.
+
+Moreover, our working context has a fixed \emph{type} of abstract `states'.
 Again, what `states' are need not be specified at this point.
-We will also require a means of decoding---or interpreting---an event and obtaining a state transformer, or partial map from states to states.
-We therefore assume that there exists a partial function which lifts `events' into state transformers.
-We write $\langle\_\rangle$ for this interpretation, or lifting, function.
+Relating states and events together, we will also require a means of decoding---or interpreting---an event and obtaining a state transformer, or partial map from states to states.
+We therefore assume that there exists a partial function which lifts `events' into state transformers, and write $\langle\ \isa{x}\ \rangle$ for the interpretation of event $\isa{x}$.
 Concretely, this setting is captured in Isabelle with the following local theory declaration:
 \\
 \begin{isabellebody}
@@ -290,26 +286,25 @@ Concretely, this setting is captured in Isabelle with the following local theory
 \ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ interp\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}b\ {\isasymrightharpoonup}\ {\isacharprime}b{\isachardoublequoteclose}\ {\isacharparenleft}{\isachardoublequoteopen}{\isasymlangle}{\isacharunderscore}{\isasymrangle}{\isachardoublequoteclose}\ {\isacharbrackleft}{\isadigit{0}}{\isacharbrackright}\ {\isadigit{1}}{\isadigit{0}}{\isadigit{0}}{\isadigit{0}}{\isacharparenright}
 \end{isabellebody}
 \vspace{\baselineskip}
-Intuitively, the first three lines of the declaration above create a new local theory called $\isa{happens-before}$ which extends the $\isa{preorder}$ local theory provided by the Isabelle/HOL library.
-This $\isa{preorder}$ local theory provides two fixed constants---a weak and a strict ordering---which we rename here to $\isa{hb-weak}$ and $\isa{hb}$.
-Throughout, we only use $\isa{hb}$, and ignore $\isa{hb-weak}$.
+The first three lines of the declaration above create a new local theory called $\isa{happens-before}$ which extends a local theory of preorders which provides two fixed constants---a weak and a strict ordering---which we rename here to $\isa{hb-weak}$ and $\isa{hb}$.
+Henceforth, we ignore $\isa{hb-weak}$.
 Further, on the last line of the declaration, we fix a function called $\isa{interp}$, which lifts elements of type ${\isacharprime}a$ into partial functions from ${\isacharprime}b$ to ${\isacharprime}b$.
 Here, ${\isacharprime}a$ is our abstract type of `events', whereas ${\isacharprime}b$ is our abstract type of `states'.
-Syntax declarations allow us to sugar the $\isa{hb}$ and $\isa{interp}$ constants, as mentioned above.
+Syntax allows us to sugar the $\isa{hb}$ and $\isa{interp}$ constants.
 
 We say that two events $x$ and $y$ are \emph{concurrent} whenever one does not happens before the other.
-That is, $\neg (\isa{x} \prec \isa{y})$ and $\neg (\isa{y} \prec \isa{x})$:
-\\
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{definition} {\isacharparenleft}\isakeyword{in}\ happens{\isacharunderscore}before{\isacharparenright}\ concurrent\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}{\isasymparallel}{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}x\ {\isasymparallel}\ y\ {\isasymequiv}\ {\isasymnot}\ {\isacharparenleft}x\ {\isasymprec}\ y{\isacharparenright}\ {\isasymand}\ {\isasymnot}\ {\isacharparenleft}y\ {\isasymprec}\ x{\isacharparenright}{\isachardoublequoteclose}
-\end{isabellebody}
-\vspace{\baselineskip}
-Note that this definition is made within the $\isa{happens-before}$ local theory, so has access to the $\isa{hb}$ relation.
+That is, when both $\neg (\isa{x} \prec \isa{y})$ and $\neg (\isa{y} \prec \isa{x})$ hold.
 We write $x\ {\isasymparallel}\ y$ when two events are concurrent.
+%\\ dpm: add back in?
+%\begin{isabellebody}
+%\ \ \ \ \ \ \ \ \isacommand{definition} {\isacharparenleft}\isakeyword{in}\ happens{\isacharunderscore}before{\isacharparenright}\ concurrent\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}{\isasymparallel}{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
+%\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}x\ {\isasymparallel}\ y\ {\isasymequiv}\ {\isasymnot}\ {\isacharparenleft}x\ {\isasymprec}\ y{\isacharparenright}\ {\isasymand}\ {\isasymnot}\ {\isacharparenleft}y\ {\isasymprec}\ x{\isacharparenright}{\isachardoublequoteclose}
+%\end{isabellebody}
+%\vspace{\baselineskip}
+%Note that this definition is made within the $\isa{happens-before}$ local theory, so has access to the $\isa{hb}$ relation.
 
 We will often work with lists of events that are required to respect the happens before relation.
-We say that a list of events \isa{xs} is \emph{hb-consistent}, or simply \emph{consistent}, whenever elements appearing later in the list do not happen before elements appearing earlier in the list.
+We say that a list of events \isa{xs} is \emph{hb-consistent}, or simply \emph{consistent}, whenever elements appearing later in the list do not happen before elements appearing earlier.
 We capture this idea using an inductive relation in Isabelle:
 \\
 \begin{isabellebody}
@@ -341,8 +336,8 @@ Rather, the commutation property is only required to hold at events that are con
 \vspace{\baselineskip}
 Suppose $\isa{xs}$ is a list of events.
 We define a function, $\isa{apply-operations}$ that `lifts' this list of events into a state transformer.
-This is a many-fold analogue of the interpretation function, $\langle-\rangle$, and can be seen as providing an interpretation to the list of events.
-Defining this interpretation function is straightforward---we first map $\isa{interp}$ across the list to obtain a list of discrete interpretations of events, and then collectively compose them using the Kleisli arrow composition combinator:
+This is an analogue of the interpretation function, $\langle-\rangle$, and can be seen as providing an interpretation to lists of events.
+Defining this interpretation function is straightforward---we first map $\isa{interp}$ across the list to obtain a list of discrete event interpretations, and then collectively compose them using the Kleisli arrow composition combinator:
 \\
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{definition} apply{\isacharunderscore}operations\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ list\ {\isasymRightarrow}\ {\isacharprime}b\ {\isasymrightharpoonup}\ {\isacharprime}b{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
@@ -350,7 +345,7 @@ Defining this interpretation function is straightforward---we first map $\isa{in
 \end{isabellebody}
 \vspace{\baselineskip}
 We now have sufficient machinery to state our main theorem.
-However, before discussing this theorem, we introduce an auxiliary lemma which allows us to manipulate the relative ordering of events within a list of events, without changing the interpretation of that list.
+However, before discussing this theorem, we introduce an auxiliary lemma which allows us to manipulate the relative ordering of events within a list of events, without changing their interpretation.
 This result will be used in the proof of $\isa{convergence}$, below:
 \\
 \begin{isabellebody}
@@ -362,9 +357,10 @@ This result will be used in the proof of $\isa{convergence}$, below:
 \end{isabellebody}
 \vspace{\baselineskip}
 Here, $\isa{concurrent-set}\ \isa{x}\ \isa{suffix}$ asserts that the event $\isa{x}$ is concurrent with every element of $\isa{suffix}$.
-Intuitively, $\isa{concurrent-ops-commute-concurrent-set}$ captures the fact that in a CRDT, it does not matter what the relative ordering a node sees concurrent messages in, as all concurrent messages are guaranteed to commute, and therefore can arbitrarily be reordered.
+Intuitively, $\isa{concurrent-ops-commute-concurrent-set}$ captures the fact that the interpretation of a list of events is invariant under relative ordering of concurrent operations, when those operations are known to commute.
 
-Using this lemma, and the rest of the machinery defined above, we can now state and then prove our main theorem, which states that two consistent lists of distinct events, which are permutations of each other, in which concurrent operations commute, have the same interpretation:
+Using this lemma, and the rest of the machinery defined above, we can now state and then prove our main theorem, $\isa{convergence}$.
+This theorem states that two consistent lists of distinct events, which are permutations of each other and in which concurrent operations commute, have the same interpretation:
 \\
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{theorem} convergence{\isacharcolon}\isanewline
@@ -375,11 +371,9 @@ Using this lemma, and the rest of the machinery defined above, we can now state 
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
-We sketch the proof of this theorem, here.
-We proceed by induction on $\isa{xs}$---the case for the empty list is immediate, so we consider the step case only.
+We sketch the proof of this theorem, here, proceeding by induction on $\isa{xs}$---the case for the empty list is immediate, so we consider the step case only.
 Assuming the property holds for \isa{xs}, we prove the case when a new event $\isa{x}$ is added to the end of $\isa{xs}$, that is, $\isa{xs}@[\isa{x}]$.
-Since both $\isa{xs}$ and $\isa{ys}$ have the same elements, one may split $\isa{ys}$ such that $\isa{ys = prefix@x@suffix}$ for some suitable lists \isa{prefix} and \isa{suffix}.
-Moreover, all events in $\isa{suffix}$ are concurrent with $\isa{x}$.
+Since both $\isa{xs}$ and $\isa{ys}$ have the same elements, one may split $\isa{ys}$ such that $\isa{ys = prefix@x@suffix}$ for some $\isa{prefix}$ and $\isa{suffix}$ where all events in $\isa{suffix}$ are concurrent with $\isa{x}$.
 By the induction hypothesis, $\isa{\isa{apply-operations}\ xs = \isa{apply-operations}\ (prefix@suffix)}$.
 We then have a chain of equational reasoning, making use of $\isa{concurrent-ops-commute-concurrent-set}$ to move the element $\isa{x}$ from the back of the list past $\isa{suffix}$, and properties of folds (recalling that $\isa{apply-operations}$ is defined as a fold):
 \begin{align*}
@@ -398,22 +392,21 @@ We then have a chain of equational reasoning, making use of $\isa{concurrent-ops
 \section{Network}
 \label{sect.network}
 
-In this section, we incrementally work towards a definition of an asynchronous causal network, considering a number of intermediary abstractions, and important definitions made using those abstractions, along the way.
-We conclude the section by demonstrating that our convergence theorem---$\isa{convergence}$, discussed in the previous section---can be `lowered' into an asynchronous causal network, to obtain another convergence theorem.
+In this section, we incrementally work towards a definition of an asynchronous causal network, considering a number of intermediary abstractions.
+We conclude the section by demonstrating that our convergence theorem---$\isa{convergence}$, discussed in the previous section---has an analogue within our network model.
 
 We first consider a setting characterised by an arbitrary (unbounded) number of `nodes', `replicas', or `processes'.
-Precisely what these nodes are, and what their pattern of communication is, if any, is left abstract at this point.
+Precisely what these nodes are, and what their pattern of communication is, if any, is again left abstract at this point.
 Aside from being unbounded in number, nodes in this setting have two key properties:
 \begin{enumerate}
 \item
 They are uniquely named, and we can always refer to a node with some known unique identifier.
-In our setting, we will identify the set of node identifiers with the set of natural numbers.
+We will use natural numbers to identify nodes.
 \item
-Each node has an ordered finite history of abstract `events' associated with it---though, at this point we do not specify what these events actually are.
-All that can be said is that this history is a `local' history, in that it details a series of network events as the particular node in question perceives them, not a `global' history of all network events seen by some external monitor.
-We therefore insist that a node's history is not merely ordered, but has a strict total order structure imposed on it.
-Further, every event in a node's history is assumed to be unique.
-Uniqueness is a reasonable assumption, as we may use timestamps, globally unique identifiers, or some other disambiguation device attached to concrete messages to ensure that this property holds.
+Each node has an ordered finite history of abstract `events' associated with it.
+All that can be said about this history is that it is a `local' history, in that it details a series of network events as the particular node in question perceives them, not a `global' history of all network events seen by some external monitor.
+A node's history therefore has a strict total order structure imposed on it, with every event in a node's history is assumed to be unique.
+Uniqueness is a reasonable assumption, as we may use timestamps or some other disambiguation device attached to messages to ensure that this property holds.
 \end{enumerate}
 We model the configuration of nodes described above with a local theory in Isabelle, which we call $\isa{node{\isacharunderscore}histories}$:
 \\
@@ -428,36 +421,36 @@ Concretely, we capture the fact that a node's local history is totally ordered b
 Events are simply modelled as a type variable---here we use $\isa{{\isacharprime}a}$---to ensure that they are completely abstract, with no internal structure.
 The $\isa{distinct}$ predicate is an Isabelle/HOL library function which asserts that a list has no repeated elements, upto equality.
 
-Note that the $\isa{node{\isacharunderscore}histories}$ locale is quite general: it can handle both a bounded and unbounded number of nodes.
-In the former case, we simply assume that $\isa{history}$ is \emph{finitely supported}, in the sense that all but a bounded number of node histories are `empty', i.e. the function returns the empty list of events at those nodes.
+Note that the $\isa{node{\isacharunderscore}histories}$ local theory is quite general: it can handle both a bounded and unbounded number of nodes.
+In the former case, we simply assume that $\isa{history}$ is \emph{finitely supported}, in the sense that all but a bounded number of node histories are `empty', i.e. returns the empty list of events at those nodes.
 
 Isabelle lists are finite, and therefore so is a node's history.
-As a result, at the end of a node's history, we assume that a node has either \emph{failed} or successfully terminated.
-In our model, a node can fail only once, which is modeled by the absence of any further events in the history, and after that it is deemed to have disconnected permanently from the network.
+At the end of a node's history, we assume that a node has either \emph{failed} or successfully terminated.
+In our model, a node can fail only once, which is modeled by the absence of any further events in the history, and after that it is deemed to have permanently dropped from the network.
 This \emph{crash-stop} abstraction is commonly used by distributed algorithms \cite{Cachin:2011wt}.
 Crashes of one node cannot be detected by other nodes: a lack of messages at any given moment might indicate the crash of the sender, message loss, or network delay, and recipients of messages cannot distinguish between these causes.
 
 In the general setting of the $\isa{node{\isacharunderscore}histories}$ local theory, we may define when one event comes before another, at a fixed node.
 Writing $\isa{x} \sqsubset^\isa{i} \isa{y}$ for the \emph{comes before} relation at node $\isa{i}$, we assert that this relation holds whenever lists $\isa{xs}$, $\isa{ys}$ and $\isa{zs}$ exist such that $\isa{xs}@[\isa{x}]@\isa{ys}@[\isa{y}]@\isa{zs} = \isa{history\ i}$.
 Here $xs@ys$ denotes the appending of list $xs$ to list $ys$.
-We define this in Isabelle, like so:
-\\
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{definition} {\isacharparenleft}\isakeyword{in}\ node{\isacharunderscore}histories{\isacharparenright}\ history{\isacharunderscore}order\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ nat\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ {\isacharparenleft}{\isachardoublequoteopen}{\isacharunderscore}{\isacharslash}\ {\isasymsqsubset}\isactrlsup {\isacharunderscore}{\isacharslash}\ {\isacharunderscore}{\isachardoublequoteclose}\ {\isacharbrackleft}{\isadigit{5}}{\isadigit{0}}{\isacharcomma}{\isadigit{1}}{\isadigit{0}}{\isadigit{0}}{\isadigit{0}}{\isacharcomma}{\isadigit{5}}{\isadigit{0}}{\isacharbrackright}{\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}x\ {\isasymsqsubset}\isactrlsup i\ z\ {\isasymequiv}\ {\isasymexists}xs\ ys\ zs{\isachardot}\ xs{\isacharat}x{\isacharhash}ys{\isacharat}z{\isacharhash}zs\ {\isacharequal}\ history\ i{\isachardoublequoteclose}
-\end{isabellebody}
-\vspace{\baselineskip}
+%We define this in Isabelle, like so:
+%\\
+%\begin{isabellebody}
+%\ \ \ \ \ \ \ \ \isacommand{definition} {\isacharparenleft}\isakeyword{in}\ node{\isacharunderscore}histories{\isacharparenright}\ history{\isacharunderscore}order\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ nat\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ {\isacharparenleft}{\isachardoublequoteopen}{\isacharunderscore}{\isacharslash}\ {\isasymsqsubset}\isactrlsup {\isacharunderscore}{\isacharslash}\ {\isacharunderscore}{\isachardoublequoteclose}\ {\isacharbrackleft}{\isadigit{5}}{\isadigit{0}}{\isacharcomma}{\isadigit{1}}{\isadigit{0}}{\isadigit{0}}{\isadigit{0}}{\isacharcomma}{\isadigit{5}}{\isadigit{0}}{\isacharbrackright}{\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
+%\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}x\ {\isasymsqsubset}\isactrlsup i\ z\ {\isasymequiv}\ {\isasymexists}xs\ ys\ zs{\isachardot}\ xs{\isacharat}x{\isacharhash}ys{\isacharat}z{\isacharhash}zs\ {\isacharequal}\ history\ i{\isachardoublequoteclose}
+%\end{isabellebody}
+%\vspace{\baselineskip}
 
-Often, it will be the case that we are not interested in the entire history of a node, but rather some subcomponent of that history.
-In particular, we will often be interested merely in \emph{prefixes} of a node's history, to inspect how the history evolved over time.
-We say that a list of events \isa{xs} is a \isa{prefix\ of} the history of node \isa{i} if there exists some list of events \isa{ys} such that their appending forms the history of \isa{i}.
-We write $\isa{xs}\ \isa{prefix}\ \isa{of}\ \isa{i}$ when this property holds, and define it formally like so:
-\\
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{definition} {\isacharparenleft}\isakeyword{in}\ node{\isacharunderscore}histories{\isacharparenright}\ prefix{\isacharunderscore}of{\isacharunderscore}node{\isacharunderscore}history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ list\ {\isasymRightarrow}\ nat\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}prefix\ of{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}xs\ prefix\ of\ i\ {\isasymequiv}\ {\isasymexists}ys{\isachardot}\ xs{\isacharat}ys\ {\isacharequal}\ history\ i{\isachardoublequoteclose}
-\end{isabellebody}
-\vspace{\baselineskip}
+%Often, it will be the case that we are not interested in the entire history of a node, but rather some subcomponent of that history.
+%In particular, we will often be interested merely in \emph{prefixes} of a node's history, to inspect how the history evolved over time.
+%We say that a list of events \isa{xs} is a \isa{prefix\ of} the history of node \isa{i} if there exists some list of events \isa{ys} such that their appending forms the history of \isa{i}.
+%We write $\isa{xs}\ \isa{prefix}\ \isa{of}\ \isa{i}$ when this property holds.
+%\\
+%\begin{isabellebody}
+%\ \ \ \ \ \ \ \ \isacommand{definition} {\isacharparenleft}\isakeyword{in}\ node{\isacharunderscore}histories{\isacharparenright}\ prefix{\isacharunderscore}of{\isacharunderscore}node{\isacharunderscore}history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ list\ {\isasymRightarrow}\ nat\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}prefix\ of{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
+%\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}xs\ prefix\ of\ i\ {\isasymequiv}\ {\isasymexists}ys{\isachardot}\ xs{\isacharat}ys\ {\isacharequal}\ history\ i{\isachardoublequoteclose}
+%\end{isabellebody}
+%\vspace{\baselineskip}
 We now move to a slightly less abstract setting.
 In particular, the networks that we are modelling consider two different type of events: \emph{broadcast} and \emph{deliver}.
 A node can either broadcast a message to every other node on the network, in which case a broadcast event is registered, or can receive a message that has been broadcast by some other node, in which case a deliver event is registered.
@@ -466,9 +459,7 @@ For operation-based CRDTs messages can be further specified to be a type of oper
 We define a type of events as a tagged union type, like so:
 \\
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{datatype} {\isacharprime}a\ event\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isacharequal}\ Broadcast\ {\isacharprime}a\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isacharbar}\ Deliver\ {\isacharprime}a
+\ \ \ \ \ \ \ \ \isacommand{datatype} {\isacharprime}a\ event\ {\isacharequal}\ Broadcast\ {\isacharprime}a\ {\isacharbar}\ Deliver\ {\isacharprime}a
 \end{isabellebody}
 \vspace{\baselineskip}
 Here, the type variable $\isacharprime\isa{a}$ parameterising the type declaration is used in stead of a concrete representation of messages.
@@ -483,8 +474,8 @@ Using this law, we can assert that no messages are created `out of thin air' by 
 Our network is not guaranteed to be reliable.
 Messages in our network, broadcast by a node, may be delayed, reordered, or even lost entirely, and when a node broadcasts some message, our network does not guarantee that every other node will receive this message in a corresponding deliver event.
 The only guarantee that our networks are able to make is that every node will receive its own broadcast messages in delivery events.
-When a node recieves its own broadcast messages is not specified, however.
-In particular, we make no guarantee that a node will receive its own messages immediately after broadcast, and there may in fact be a significant delay between the two events.
+When a node recieves its own broadcast messages is not specified.
+In particular, we make no guarantee that a node will receive its own messages immediately after broadcast, and there may in fact be a significant delay in delivery.
 
 Finally, our network's laws assert that all messages are unique.
 If some node has broadcast a message $\isa{m}$, it cannot be the case that some other node has also broadcast that same message.
@@ -505,19 +496,19 @@ Note also that the first line of the $\isa{network}$ local theory declaration is
 First, the $\isa{network}$ local theory is being defined as an \emph{extension} of the $node{\isacharunderscore}histories$ local theory, meaning all functions and axioms fixed or defined within the context of the latter become available in the former.
 This is why, for example, the axiom $\isa{broadcast{\isacharunderscore}before{\isacharunderscore}delivery}$---which mentions both the $\isa{history}$ function and the history order relation, defined within the scope of the $node{\isacharunderscore}histories$ local theory---is a well-formed formula.
 Second, $\isa{network}$ is not just extending the $node{\isacharunderscore}histories$ local theory, but also \emph{specialising} it at the same time.
-The fixed $\isa{history}$ function is now being constrained to return a list of elements of type $\isa{event}$, declared above, rather than some abstract type variable, using the $\isacommand{for}$ construct.
+The fixed $\isa{history}$ function is now being constrained to return a list of elements of type ${\isacharprime}a\ \isa{event}$, declared above, rather than some abstract type variable, using the $\isacommand{for}$ construct.
 
-Now that we have some knowledge of broadcast and deliver events, we may define an important concept: the \emph{happens before} relation.
-A message (or operation) $\isa{m1}$ is said to \emph{happens before} a message \isa{m2}, whenever:
+Now that we have some knowledge of broadcast and deliver events, we may define an important concept: the \emph{happens before} relation, which captures the notion of causality between events within the network.
+A message (or operation) $\isa{m1}$ is said to \emph{happen before} a message \isa{m2}, whenever:
 \begin{enumerate}
 \item
-If both messages have been broadcast by the same node, and the broadcast event for message $\isa{m1}$ \emph{comes before} the broadcast event for message $\isa{m2}$,
+Both messages have been broadcast by the same node, and the broadcast event for message $\isa{m1}$ \emph{comes before} the broadcast event for message $\isa{m2}$,
 \item
-Or, if at some node, the delivery event for message $\isa{m1}$ \emph{comes before} the broadcast event for message $\isa{m2}$,
+At some node, the delivery event for message $\isa{m1}$ \emph{comes before} the broadcast event for message $\isa{m2}$,
 \item
-Or, if there is another event for some message that interpolates the two other events, happening after the event for message $\isa{m1}$, but before the event for message $\isa{m2}$.
+There is another event for some message that interpolates the two other events, happening after the event for message $\isa{m1}$, but before the event for message $\isa{m2}$.
 \end{enumerate}
-We may capture this in Isabelle/HOL using an inductive relation, which we call $\isa{hb}$, alternatively using the syntax $\isa{m1} \prec \isa{m2}$ to assert that $\isa{m1}$ \emph{happens before} $\isa{m2}$ per the definition of $\isa{hb}$:
+We may capture this in Isabelle/HOL using an inductive relation, which we call $\isa{hb}$, or alternatively using the syntax $\isa{m1} \prec \isa{m2}$, to assert that $\isa{m1}$ \emph{happens before} $\isa{m2}$ per rules (1)--(3), above:
 \\
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{inductive} {\isacharparenleft}\isakeyword{in}\ network{\isacharparenright}\ hb\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
