@@ -585,11 +585,6 @@ We then obtain a theorem that states that if concurrent messages commute, then b
 \section{Replicated Growable Array}
 \label{sect.rga}
 
-In this section, we discuss our implementation of the Replicated Growable Array (RGA) CRDT, and various theorems related to its correctness.
-We finish the section with a proof that the RGA implementation converges, obtained as a corollary of our network convergence theorem.
-
-\noindent
-\paragraph{Definition}
 The RGA is a replicated sequential data type supporting \emph{insert} and \emph{delete} operations.
 We mention three aspects of the RGA's design, which ensure convergence, and that must be understood to follow this section:
 \begin{enumerate}
@@ -620,26 +615,24 @@ We now define the insertion operation, which operates in two modes reflecting th
 In one mode, an element may be inserted at the head of the array, whilst in another mode, the user may specifically request that an element is placed \emph{after} another, comparing identifiers.
 In our mechanisation we therefore found it convenient to factor the definition of insertion into two functions: $\isa{insert-body}$ which never fails, and $\isa{insert}$ which may fail, and calls $\isa{insert-body}$ as a subroutine.
 
-The function $\isa{insert\ xs\ e\ i}$ performs a case analysis on its third argument, $\isa{i}$.
-If $\isa{i}$ is $\isa{None}$, then this is taken to mean that the user wishes the element to be placed in the body of the ordered list, and $\isa{insert-body}$ is therefore immediately called.
-Otherwise, $\isa{i}$ is of the form $\isa{Some\ i'}$ for some identifier $\isa{i'}$, in which case the user wishes the new element to appear after some existing element in the list.
-This is done recursively by $\isa{insert}$ itself.
-Note that \isa{insert} is a partial function, if an element with identifier \isa{i} is not found in the list \isa{xs}, the function returns \isa{None}, indicating failure.
+The function $\isa{insert\ xs\ e\ i}$ performs a case analysis on its third argument, $\isa{i}$, which is an identifier wrapped inside an option type.
+If $\isa{i}$ is $\isa{None}$, then the user wishes the element to be placed at the head of the list, and $\isa{insert-body}$ is therefore immediately called which accomplishes this.
+Note here, though, that `at the head of the list' does not necessarily mean that the element will be placed as the first element.
+Rather, identifiers of elements will recursively be compared, and the new element will be placed at the first point where its identifier is strictly larger than those of existing elements in the list.
+If $\isa{i}$ is $\isa{Some}\ \isa{i}{\isacharprime}$ for some identifier $\isa{i}{\isacharprime}$, the user wishes the new element to appear after the element with identifier $\isa{i}{\isacharprime}$ in the list.
+This is done recursively by $\isa{insert}$ itself, and if an element with identifier $\isa{i}$ is not found in the list $\isa{xs}$, the function returns $\isa{None}$ indicating failure.
 
-The definition of the $\isa{insert-body}$ function is straightforward, with the function being defined by recursion over the list of elements, using Isabelle's pattern matching to destructure the list:
+The definition of the $\isa{insert-body}$ function is straightforward, with the function being defined by recursion over the list of elements and using Isabelle's pattern matching to destructure the list:
 \\
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{fun} insert{\isacharunderscore}body\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}linorder{\isacharbraceright}{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert{\isacharunderscore}body\ {\isacharbrackleft}{\isacharbrackright}\ \ \ \ \ e\ {\isacharequal}\ {\isacharbrackleft}e{\isacharbrackright}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert{\isacharunderscore}body\ {\isacharparenleft}x{\isacharhash}xs{\isacharparenright}\ e\ {\isacharequal}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharparenleft}if\ fst\ x\ {\isacharless}\ fst\ e\ then\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ e{\isacharhash}x{\isacharhash}xs\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ else\ x{\isacharhash}insert{\isacharunderscore}body\ xs\ e{\isacharparenright}{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert{\isacharunderscore}body\ {\isacharparenleft}x{\isacharhash}xs{\isacharparenright}\ e\ {\isacharequal}\ {\isacharparenleft}if\ fst\ x\ {\isacharless}\ fst\ e\ then\ e{\isacharhash}x{\isacharhash}xs\ else\ x{\isacharhash}insert{\isacharunderscore}body\ xs\ e{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{\baselineskip}
 Note here that $\isa{fst}$ is an Isabelle library function that returns the first component of a tuple.
 Recalling the definition of the $\isa{elt}$ type alias, we see that $\isa{fst}\ x < \isa{fst}\ e$ in the conditional above is comparing the identifiers of the two elements.
-The definition of $\isa{insert}$ is slightly more complicated, but also essentially follows a recursive scheme, pattern matching on both the input list, and the third argument---i.e. the position where to place the new element in the list:
+The definition of $\isa{insert}$ also follows a recursive scheme, pattern matching on both the input list, and the third argument---i.e. the position where to place the new element in the list:
 \\
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{fun} insert\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}linorder{\isacharbraceright}{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ {\isasymRightarrow}\ {\isacharprime}id\ option\ {\isasymrightharpoonup}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
@@ -648,13 +641,11 @@ The definition of $\isa{insert}$ is slightly more complicated, but also essentia
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert\ {\isacharparenleft}x{\isacharhash}xs{\isacharparenright}\ e\ {\isacharparenleft}Some\ i{\isacharparenright}\ {\isacharequal}\isanewline
 \ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharparenleft}if\ fst\ x\ {\isacharequal}\ i\ then\isanewline
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Some\ {\isacharparenleft}x{\isacharhash}insert{\isacharunderscore}body\ xs\ e{\isacharparenright}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ else\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ do\ {\isacharbraceleft}\ t\ {\isasymleftarrow}\ insert\ xs\ e\ {\isacharparenleft}Some\ i{\isacharparenright}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharsemicolon}\ Some\ {\isacharparenleft}x{\isacharhash}t{\isacharparenright}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharbraceright}{\isacharparenright}{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ else\ \isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ do\ {\isacharbraceleft}\ t\ {\isasymleftarrow}\ insert\ xs\ e\ {\isacharparenleft}Some\ i{\isacharparenright}\ {\isacharsemicolon}\ Some\ {\isacharparenleft}x{\isacharhash}t{\isacharparenright}\ {\isacharbraceright}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{\baselineskip}
-Here, $do {\isacharbraceleft} \ldots {\isacharbraceright}$ is a \emph{monadic sequencing block}, containing code in the option monad that could possibly fail.
+Here, $do {\isacharbraceleft} \ldots {\isacharbraceright}$ is a \emph{monadic sequencing block}, containing code in the option monad that could possibly fail, similar to Haskell's \emph{do}-notation.
 This block will collapse with a failure (i.e. $\isa{None}$) return value if any intermediate computation in the block fails.
 
 Compared to insertion, the delete operation for the RGA is more straightforward---it simply searches recursively for the element with a given identifier and change its flag to $\isa{True}$.
@@ -820,13 +811,6 @@ In particular, if the prefixes of events of two nodes in the network have receiv
 \end{isabellebody}
 \vspace{\baselineskip}
 This convergence property follows easily from our abstract convergence theorem and $\isa{concurrent-operations-commute}$, and has a one line proof in Isabelle.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Example
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Example}
-\label{sect.example}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Discussion
