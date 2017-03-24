@@ -211,7 +211,7 @@ A theorem statement of the form
 \end{isabellebody}
 \vspace{0.375em}
 \noindent
-produces a proof obligation, wherein the user is tasked with proving $\isa{foo} (xs \isacharat ys)$ under the two assumptions $\isa{foo}\ xs$ and $\isa{foo}\ ys$, where $xs \isacharat ys$ denotes the appending of two lists $\isa{xs}$ and $\isa{ys}$.
+produces a proof obligation, wherein the user is tasked with proving $\isa{foo} (xs \isacharat ys)$ under the two assumptions $\isa{foo}\ xs$ and $\isa{foo}\ ys$, where $xs \isacharat ys$ is list append.
 An optional name, here $\isa{goo}$, is assigned to the theorem, so that it may be referenced in later proofs.
 
 Lastly, we use \emph{locales}---or local theory environments~\cite{DBLP:conf/tphol/KammullerWP99,DBLP:conf/types/HaftmannW08}---extensively throughout our development to structure the proof.
@@ -281,12 +281,11 @@ Concretely, this setting is captured in Isabelle with the following local theory
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{locale} happens{\isacharunderscore}before\ {\isacharequal}\ preorder\ hb{\isacharunderscore}weak\ hb\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{for}\ hb{\isacharunderscore}weak\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}{\isasympreceq}{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ hb\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \ \ \ \ \ \ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}{\isasymprec}{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ {\isacharplus}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{for}\ hb{\isacharunderscore}weak\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}{\isasympreceq}{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{and}\ hb\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \ \ \ \ \ \ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}{\isasymprec}{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ {\isacharplus}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ interp\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}b\ {\isasymrightharpoonup}\ {\isacharprime}b{\isachardoublequoteclose}\ {\isacharparenleft}{\isachardoublequoteopen}{\isasymlangle}{\isacharunderscore}{\isasymrangle}{\isachardoublequoteclose}\ {\isacharbrackleft}{\isadigit{0}}{\isacharbrackright}\ {\isadigit{1}}{\isadigit{0}}{\isadigit{0}}{\isadigit{0}}{\isacharparenright}
 \end{isabellebody}
 \vspace{0.375em}
-The first three lines of the declaration above create a new local theory called $\isa{happens-before}$ which extends a local theory of preorders which provides two fixed constants---a weak and a strict ordering---which we rename here to $\isa{hb-weak}$ and $\isa{hb}$.
+The first two lines of the declaration above create a new local theory called $\isa{happens-before}$ which extends a local theory of preorders which provides two fixed constants---a weak and a strict ordering---which we rename here to $\isa{hb-weak}$ and $\isa{hb}$.
 Henceforth, we ignore $\isa{hb-weak}$.
 Further, on the last line of the declaration, we fix a function called $\isa{interp}$, which lifts elements of type ${\isacharprime}a$ into partial functions from ${\isacharprime}b$ to ${\isacharprime}b$.
 Here, ${\isacharprime}a$ is our abstract type of `events', whereas ${\isacharprime}b$ is our abstract type of `states'.
@@ -350,9 +349,7 @@ This result will be used in the proof of $\isa{convergence}$, below:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{lemma} concurrent{\isacharunderscore}ops{\isacharunderscore}commute{\isacharunderscore}concurrent{\isacharunderscore}set{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}prefix{\isacharat}suffix{\isacharat}{\isacharbrackleft}x{\isacharbrackright}{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}set\ x\ suffix{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}distinct\ {\isacharparenleft}prefix\ {\isacharat}\ x\ {\isacharhash}\ suffix{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}prefix{\isacharat}suffix{\isacharat}{\isacharbrackleft}x{\isacharbrackright}{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}set\ x\ suffix{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}distinct\ {\isacharparenleft}prefix\ {\isacharat}\ x\ {\isacharhash}\ suffix{\isacharparenright}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ {\isacharparenleft}prefix\ {\isacharat}\ suffix\ {\isacharat}\ {\isacharbrackleft}x{\isacharbrackright}{\isacharparenright}\ {\isacharequal}\ apply{\isacharunderscore}operations\ {\isacharparenleft}prefix\ {\isacharat}\ x\ {\isacharhash}\ suffix{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
@@ -364,10 +361,8 @@ This theorem states that two consistent lists of distinct events, which are perm
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{theorem} convergence{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ xs\ {\isacharequal}\ set\ ys{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ ys{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}distinct\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}distinct\ ys{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ ys{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ xs\ {\isacharequal}\ set\ ys{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ ys{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}distinct\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}distinct\ ys{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ ys{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
@@ -375,15 +370,15 @@ We sketch the proof of this theorem, here, proceeding by induction on $\isa{xs}$
 Assuming the property holds for \isa{xs}, we prove the case when a new event $\isa{x}$ is added to the end of $\isa{xs}$, that is, $\isa{xs}@[\isa{x}]$.
 Since both $\isa{xs}$ and $\isa{ys}$ have the same elements, one may split $\isa{ys}$ such that $\isa{ys = prefix@x@suffix}$ for some $\isa{prefix}$ and $\isa{suffix}$ where all events in $\isa{suffix}$ are concurrent with $\isa{x}$.
 By the induction hypothesis, $\isa{\isa{apply-operations}\ xs = \isa{apply-operations}\ (prefix@suffix)}$.
-We then have a chain of equational reasoning:
-\begin{align*}
+We then have a chain of equations:
+{\small{\begin{align*}
   \isa{apply-operations}\ (\isa{xs}@[\isa{x}])
   &= \langle\isa{x}\rangle\ (\isa{apply-operations}\ \isa{xs}) \\
-  &= \langle\isa{x}\rangle\ (\isa{apply-operations}\ (\isa{prefix}@\isa{suffix}))\\
+  &= \langle\isa{x}\rangle\ (\isa{apply-operations}\ (\isa{prefix}@\isa{suffix})) \\
   &= \isa{apply-operations} (\isa{prefix}@\isa{suffix}@\isa{x}) \\
   &= \isa{apply-operations} (\isa{prefix}@\isa{x@\isa{suffix}}) \\
-  &= \isa{apply-operations}\ ys.
-\end{align*}
+  &= \isa{apply-operations}\ ys
+\end{align*}}}
 On the third line above, we make use of $\isa{concurrent-ops-commute-concurrent-set}$ to move the element $\isa{x}$ from the back of the list past $\isa{suffix}$, whilst on the first and second lines, we make use of properties of folds (recalling that $\isa{apply-operations}$ is defined as a fold).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -413,13 +408,12 @@ We model the configuration of nodes described above with a local theory in Isabe
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{locale} node{\isacharunderscore}histories\ {\isacharequal}\ \isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharprime}a\ list{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ histories{\isacharunderscore}distinct{\isacharcolon}\ {\isachardoublequoteopen}distinct\ {\isacharparenleft}history\ i{\isacharparenright}{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharprime}a\ list{\isachardoublequoteclose}\ \isakeyword{assumes}\ histories{\isacharunderscore}distinct{\isacharcolon}\ {\isachardoublequoteopen}distinct\ {\isacharparenleft}history\ i{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
 Here, the history of a node $\isa{i}$ is obtained by using a function fixed by the local theory, $\isa{history}$.
 Concretely, we capture the fact that a node's local history is totally ordered by implementing histories as a list of events.
-Events are simply modelled as a type variable---here we use $\isa{{\isacharprime}a}$---to ensure that they are completely abstract, with no internal structure.
+Events are simply modelled as a type variable---here we use $\isa{{\isacharprime}a}$---to ensure that they are completely abstract.
 The $\isa{distinct}$ predicate is an Isabelle/HOL library function which asserts that a list has no repeated elements, upto equality.
 
 Note that the $\isa{node{\isacharunderscore}histories}$ local theory is quite general: it can handle both a bounded and unbounded number of nodes.
@@ -433,38 +427,20 @@ Crashes of one node cannot be detected by other nodes: a lack of messages at any
 
 In the general setting of the $\isa{node{\isacharunderscore}histories}$ local theory, we may define when one event comes before another, at a fixed node.
 Writing $\isa{x} \sqsubset^\isa{i} \isa{y}$ for the \emph{comes before} relation at node $\isa{i}$, we assert that this relation holds whenever lists $\isa{xs}$, $\isa{ys}$ and $\isa{zs}$ exist such that $\isa{xs}@[\isa{x}]@\isa{ys}@[\isa{y}]@\isa{zs} = \isa{history\ i}$.
-Here $xs@ys$ denotes the appending of list $xs$ to list $ys$.
-%We define this in Isabelle, like so:
-%\\
-%\begin{isabellebody}
-%\ \ \ \ \ \ \ \ \isacommand{definition} {\isacharparenleft}\isakeyword{in}\ node{\isacharunderscore}histories{\isacharparenright}\ history{\isacharunderscore}order\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ nat\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ {\isacharparenleft}{\isachardoublequoteopen}{\isacharunderscore}{\isacharslash}\ {\isasymsqsubset}\isactrlsup {\isacharunderscore}{\isacharslash}\ {\isacharunderscore}{\isachardoublequoteclose}\ {\isacharbrackleft}{\isadigit{5}}{\isadigit{0}}{\isacharcomma}{\isadigit{1}}{\isadigit{0}}{\isadigit{0}}{\isadigit{0}}{\isacharcomma}{\isadigit{5}}{\isadigit{0}}{\isacharbrackright}{\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
-%\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}x\ {\isasymsqsubset}\isactrlsup i\ z\ {\isasymequiv}\ {\isasymexists}xs\ ys\ zs{\isachardot}\ xs{\isacharat}x{\isacharhash}ys{\isacharat}z{\isacharhash}zs\ {\isacharequal}\ history\ i{\isachardoublequoteclose}
-%\end{isabellebody}
-%\vspace{\baselineskip}
+Here $xs@ys$ denotes list append of $\isa{xs}$ and $\isa{ys}$.
 
-%Often, it will be the case that we are not interested in the entire history of a node, but rather some subcomponent of that history.
-%In particular, we will often be interested merely in \emph{prefixes} of a node's history, to inspect how the history evolved over time.
-%We say that a list of events \isa{xs} is a \isa{prefix\ of} the history of node \isa{i} if there exists some list of events \isa{ys} such that their appending forms the history of \isa{i}.
-%We write $\isa{xs}\ \isa{prefix}\ \isa{of}\ \isa{i}$ when this property holds.
-%\\
-%\begin{isabellebody}
-%\ \ \ \ \ \ \ \ \isacommand{definition} {\isacharparenleft}\isakeyword{in}\ node{\isacharunderscore}histories{\isacharparenright}\ prefix{\isacharunderscore}of{\isacharunderscore}node{\isacharunderscore}history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ list\ {\isasymRightarrow}\ nat\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}prefix\ of{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
-%\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}xs\ prefix\ of\ i\ {\isasymequiv}\ {\isasymexists}ys{\isachardot}\ xs{\isacharat}ys\ {\isacharequal}\ history\ i{\isachardoublequoteclose}
-%\end{isabellebody}
-%\vspace{\baselineskip}
 We now move to a slightly less abstract setting.
 In particular, the networks that we are modelling consider two different type of events: \emph{broadcast} and \emph{deliver}.
 A node can either broadcast a message to every other node on the network, in which case a broadcast event is registered, or can receive a message that has been broadcast by some other node, in which case a deliver event is registered.
 In this setting, though broadcast and deliver events have been made concrete, precisely what is being broadcast and delivered is still left unspecified: a message is still an abstract object that will be modelled with a type variable, as by remaining abstract as long as possible, we make our definitions more general.
-For operation-based CRDTs messages can be further specified to be a type of operations (like we consider in this work, and where this specification will be made later in this section), or can be specified to be the data structure itself, as in state-based CRDTs.
+For operation-based CRDTs messages can be further specified to be an operation (as in this work, and where this specification will be made later in this section), or can be the data structure itself, as in state-based CRDTs.
 We define a type of events as a tagged union type, like so:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{datatype} {\isacharprime}a\ event\ {\isacharequal}\ Broadcast\ {\isacharprime}a\ {\isacharbar}\ Deliver\ {\isacharprime}a
 \end{isabellebody}
 \vspace{0.375em}
-Here, the type variable $\isacharprime\isa{a}$ parameterising the type declaration is used in stead of a concrete representation of messages.
-
+Here, the type variable $\isacharprime\isa{a}$ parameterising the type declaration is taken to be a type of messages.
 Intuitively, a node can be regarded as a deterministic state machine where each state transition corresponds to a broadcast or deliver event.
 We assume that users may query the state of any node at any time, and such queries do not constitute state transitions, since they neither modify the node state nor send or receive any messages.
 
@@ -481,7 +457,6 @@ In particular, we make no guarantee that a node will receive its own messages im
 Finally, our network's laws assert that all messages are unique.
 If some node has broadcast a message $\isa{m}$, it cannot be the case that some other node has also broadcast that same message.
 This is a reasonable assumption to make, as we may always assume that nodes on a real network implementation stamp messages with their own identifiers, when broadcasting, which are already unique by assumption, coupled with a timestamp, or other disambiguating device.
-
 We bundle all of these laws up, defining the notion of a law-abiding asynchronous network, with the $\isa{network}$ local theory, in Isabelle:
 \vspace{0.375em}
 \begin{isabellebody}
@@ -519,7 +494,7 @@ We may capture the definition of \emph{happens before} in Isabelle/HOL using an 
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}{\isasymlbrakk}\ m{\isadigit{1}}\ $\prec$\  m{\isadigit{2}}{\isacharsemicolon}\ m{\isadigit{2}}\ $\prec$\ m{\isadigit{3}}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{3}}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-Our convergence proof requires that our asynchronous networks abide by an additional law: \emph{causality}.
+Our convergence proof requires that our networks abide by an additional law: \emph{causality}.
 We say that an asynchronous network is \emph{causal} if delivery events at a node respect the happens before relationship between those two events.
 In our proof, we only require that the happens before relation's ordering is respected at nodes which have the delivery of the second message in their local histories.
 Since causal asynchronous networks are a special form of asynchronous network, we describe these networks with a new local theory.
@@ -531,22 +506,15 @@ This increases modularity and makes our definitions adaptable for other formalis
 \end{isabellebody}
 \vspace{0.375em}
 Here, $causal{\isacharunderscore}delivery$ captures the causality constraint, described above, that asynchronous causal networks must satisfy.
-Note also that the local theory $causal{\isacharunderscore}network$ is declared to be an extension of the $network$ local theory on the first line of the declaration above.
+Note also that the local theory $causal{\isacharunderscore}network$ is declared to be an extension of $network$.
 
 At this point, we now have sufficient machinery to interpret the \isa{happens-before} local theory that was defined in Section~\ref{sect.abstract.convergence}.
 Doing this requires that we provide a concrete implementation for the happens before relation fixed by that local theory and thereafter proving that it forms a preorder.
 Here, we will use the $\isa{hb}$ relation, defined earlier in this section, as that implementation, and we have already noted that this relation does indeed satisfies the laws of a preorder so the accompanying proof obligation is easily discharged.
 Once interpreted, all functions, definitions, and theorems made within the \isa{happens-before} locale become available to use in the locale \isa{network}, prefixed by \isa{hb}--- a `composing' of the definitions made within the $\isa{happens-before}$ local theory with our $\isa{hb}$ inductive relation.
 In particular, the definitions of \isa{hb.concurrent}, \isa{hb.concurrent-ops-commute} and \isa{hb.hb-consistent}; and the convergence theorem \isa{hb.convergence}.
-This interpretation is achieved in Isabelle using a \isakeyword{sublocale} declaration:
-\vspace{0.375em}
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{sublocale} hb{\isacharcolon}\ happens{\isacharunderscore}before\ weak{\isacharunderscore}hb\ hb
-\end{isabellebody}
-\vspace{0.375em}
-\noindent
-We end this section by describing an analogue of the convergence theorem in Section~\ref{sect.abstract.convergence} in the general setting of causal asynchronous networks.
 
+We end this section by describing an analogue of the convergence theorem in Section~\ref{sect.abstract.convergence} in the general setting of causal asynchronous networks.
 We first make a general observation: deliver events for messages are the only type of network event that can and will modify the state of a CRDT, and we therefore only need to consider these messages in our convergence theorem, as broadcast events for messages may be safely discarded, due to them having no effect on a replicated data type's state.
 Therefore, we define a function, $node{\isacharunderscore}deliver{\isacharunderscore}messages$ which filters a list of events to obtain a list of delivered messages.
 Next, we observe that a node's local history satisfies two important properties in causal asynchronous networks.
@@ -573,8 +541,7 @@ We then obtain a theorem that states that if concurrent messages commute, then b
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{corollary} {\isacharparenleft}\isakeyword{in}\ causal{\isacharunderscore}network{\isacharparenright}\ network{\isacharunderscore}convergence{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose} \isakeyword{and}\ {\isachardoublequoteopen}ys\ prefix\ of\ j{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose} \isakeyword{and}\ {\isachardoublequoteopen}ys\ prefix\ of\ j{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose} \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb.apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ hb.apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
@@ -595,8 +562,8 @@ All elements stored in the list have associated identifiers, which are totally o
 The RGA's delete operation does not \emph{remove} elements from the list, but merely flips a `tombstone' flag associated with the element to indicate that the element is marked as having been deleted,
 Properly working with the RGA---for example in an application which wishes to print out the elements stored in the array---therefore requires that the application layer be made aware of these tombstones.
 \item
-The RGA---like many CRDTs---comes with preconditions on its operations that are guaranteed by a `protocol', or restriction on message event histories within the network which describe when inserting or deleting an element into the array is well-defined.
-These restrictions are reflected as hypotheses in our convergence theorems, presented below, and are reified as a new local theory, within Isabelle, specialising the network local theories presented in previous sections to capture those network behaviours that respect the RGA protocol.
+The RGA comes with preconditions on its operations that are guaranteed by a `protocol', or restriction on message event histories within the network which describe when inserting or deleting an element into the array is well-defined.
+These restrictions are reflected as hypotheses in our convergence theorems, presented below, and are reified as a new local theory specialising the network local theories presented in previous sections to capture those network behaviours that respect the RGA protocol.
 \end{enumerate}
 
 Accordingly, we fix a type of `elements' which packages up a value, with metadata.
@@ -607,8 +574,7 @@ These elements will be the items stored in our array:
 \end{isabellebody}
 \vspace{0.375em}
 Here, we instruct Isabelle/HOL to treat the type ${\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt$ as an alias for the product type ${\isacharprime}id\ {\isasymtimes}\ {\isacharprime}v\ {\isasymtimes}\ bool$.
-Note that the type alias is parameterised by two type variables---${\isacharprime}id$ and ${\isacharprime}v$---the former of which is some arbitrary type of identifiers\footnote{Almost always, we will be working in a context where the type variable ${\isacharprime}id$ is assumed to have an associated total (or linear) order.
-We will indicate this syntactically to Isabelle using the syntax ${\isacharprime}\isa{id}{\isacharcolon}{\isacharcolon}{\isacharbraceleft}\isa{linorder}{\isacharbraceright}$ in type expressions, which asserts that ${\isacharprime}\isa{id}$ should be substitutable only for types with an associated total order, where $\isa{linorder}$ is the name of a type class supplied by the Isabelle/HOL library.}, whilst the latter stands for the type of data we will be storing in the RGA.
+Note that the type alias is parameterised by two type variables---${\isacharprime}id$ and ${\isacharprime}v$---the former of which is some arbitrary type of identifiers\footnote{When working in a context where the type variable ${\isacharprime}id$ is assumed to have an associated total (linear) order, we will indicate this syntactically using the syntax ${\isacharprime}\isa{id}{\isacharcolon}{\isacharcolon}{\isacharbraceleft}\isa{linorder}{\isacharbraceright}$ in types, which asserts that ${\isacharprime}\isa{id}$ should be substitutable only for types with an associated total order. Here $\isa{linorder}$ is the name of a type class supplied by the Isabelle/HOL library.}, whilst the latter stands for the type of data we will be storing in the RGA.
 The last component of the product is the tombstone, indicating deletion.
 We take $\isa{True}$ to indicate an element has been deleted.
 
@@ -639,26 +605,17 @@ The definition of $\isa{insert}$ also follows a recursive scheme, pattern matchi
 \ \ \ \ \ \ \ \ \isacommand{fun} insert\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}linorder{\isacharbraceright}{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ {\isasymRightarrow}\ {\isacharprime}id\ option\ {\isasymrightharpoonup}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert\ xs\ \ \ \ \ e\ None\ \ \ \ \ {\isacharequal}\ Some\ {\isacharparenleft}insert{\isacharunderscore}body\ xs\ e{\isacharparenright}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert\ {\isacharbrackleft}{\isacharbrackright}\ \ \ \ \ e\ {\isacharparenleft}Some\ i{\isacharparenright}\ {\isacharequal}\ None{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert\ {\isacharparenleft}x{\isacharhash}xs{\isacharparenright}\ e\ {\isacharparenleft}Some\ i{\isacharparenright}\ {\isacharequal}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharparenleft}if\ fst\ x\ {\isacharequal}\ i\ then\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Some\ {\isacharparenleft}x{\isacharhash}insert{\isacharunderscore}body\ xs\ e{\isacharparenright}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ else\ \isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ do\ {\isacharbraceleft}\ t\ {\isasymleftarrow}\ insert\ xs\ e\ {\isacharparenleft}Some\ i{\isacharparenright}\ {\isacharsemicolon}\ Some\ {\isacharparenleft}x{\isacharhash}t{\isacharparenright}\ {\isacharbraceright}{\isacharparenright}{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert\ {\isacharparenleft}x{\isacharhash}xs{\isacharparenright}\ e\ {\isacharparenleft}Some\ i{\isacharparenright}\ {\isacharequal}\ {\isacharparenleft}if\ fst\ x\ {\isacharequal}\ i\ then\ Some\ {\isacharparenleft}x{\isacharhash}insert{\isacharunderscore}body\ xs\ e{\isacharparenright}\ else\ do\ {\isacharbraceleft}\ t\ {\isasymleftarrow}\ insert\ xs\ e\ {\isacharparenleft}Some\ i{\isacharparenright}\ {\isacharsemicolon}\ Some\ {\isacharparenleft}x{\isacharhash}t{\isacharparenright}\ {\isacharbraceright}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-Here, $do {\isacharbraceleft} \ldots {\isacharbraceright}$ is a \emph{monadic sequencing block}, containing code in the option monad that could possibly fail, similar to Haskell's \emph{do}-notation.
-This block will collapse with a failure (i.e. $\isa{None}$) return value if any intermediate computation in the block fails.
+Here, $do {\isacharbraceleft} \ldots {\isacharbraceright}$ is a \emph{monadic sequencing block}, similar to Haskell's \emph{do}-notation, which will collapse with a failure (i.e. $\isa{None}$) return value if any intermediate computation (separated by semicolons) in the block fails.
 
-The delete operation for the RGA is straightforward---it simply searches recursively for the element with a given identifier and change its flag to $\isa{True}$, which by convention we take to mean that an element has been deleted:
+The delete operation for the RGA is straightforward---it searches recursively for the element with a given identifier and change its flag to $\isa{True}$, which we take to mean that an element has been deleted:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{fun} delete\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}linorder{\isacharbraceright}{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymRightarrow}\ {\isacharprime}id\ {\isasymrightharpoonup}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}delete\ {\isacharbrackleft}{\isacharbrackright}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ i\ {\isacharequal}\ None{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}delete\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}\ v{\isacharcomma}\ flag{\isacharparenright}{\isacharhash}xs{\isacharparenright}\ i\ {\isacharequal}\ \isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharparenleft}if\ i{\isacharprime}\ {\isacharequal}\ i\ then\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Some\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}\ v{\isacharcomma}\ True{\isacharparenright}{\isacharhash}xs{\isacharparenright}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ else\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ do\ {\isacharbraceleft}\ t\ {\isasymleftarrow}\ delete\ xs\ i\ {\isacharsemicolon}\ Some\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}v{\isacharcomma}flag{\isacharparenright}{\isacharhash}t{\isacharparenright}\ {\isacharbraceright}{\isacharparenright}{\isachardoublequoteclose}%
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}delete\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}\ v{\isacharcomma}\ flag{\isacharparenright}{\isacharhash}xs{\isacharparenright}\ i\ {\isacharequal}\ {\isacharparenleft}if\ i{\isacharprime}\ {\isacharequal}\ i\ then\ Some\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}\ v{\isacharcomma}\ True{\isacharparenright}{\isacharhash}xs{\isacharparenright}\ else\ do\ {\isacharbraceleft}\ t\ {\isasymleftarrow}\ delete\ xs\ i\ {\isacharsemicolon}\ Some\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}v{\isacharcomma}flag{\isacharparenright}{\isacharhash}t{\isacharparenright}\ {\isacharbraceright}{\isacharparenright}{\isachardoublequoteclose}%
 \end{isabellebody}
 \vspace{0.375em}
 Note that the operations presented here are deliberately inefficient, in order to make them easier to reason with.
@@ -674,8 +631,8 @@ This is captured by the lemma $\isa{delete}{\isacharunderscore}\isa{no}{\isachar
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}{\isasymexists}xs{\isacharprime}{\isachardot}\ delete\ xs\ i\ {\isacharequal}\ Some\ xs{\isacharprime}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 \vspace{0.375em}
-For $\isa{insert\ xs\ e\ i}$, the function will will never fail if $\isa{i}$ is $\isa{None}$ or there exists an element in $\isa{xs}$ with identifier $\isa{i}$.
-This is captured by the lemma $\isa{insert}{\isacharunderscore}\isa{no}{\isacharunderscore}\isa{failure}$:
+\noindent
+For $\isa{insert\ xs\ e\ i}$, the function will never fail if $\isa{i}$ is $\isa{None}$ or there exists an element in $\isa{xs}$ with identifier $\isa{i}$:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{lemma} insert{\isacharunderscore}no{\isacharunderscore}failure{\isacharcolon}\isanewline
@@ -688,7 +645,7 @@ Here, the notation $\isa{f}\ \isacharbackquote\ \isa{ss}$ is the pointwise actio
 
 We now change tack, and prove that $\isa{insert}$ and $\isa{delete}$ commute.
 Technical lemmas relating to the commutation of $\isa{insert-body}$ will be elided.
-It is straightforward to demonstrate that $\isa{delete}$ will always commute with itself, on concurrent and non-concurrent operations alike, as in the following lemma:
+It is straightforward to demonstrate that $\isa{delete}$ will always commute with itself, on concurrent and non-concurrent operations alike:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{lemma} delete{\isacharunderscore}commutes{\isacharcolon}\isanewline
@@ -697,12 +654,11 @@ It is straightforward to demonstrate that $\isa{delete}$ will always commute wit
 \vspace{0.375em}
 Demonstrating commutativity for $\isa{insert}$ is a little more complex, however.
 Call $\isa{insert}\ \isa{xs}\ \isa{e1}\ \isa{i1}$ and $\isa{insert}\ \isa{xs}\ \isa{e2}\ \isa{i2}$ operations \emph{concurrent} whenever $\isa{i1}$ is not the identifier of $\isa{e2}$ and $\isa{i2}$ is not the identifier of $\isa{e1}$.
-Assuming that every element already present in the list $\isa{xs}$ has a unique identifier---and therefore the identifiers of $\isa{e1}$ and $\isa{e2}$ are distinct---we can show that $\isa{insert}$ commutes with itself on concurrent insertion operations, in the following lemma:
+Assuming that every element already present in the list $\isa{xs}$ has a unique identifier---and therefore the identifiers of $\isa{e1}$ and $\isa{e2}$ are distinct---we can show that $\isa{insert}$ commutes with itself on concurrent insertion operations:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{lemma} insert{\isacharunderscore}commutes{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}fst\ e{\isadigit{1}}\ {\isasymnoteq}\ fst\ e{\isadigit{2}}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}i{\isadigit{1}}\ {\isacharequal}\ None\ {\isasymor}\ i{\isadigit{1}}\ {\isasymnoteq}\ Some\ {\isacharparenleft}fst\ e{\isadigit{2}}{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}i{\isadigit{2}}\ {\isacharequal}\ None\ {\isasymor}\ i{\isadigit{2}}\ {\isasymnoteq}\ Some\ {\isacharparenleft}fst\ e{\isadigit{1}}{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}fst\ e{\isadigit{1}}\ {\isasymnoteq}\ fst\ e{\isadigit{2}}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}i{\isadigit{1}}\ {\isacharequal}\ None\ {\isasymor}\ i{\isadigit{1}}\ {\isasymnoteq}\ Some\ {\isacharparenleft}fst\ e{\isadigit{2}}{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}i{\isadigit{2}}\ {\isacharequal}\ None\ {\isasymor}\ i{\isadigit{2}}\ {\isasymnoteq}\ Some\ {\isacharparenleft}fst\ e{\isadigit{1}}{\isacharparenright}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ insert\ xs\ e{\isadigit{1}}\ i{\isadigit{1}}{\isacharsemicolon}\ insert\ ys\ e{\isadigit{2}}\ i{\isadigit{2}}\ {\isacharbraceright}\ {\isacharequal}\ do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ insert\ xs\ e{\isadigit{2}}\ i{\isadigit{2}}{\isacharsemicolon}\ insert\ ys\ e{\isadigit{1}}\ i{\isadigit{1}}\ {\isacharbraceright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
@@ -717,14 +673,13 @@ Finally, $\isa{delete}$ commutes with $\isa{insert}$ whenever the element to be 
 We now begin to work towards a proof that the RGA CRDT converges.
 The RGA's two operations are only commutative when preconditions are met.
 This in turn is reflected in the fact that the RGA only converges when its insert and delete operations are used in a certain mode, which one may think of an associated `protocol' which guarantees that the RGA will converge providing that users only call insert and delete operations in a certain order.
-We therefore now refine our model of the network, considering only those network executions which follow this RGA `protocol', which is made manifest as three new laws---relating broadcast and deliver events---that networks must possess.
+We therefore now refine our model of the network, considering only those network executions which follow this RGA `protocol', which is made manifest as three new laws that networks must possess.
 In this new setting, we also refine the type of messages being passed around the network, working with a concrete type of messages, which corresponds to the $\isa{insert}$ and $\isa{delete}$ operations supported by the RGA:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{datatype} {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ operation\ {\isacharequal} Insert\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt{\isachardoublequoteclose}\ {\isachardoublequoteopen}{\isacharprime}id\ option{\isachardoublequoteclose}\ {\isacharbar} Delete\ {\isachardoublequoteopen}{\isacharprime}id{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-Here, the $\isa{Insert}$ constructor of the $\isa{operation}$ data type packages up an element to be inserted into the RGA, and a position in which to insert it, whereas the $\isa{Delete}$ constructor packages the identifier of the element to be deleted.
 The connection between the $\isa{operation}$ data type, and the RGA's supported operations, is made apparent using the $\isa{interpret-opers}$ function, which decodes a message (of type $\isa{operation}$) and lifts it into a partial function from lists of elements to lists of elements, by calling either $\isa{insert}$ or $\isa{delete}$ as appropriate:
 \vspace{0.375em}
 \begin{isabellebody}
@@ -737,13 +692,11 @@ We now begin to develop the RGA `protocol'.
 First, we introduce a small extension of the $\isa{causal-network}$ local theory, which we call a $\isa{network-with-ops}$:
 \vspace{0.375em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{locale} network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharequal}\ causal{\isacharunderscore}network\ history\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{for}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharprime}a\ event\ list{\isachardoublequoteclose}\ {\isacharplus}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ interp\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}b\ {\isasymrightharpoonup}\ {\isacharprime}b{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \isacommand{locale} network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharequal}\ causal{\isacharunderscore}network\ history\ \isakeyword{for}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharprime}a\ event\ list{\isachardoublequoteclose}\ {\isacharplus}\ \isakeyword{fixes}\ interp\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}b\ {\isasymrightharpoonup}\ {\isacharprime}b{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
 Intuitively, this local theory does not do much more than $\isa{causal-network}$ does, other than provide a fixed function called $\isa{interp}$ which interprets an abstract message and produces a partial function that transforms abstract states, modelled as a type variable, ${\isacharprime}b$.
-The main reason to introduce $\isa{network-with-ops}$ is to serve as the `exit point' of RGA-agnostic code in our development, and the entry point of code tied to a specific RGA implementation.
+The main reason to introduce $\isa{network-with-ops}$ is to serve as the `exit point' of RGA-agnostic code in our development, and the `entry point' of code tied to a specific RGA.
 
 Immediately, we extend $\isa{network-with-ops}$ further, instantiating the interpretation function with the $\isa{interpret-opers}$ function above, which decodes RGA messages and maps lists to lists.
 Further, we add three new laws to the network, describing the RGA `protocol' which constrains network behaviours:
@@ -755,8 +708,7 @@ In this second case, the node must have previously received an insertion message
 If two nodes try to broadcast insert messages of elements with the same identifier then the messages are the same.
 In other words, every broadcast message is unique.
 \item
-A node may only broadcast a delete message for some element if it has previously received an insert message for an element with the same identifier.
-In short, only existing elements may be deleted from the list.
+A node may only broadcast a delete message for some element if it has previously received an insert message for an element with the same identifier, i.e. only existing elements may be deleted from the list.
 \end{enumerate}
 We define a new local theory, $\isa{rga}$, which captures these three laws.
 The new local theory extends $\isa{network-with-ops}$, but also specialises it: messages are now of type $\isa{operation}$ detailing RGA insert and delete operations, and states are ordered lists of elements to match the type of $\isa{interpret-opers}$:
@@ -797,8 +749,7 @@ In particular, if the prefixes of events of two nodes in the network have receiv
 \isanewline
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{corollary} {\isacharparenleft}\isakeyword{in}\ rga{\isacharparenright}\ rga{\isacharunderscore}convergence{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose} \isakeyword{and}\ {\isachardoublequoteopen}ys\ prefix\ of\ j{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose} \isakeyword{and}\ {\isachardoublequoteopen}ys\ prefix\ of\ j{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb.apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ hb.apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
