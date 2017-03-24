@@ -648,8 +648,7 @@ The definition of $\isa{insert}$ also follows a recursive scheme, pattern matchi
 Here, $do {\isacharbraceleft} \ldots {\isacharbraceright}$ is a \emph{monadic sequencing block}, containing code in the option monad that could possibly fail, similar to Haskell's \emph{do}-notation.
 This block will collapse with a failure (i.e. $\isa{None}$) return value if any intermediate computation in the block fails.
 
-Compared to insertion, the delete operation for the RGA is more straightforward---it simply searches recursively for the element with a given identifier and change its flag to $\isa{True}$.
-As previously mentioned, by convention we take this to mean that the element has been deleted:
+The delete operation for the RGA is straightforward---it simply searches recursively for the element with a given identifier and change its flag to $\isa{True}$, which by convention we take to mean that an element has been deleted:
 \\
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{fun} delete\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}linorder{\isacharbraceright}{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymRightarrow}\ {\isacharprime}id\ {\isasymrightharpoonup}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
@@ -658,33 +657,33 @@ As previously mentioned, by convention we take this to mean that the element has
 \ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharparenleft}if\ i{\isacharprime}\ {\isacharequal}\ i\ then\isanewline
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Some\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}\ v{\isacharcomma}\ True{\isacharparenright}{\isacharhash}xs{\isacharparenright}\isanewline
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ else\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ do\ {\isacharbraceleft}\ t\ {\isasymleftarrow}\ delete\ xs\ i\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharsemicolon}\ Some\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}v{\isacharcomma}flag{\isacharparenright}{\isacharhash}t{\isacharparenright}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharbraceright}{\isacharparenright}{\isachardoublequoteclose}%
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ do\ {\isacharbraceleft}\ t\ {\isasymleftarrow}\ delete\ xs\ i\ {\isacharsemicolon}\ Some\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}v{\isacharcomma}flag{\isacharparenright}{\isacharhash}t{\isacharparenright}\ {\isacharbraceright}{\isacharparenright}{\isachardoublequoteclose}%
 \end{isabellebody}
 \vspace{\baselineskip}
 Note that the operations presented here are deliberately inefficient, in order to make them easier to reason with.
 One can see our implementations of $\isa{insert-body}$, $\isa{insert}$, and $\isa{delete}$ as functional specifications for RGAs, which could be refined into more efficient algorithms using data refinement, if desired.
 
 We mention here, briefly, two useful lemmas that will be used later, and which characterise the conditions under which the $\isa{insert}$ and the $\isa{delete}$ functions can fail, i.e. return $\isa{None}$.
-
-For $\isa{insert\ xs\ e\ i}$, the function will will never fail if $\isa{i}$ is $\isa{None}$ or there exists an element in $\isa{xs}$ with identifier $\isa{i}$.
-This is captured by the lemma $insert{\isacharunderscore}no{\isacharunderscore}failure$:
-\\
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{lemma} insert{\isacharunderscore}no{\isacharunderscore}failure{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i\ {\isacharequal}\ None\ {\isasymor}\ {\isacharparenleft}{\isasymexists}i{\isacharprime}{\isachardot}\ i\ {\isacharequal}\ Some\ i{\isacharprime}\ {\isasymand}\ i{\isacharprime}\ {\isasymin}\ fst\ {\isacharbackquote}\ set\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}{\isasymexists}xs{\isacharprime}{\isachardot}\ insert\ xs\ e\ i\ {\isacharequal}\ Some\ xs{\isacharprime}{\isachardoublequoteclose}
-\end{isabellebody}
-\vspace{\baselineskip}
-Similarly, for $\isa{delete\ xs\ i}$, the function will never fail if there exists an element in $\isa{xs}$ with identifier $\isa{i}$.
-This is captured by the lemma $\isa{delete{\isacharunderscore}no{\isacharunderscore}failure}$:
+For $\isa{delete\ xs\ i}$, the function will never fail if there exists an element in $\isa{xs}$ with identifier $\isa{i}$.
+This is captured by the lemma $\isa{delete}{\isacharunderscore}\isa{no}{\isacharunderscore}\isa{failure}$:
 \\
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{lemma} delete{\isacharunderscore}no{\isacharunderscore}failure{\isacharcolon}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i\ {\isasymin}\ fst\ {\isacharbackquote}\ set\ xs{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}{\isasymexists}xs{\isacharprime}{\isachardot}\ delete\ xs\ i\ {\isacharequal}\ Some\ xs{\isacharprime}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
+\vspace{\baselineskip}
+For $\isa{insert\ xs\ e\ i}$, the function will will never fail if $\isa{i}$ is $\isa{None}$ or there exists an element in $\isa{xs}$ with identifier $\isa{i}$.
+This is captured by the lemma $\isa{insert}{\isacharunderscore}\isa{no}{\isacharunderscore}\isa{failure}$:
+\\
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{lemma} insert{\isacharunderscore}no{\isacharunderscore}failure{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i\ {\isacharequal}\ None\ {\isasymor}\ {\isacharparenleft}{\isasymexists}i{\isacharprime}{\isachardot}\ i\ {\isacharequal}\ Some\ i{\isacharprime}\ {\isasymand}\ i{\isacharprime}\ {\isasymin}\ fst\ {\isacharbackquote} set\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}{\isasymexists}xs{\isacharprime}{\isachardot}\ insert\ xs\ e\ i\ {\isacharequal}\ Some\ xs{\isacharprime}{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{\baselineskip}
+Intuitively, the $\isa{insert}{\isacharunderscore}\isa{no}{\isacharunderscore}\isa{failure}$ lemma above states that we may always insert an element at the head of the list, or insert an element after an existing element, with no risk of failure of the insertion operation.
+Here, the notation $\isa{f}\ \isacharbackquote\ \isa{ss}$ is the pointwise action of the function $\isa{f}$ over elements in the set $\isa{ss}$.
 
 \paragraph{Commutativity}
 
