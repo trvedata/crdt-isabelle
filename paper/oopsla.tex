@@ -586,38 +586,39 @@ We then obtain a theorem that states that if concurrent messages commute, then b
 \label{sect.rga}
 
 In this section, we discuss our implementation of the Replicated Growable Array (RGA) CRDT, and various theorems related to its correctness.
-We finish the section with a proof that the RGA implementation converges.
+We finish the section with a proof that the RGA implementation converges, obtained as a corollary of our network convergence theorem.
 
 \noindent
 \paragraph{Definition}
-The RGA is a replicated sequential data type supporting two operations: \emph{insert} and \emph{delete}.
-Three aspects of the RGA ensure convergence.
-First, all elements stored in the list have associated identifiers, which are totally ordered, with the insertion operation using this ordering to find a suitable index to place an element into the list.
-Second, the RGA's delete operation does not \emph{remove} elements from the list, but merely flips a `tombstone' flag associated with the element to indicate that the element is marked as having been deleted.
+The RGA is a replicated sequential data type supporting \emph{insert} and \emph{delete} operations.
+We mention three aspects of the RGA's design, which ensure convergence, and that must be understood to follow this section:
+\begin{enumerate}
+\item
+All elements stored in the list have associated identifiers, which are totally ordered, with the insertion operation using this ordering to find a suitable index to place an element into the list,
+\item
+The RGA's delete operation does not \emph{remove} elements from the list, but merely flips a `tombstone' flag associated with the element to indicate that the element is marked as having been deleted,
 Properly working with the RGA---for example in an application which wishes to print out the elements stored in the array---therefore requires that the application layer be made aware of these tombstones.
-Finally, the RGA---like many CRDTs---comes with preconditions on its operations that are guaranteed by a `protocol', or restriction on message event histories within the network.
+\item
+The RGA---like many CRDTs---comes with preconditions on its operations that are guaranteed by a `protocol', or restriction on message event histories within the network which describe when inserting or deleting an element into the array is well-defined.
 These restrictions are reflected as hypotheses in our convergence theorems, presented below, and are reified as a new local theory, within Isabelle, specialising the network local theories presented in previous sections to capture those network behaviours that respect the RGA protocol.
-This will be further discussed below.
+\end{enumerate}
 
-Accordingly, we fix a type of `elements' which will be stored in our RGA implementation:
+Accordingly, we fix a type of `elements' which packages up a value, with metadata.
+These elements will be the items stored in our array:
 \\
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{type{\isacharunderscore}synonym} {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ {\isacharequal}\ {\isachardoublequoteopen}{\isacharprime}id\ {\isasymtimes}\ {\isacharprime}v\ {\isasymtimes}\ bool{\isachardoublequoteclose}%
 \end{isabellebody}
 \vspace{\baselineskip}
 Here, we instruct Isabelle/HOL to treat the type ${\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt$ as an alias for the product type ${\isacharprime}id\ {\isasymtimes}\ {\isacharprime}v\ {\isasymtimes}\ bool$.
-Note that the type alias is parameterised by two type variables, ${\isacharprime}id$ and ${\isacharprime}v$, the former of which stands for some arbitrary type of identifiers\footnote{Almost always, we will be working in a context where the type variable ${\isacharprime}id$ is assumed to have an associated total (or linear) order.
-We will indicate this syntactically to Isabelle using the syntax ${\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}\isa{linorder}{\isacharbraceright}$ in type expressions, which asserts that ${\isacharprime}id$ should be substitutable only for types with an associated total order.
-Here, $\isa{linorder}$ is the name of a type class supplied by the Isabelle/HOL library, capturing the notion of a total ordering.}, whilst the latter stands for the type of data we will be storing in the RGA.
-The last component of the product is the boolean tombstone flag, indicating deletion, as discussed above.
-By convention, we assume this flag having the value $\isa{True}$ indicates that the containing element has been deleted.
+Note that the type alias is parameterised by two type variables---${\isacharprime}id$ and ${\isacharprime}v$---the former of which is some arbitrary type of identifiers\footnote{Almost always, we will be working in a context where the type variable ${\isacharprime}id$ is assumed to have an associated total (or linear) order.
+We will indicate this syntactically to Isabelle using the syntax ${\isacharprime}\isa{id}{\isacharcolon}{\isacharcolon}{\isacharbraceleft}\isa{linorder}{\isacharbraceright}$ in type expressions, which asserts that ${\isacharprime}\isa{id}$ should be substitutable only for types with an associated total order, where $\isa{linorder}$ is the name of a type class supplied by the Isabelle/HOL library.}, whilst the latter stands for the type of data we will be storing in the RGA.
+The last component of the product is the tombstone, indicating deletion.
+We take $\isa{True}$ to indicate an element has been deleted.
 
-We now define the RGA's insertion operation.
-The RGA's insertion operates in two modes, reflecting the data type's use as a means of implementing collaborative editing applications.
-In one mode, an element may be inserted automatically into the body of the array, using the ordered identifiers of each element as a guide for where to place the new element.
-In another mode, the user may specifically request that an element is placed \emph{after} another.
-As a result in our mechanisation we found it convenient for later proofs to factor the definition of insertion into two functions.
-The first function, $\isa{insert-body}$ never fails, and is used by the second (and main) insertion function, $\isa{insert}$, to insert an element within the body of the list.
+We now define the insertion operation, which operates in two modes reflecting the data type's use as a means of facilitating collaborative editing.
+In one mode, an element may be inserted at the head of the array, whilst in another mode, the user may specifically request that an element is placed \emph{after} another, comparing identifiers.
+In our mechanisation we therefore found it convenient to factor the definition of insertion into two functions: $\isa{insert-body}$ which never fails, and $\isa{insert}$ which may fail, and calls $\isa{insert-body}$ as a subroutine.
 
 The function $\isa{insert\ xs\ e\ i}$ performs a case analysis on its third argument, $\isa{i}$.
 If $\isa{i}$ is $\isa{None}$, then this is taken to mean that the user wishes the element to be placed in the body of the ordered list, and $\isa{insert-body}$ is therefore immediately called.
