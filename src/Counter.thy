@@ -38,7 +38,7 @@ corollary (in counter_network) counter_convergence:
       and "xs prefix of i"
       and "ys prefix of j"
     shows "apply_operations xs = apply_operations ys"
-using assms by(auto intro: hb.convergence_ext concurrent_operations_commute
+using assms by(auto simp add: apply_operations_def intro: hb.convergence_ext concurrent_operations_commute
                 node_deliver_messages_distinct hb_consistent_prefix)
 
 context counter_network begin
@@ -53,7 +53,7 @@ sublocale crdt: op_based_crdt weak_hb hb interpret_operation
   apply(erule exE)+
   using concurrent_operations_commute apply blast
   apply(erule exE)+
-  apply (metis (mono_tags, lifting) interpret_operation.elims o_apply option.distinct(1))
+  apply(metis (mono_tags, lifting) interpret_operation.elims o_apply option.distinct(1))
   apply(erule exE, erule exE)
   using drop_last_message apply blast
 done

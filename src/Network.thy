@@ -120,6 +120,21 @@ using assms
   apply(auto simp add: node_total_order_irrefl prefix_to_carriers)
 done
 
+lemma (in node_histories) events_before_exist:
+  assumes "x \<in> set (history i)"
+  shows "\<exists>pre. pre @ [x] prefix of i"
+  using assms unfolding prefix_of_node_history_def apply -
+  apply(subgoal_tac "\<exists>idx. idx < length (history i) \<and> (history i) ! idx = x")
+  apply(metis append_take_drop_id  take_Suc_conv_app_nth)
+  apply(simp add: set_elem_nth)
+done
+
+lemma (in node_histories) events_in_local_order:
+  assumes "pre @ [e2] prefix of i"
+  and "e1 \<in> set pre"
+  shows "e1 \<sqsubset>\<^sup>i e2"
+using assms split_list unfolding history_order_def prefix_of_node_history_def by fastforce
+
 subsection\<open>Networks\<close>
 
 datatype 'msg event
@@ -418,8 +433,20 @@ qed
 
 end
 
-abbreviation (in network_with_ops) apply_operations :: "'msg event list \<rightharpoonup> 'state" where
+definition (in network_with_ops) apply_operations :: "'msg event list \<rightharpoonup> 'state" where
   "apply_operations es \<equiv> hb.apply_operations (node_deliver_messages es) initial_state"
+
+lemma (in network_with_ops) apply_operations_empty [simp]:
+  shows "apply_operations [] = Some initial_state"
+by(auto simp add: apply_operations_def)
+
+lemma (in network_with_ops) apply_operations_Broadcast [simp]:
+  shows "apply_operations (xs @ [Broadcast m]) = apply_operations xs"
+by(auto simp add: apply_operations_def node_deliver_messages_def map_filter_def)
+
+lemma (in network_with_ops) apply_operations_Deliver [simp]:
+  shows "apply_operations (xs @ [Deliver m]) = (apply_operations xs \<bind> interp m)"
+by(auto simp add: apply_operations_def node_deliver_messages_def map_filter_def kleisli_def)
 
 lemma (in network_with_ops) hb_consistent_technical:
   assumes "\<And>m n. m < length cs \<Longrightarrow> n < m \<Longrightarrow> cs ! n \<sqsubset>\<^sup>i cs ! m"
@@ -485,6 +512,20 @@ using assms
   apply(metis Cons_eq_appendI append_assoc)
   apply force
   done
+
+locale network_with_constrained_ops = network_with_ops +
+  fixes valid_op :: "'c \<Rightarrow> 'a \<Rightarrow> bool"
+  assumes broadcast_only_valid_ops: "pre @ [Broadcast m] prefix of i \<Longrightarrow>
+             \<exists>state. apply_operations pre = Some state \<and> valid_op state m"
+
+lemma (in network_with_constrained_ops) broadcast_is_valid:
+  assumes "Broadcast m \<in> set (history i)"
+  shows "\<exists>state. valid_op state m"
+  using assms
+  apply(subgoal_tac "\<exists>pre. pre @ [Broadcast m] prefix of i")
+  using broadcast_only_valid_ops apply blast
+  using events_before_exist apply blast
+done
 
 section\<open>Example instantiations and interpretations\<close>
 

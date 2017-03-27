@@ -32,10 +32,6 @@ definition (in orset_base) interpret_op :: "'elem operation \<Rightarrow> 'elem 
 
 locale orset = orset_base _ _ "orset_base.interpret_op history"
 
-lemma (in orset) apply_operations_empty [simp]:
-  shows "apply_operations [] = Some Map.empty"
-by auto
-
 lemma map_assign_commute:
   assumes "k1 \<noteq> k2"
   shows "(\<lambda>x. Some (x(k1 \<mapsto> f (x k1 default to {}), k2 \<mapsto> g (x k2 default to {})))) =
@@ -96,7 +92,7 @@ theorem (in orset) convergence:
       and "xs prefix of i"
       and "ys prefix of j"
     shows "apply_operations xs = apply_operations ys"
-using assms by(auto intro: hb.convergence_ext concurrent_operations_commute
+using assms by(auto simp add: apply_operations_def intro: hb.convergence_ext concurrent_operations_commute
                 node_deliver_messages_distinct hb_consistent_prefix)
 
 context orset begin
