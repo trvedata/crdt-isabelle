@@ -22,9 +22,9 @@ fun interpret_operation :: "operation \<Rightarrow> int \<rightharpoonup> int" w
   "interpret_operation Increment = Some o increment" |
   "interpret_operation Decrement = Some o decrement"
     
-locale counter_network = network_with_ops _ _ interpret_operation 0
+locale counter = network_with_ops _ _ interpret_operation 0
   
-lemma (in counter_network) concurrent_operations_commute:
+lemma (in counter) concurrent_operations_commute:
   assumes "xs prefix of i"
   shows "hb.concurrent_ops_commute (node_deliver_messages xs)"
   using assms
@@ -33,7 +33,7 @@ lemma (in counter_network) concurrent_operations_commute:
    apply(rule ext; clarsimp simp add: kleisli_def increment_decrement_commute)+
 done
   
-corollary (in counter_network) counter_convergence:
+corollary (in counter) counter_convergence:
   assumes "set (node_deliver_messages xs) = set (node_deliver_messages ys)"
       and "xs prefix of i"
       and "ys prefix of j"
@@ -41,9 +41,9 @@ corollary (in counter_network) counter_convergence:
 using assms by(auto simp add: apply_operations_def intro: hb.convergence_ext concurrent_operations_commute
                 node_deliver_messages_distinct hb_consistent_prefix)
 
-context counter_network begin
+context counter begin
 
-sublocale crdt: op_based_crdt weak_hb hb interpret_operation
+sublocale sec: strong_eventual_consistency weak_hb hb interpret_operation
   "\<lambda>ops.\<exists>xs i. xs prefix of i \<and> node_deliver_messages xs = ops" 0
   apply standard
   apply(erule exE)+

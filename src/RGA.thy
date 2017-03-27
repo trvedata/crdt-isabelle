@@ -401,7 +401,7 @@ using assms by(auto simp add: apply_operations_def intro: hb.convergence_ext con
 
 context rga begin
 
-sublocale crdt: op_based_crdt weak_hb hb interpret_opers
+sublocale sec: strong_eventual_consistency weak_hb hb interpret_opers
   "\<lambda>ops.\<exists>xs i. xs prefix of i \<and> node_deliver_messages xs = ops" "[]"
   apply standard
   apply(erule exE)+

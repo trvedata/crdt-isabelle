@@ -287,7 +287,7 @@ end
 
 section\<open>Specification that an Operation-Based CRDT must satisfy\<close>
 
-locale op_based_crdt = happens_before +
+locale strong_eventual_consistency = happens_before +
   fixes op_history :: "'a list \<Rightarrow> bool"
     and initial_state :: "'b"
   assumes causality:     "op_history xs \<Longrightarrow> hb_consistent xs"
@@ -297,14 +297,14 @@ locale op_based_crdt = happens_before +
   assumes trunc_history: "op_history(xs@[x]) \<Longrightarrow> op_history xs"
 begin
 
-theorem crdt_convergence:
+theorem sec_convergence:
   assumes "set xs = set ys"
           "op_history xs"
           "op_history ys"
   shows   "apply_operations xs = apply_operations ys"
 by (meson assms convergence causality commutativity distinctness)
 
-theorem crdt_progress:
+theorem sec_progress:
   assumes "op_history xs"
   shows   "apply_operations xs initial_state \<noteq> None"
 using assms
