@@ -76,10 +76,10 @@ constrain the values that reads may return before consistency is eventually reac
 \emph{Strong eventual consistency} (SEC) is a more refined definition that we can use in this
 context \cite{Shapiro:2011un}. It requires \emph{convergence} of replicas, which is defined
 informally as: ``whenever any two replicas have delivered the same set of updates, they have
-equivalent state'' (we present our formal definition in Section~\ref{sect.convergence}). Two states
-are equivalent if all reads return the same result in both states. A replica can perform reads and
-writes using only its local state, without waiting for network communication, and exchange updates
-with other replicas asynchronously when a network connection is available. This definition
+equivalent state'' (we present our formal definition in Section~\ref{sect.abstract.convergence}).
+Two states are equivalent if all reads return the same result in both states. A replica can perform
+reads and writes using only its local state, without waiting for network communication, and exchange
+updates with other replicas asynchronously when a network connection is available. This definition
 constrains the values that reads may return at any time, making it a stronger property than eventual
 consistency.
 
