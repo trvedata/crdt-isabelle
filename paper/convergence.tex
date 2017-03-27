@@ -1,0 +1,116 @@
+\section{Abstract convergence}
+\label{sect.abstract.convergence}
+
+Recall that, mathematically, a \emph{preorder} is a reflexive and transitive relation over elements of a carrier set.
+In Isabelle/HOL, it is typical to elide carrier sets when working with algebraic or order-theoretic structures, and instead work only with types.
+Throughout this section we therefore work in a setting where an abstract \emph{type} of `events' is fixed with a preorder structure defined over those `events'.
+At this point, what `events' actually are is not specified.
+However, pre-empting how this preorder relation will eventually be used later in our work, we will refer to the ordering as the \emph{happens before} relation, and will write $\isa{x} \prec \isa{y}$ to indicate that event $\isa{x}$ has \emph{happened before} event $\isa{y}$.
+
+Moreover, our working context has a fixed \emph{type} of abstract `states'.
+Again, what `states' are need not be specified at this point.
+Relating states and events together, we will also require a means of decoding---or interpreting---an event and obtaining a state transformer, or partial map from states to states.
+We therefore assume that there exists a partial function which lifts `events' into state transformers, and write $\langle\ \isa{x}\ \rangle$ for the interpretation of event $\isa{x}$.
+Concretely, this setting is captured in Isabelle with the following local theory declaration:
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{locale} happens{\isacharunderscore}before\ {\isacharequal}\ preorder\ hb{\isacharunderscore}weak\ hb\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{for}\ hb{\isacharunderscore}weak\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}{\isasympreceq}{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{and}\ hb\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \ \ \ \ \ \ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}{\isasymprec}{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ {\isacharplus}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ interp\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}b\ {\isasymrightharpoonup}\ {\isacharprime}b{\isachardoublequoteclose}\ {\isacharparenleft}{\isachardoublequoteopen}{\isasymlangle}{\isacharunderscore}{\isasymrangle}{\isachardoublequoteclose}\ {\isacharbrackleft}{\isadigit{0}}{\isacharbrackright}\ {\isadigit{1}}{\isadigit{0}}{\isadigit{0}}{\isadigit{0}}{\isacharparenright}
+\end{isabellebody}
+\vspace{0.375em}
+The first two lines of the declaration above create a new local theory called $\isa{happens-before}$ which extends a local theory of preorders which provides two fixed constants---a weak and a strict ordering---which we rename here to $\isa{hb-weak}$ and $\isa{hb}$.
+Henceforth, we ignore $\isa{hb-weak}$.
+Further, on the last line of the declaration, we fix a function called $\isa{interp}$, which lifts elements of type ${\isacharprime}a$ into partial functions from ${\isacharprime}b$ to ${\isacharprime}b$.
+Here, ${\isacharprime}a$ is our abstract type of `events', whereas ${\isacharprime}b$ is our abstract type of `states'.
+Syntax allows us to sugar the $\isa{hb}$ and $\isa{interp}$ constants.
+
+We say that two events $x$ and $y$ are \emph{concurrent} whenever one does not happens before the other.
+That is, when both $\neg (\isa{x} \prec \isa{y})$ and $\neg (\isa{y} \prec \isa{x})$ hold.
+We write $x\ {\isasymparallel}\ y$ when two events are concurrent.
+%\\ dpm: add back in?
+%\begin{isabellebody}
+%\ \ \ \ \ \ \ \ \isacommand{definition} {\isacharparenleft}\isakeyword{in}\ happens{\isacharunderscore}before{\isacharparenright}\ concurrent\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}{\isasymparallel}{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
+%\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}x\ {\isasymparallel}\ y\ {\isasymequiv}\ {\isasymnot}\ {\isacharparenleft}x\ {\isasymprec}\ y{\isacharparenright}\ {\isasymand}\ {\isasymnot}\ {\isacharparenleft}y\ {\isasymprec}\ x{\isacharparenright}{\isachardoublequoteclose}
+%\end{isabellebody}
+%\vspace{\baselineskip}
+%Note that this definition is made within the $\isa{happens-before}$ local theory, so has access to the $\isa{hb}$ relation.
+
+We will often work with lists of events that are required to respect the happens before relation.
+We say that a list of events \isa{xs} is \emph{hb-consistent}, or simply \emph{consistent}, whenever elements appearing later in the list do not happen before elements appearing earlier.
+We capture this idea using an inductive relation in Isabelle:
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{inductive} hb{\isacharunderscore}consistent\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ list\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ {\isacharbrackleft}{\isacharbrackright}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}{\isasymlbrakk}\ hb{\isacharunderscore}consistent\ xs{\isacharsemicolon}\ {\isasymforall}x\ {\isasymin}\ set\ xs{\isachardot}\ {\isasymnot}\ y\ {\isasymprec}\ x\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ hb{\isacharunderscore}consistent\ {\isacharparenleft}xs\ {\isacharat}\ {\isacharbrackleft}y{\isacharbrackright}{\isacharparenright}{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
+Before introducing what it means for two events to be `commutative', we first introduce an auxiliary definition.
+For two partial functions, define their \emph{Kleisli arrow composition}, written $f\ {\isasymrhd}\ g$, by:
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{definition} kleisli\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}b\ {\isasymRightarrow}\ {\isacharprime}b\ option{\isacharparenright}\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}b\ {\isasymRightarrow}\ {\isacharprime}b\ option{\isacharparenright}\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}b\ {\isasymRightarrow}\ {\isacharprime}b\ option{\isacharparenright}{\isachardoublequoteclose}\ {\isacharparenleft}\isakeyword{infixr}\ {\isachardoublequoteopen}{\isasymrhd}{\isachardoublequoteclose}\ {\isadigit{6}}{\isadigit{5}}{\isacharparenright}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}f\ {\isasymrhd}\ g\ {\isasymequiv}\ {\isasymlambda}x{\isachardot}\ f\ x\ {\isasymbind}\ {\isacharparenleft}{\isasymlambda}fx{\isachardot}\ g\ fx{\isacharparenright}{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
+Here, $\isasymbind$ is the \emph{monadic bind} operation, defined on the option type that we are using to implement partial functions.
+Intuitively, the composition of two partial functions, $f\ {\isasymrhd}\ g$, creates a new partial function that first applies $f$ to its input, then if that succeeds, applies $g$ to the resulting value.
+Otherwise, the composition fails.
+
+Using this definition we say that two events, $\isa{x}$ and $\isa{y}$, \emph{commute} whenever $\langle x \rangle {\isasymrhd} \langle y \rangle = \langle y \rangle {\isasymrhd} \langle x \rangle$, i.e. when we can arbitrarily swap the order of the composition of their interpretations.
+For our purposes, requiring that this property holds at \emph{every} event is too strong.
+Rather, the commutation property is only required to hold at events that are concurrent, as captured in the next definition, which asserts that the interpretation of every pair of concurrent events in a list of events possesses the commutation property:
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{definition} concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ list\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ xs\ {\isasymequiv} {\isasymforall}x\ y{\isachardot}\ {\isacharbraceleft}x{\isacharcomma}\ y{\isacharbraceright}\ {\isasymsubseteq}\ set\ xs\ {\isasymlongrightarrow}\ x\ {\isasymparallel}\ y\ {\isasymlongrightarrow}\ {\isasymlangle}x{\isasymrangle}{\isasymrhd}{\isasymlangle}y{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}y{\isasymrangle}{\isasymrhd}{\isasymlangle}x{\isasymrangle}{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
+Suppose $\isa{xs}$ is a list of events.
+We define a function, $\isa{apply-operations}$ that `lifts' this list of events into a state transformer.
+This is an analogue of the interpretation function, $\langle-\rangle$, and can be seen as providing an interpretation to lists of events.
+Defining this interpretation function is straightforward---we first map $\isa{interp}$ across the list to obtain a list of discrete event interpretations, and then collectively compose them using the Kleisli arrow composition combinator:
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{definition} apply{\isacharunderscore}operations\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ list\ {\isasymRightarrow}\ {\isacharprime}b\ {\isasymrightharpoonup}\ {\isacharprime}b{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ es\ s\ {\isasymequiv}\ {\isacharparenleft}foldl\ {\isacharparenleft}op\ {\isasymrhd}{\isacharparenright}\ Some\ {\isacharparenleft}map\ interp\ es{\isacharparenright}{\isacharparenright}\ s{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
+We now have sufficient machinery to state our main theorem.
+However, before discussing this theorem, we introduce an auxiliary lemma which allows us to manipulate the relative ordering of events within a list of events, without changing their interpretation.
+This result will be used in the proof of $\isa{convergence}$, below:
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{lemma} concurrent{\isacharunderscore}ops{\isacharunderscore}commute{\isacharunderscore}concurrent{\isacharunderscore}set{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}prefix{\isacharat}suffix{\isacharat}{\isacharbrackleft}x{\isacharbrackright}{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}set\ x\ suffix{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}distinct\ {\isacharparenleft}prefix\ {\isacharat}\ x\ {\isacharhash}\ suffix{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ {\isacharparenleft}prefix\ {\isacharat}\ suffix\ {\isacharat}\ {\isacharbrackleft}x{\isacharbrackright}{\isacharparenright}\ {\isacharequal}\ apply{\isacharunderscore}operations\ {\isacharparenleft}prefix\ {\isacharat}\ x\ {\isacharhash}\ suffix{\isacharparenright}{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
+Here, $\isa{concurrent-set}\ \isa{x}\ \isa{suffix}$ asserts that the event $\isa{x}$ is concurrent with every element of $\isa{suffix}$.
+Intuitively, $\isa{concurrent-ops-commute-concurrent-set}$ captures the fact that the interpretation of a list of events is invariant under relative ordering of concurrent operations, when those operations are known to commute.
+
+Using this lemma, and the rest of the machinery defined above, we can now state and then prove our main theorem, $\isa{convergence}$.
+This theorem states that two consistent lists of distinct events, which are permutations of each other and in which concurrent operations commute, have the same interpretation:
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{theorem} convergence{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ xs\ {\isacharequal}\ set\ ys{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ ys{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}distinct\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}distinct\ ys{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ ys{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
+We sketch the proof of this theorem, here, proceeding by induction on $\isa{xs}$---the case for the empty list is immediate, so we consider the step case only.
+Assuming the property holds for \isa{xs}, we prove the case when a new event $\isa{x}$ is added to the end of $\isa{xs}$, that is, $\isa{xs}@[\isa{x}]$.
+Since both $\isa{xs}$ and $\isa{ys}$ have the same elements, one may split $\isa{ys}$ such that $\isa{ys = prefix@x@suffix}$ for some $\isa{prefix}$ and $\isa{suffix}$ where all events in $\isa{suffix}$ are concurrent with $\isa{x}$.
+By the induction hypothesis, $\isa{\isa{apply-operations}\ xs = \isa{apply-operations}\ (prefix@suffix)}$.
+We then have a chain of equations:
+{\small{\begin{align*}
+  \isa{apply-operations}\ (\isa{xs}@[\isa{x}])
+  &= \langle\isa{x}\rangle\ (\isa{apply-operations}\ \isa{xs}) \\
+  &= \langle\isa{x}\rangle\ (\isa{apply-operations}\ (\isa{prefix}@\isa{suffix})) \\
+  &= \isa{apply-operations} (\isa{prefix}@\isa{suffix}@\isa{x}) \\
+  &= \isa{apply-operations} (\isa{prefix}@\isa{x@\isa{suffix}}) \\
+  &= \isa{apply-operations}\ ys
+\end{align*}}}
+On the third line above, we make use of $\isa{concurrent-ops-commute-concurrent-set}$ to move the element $\isa{x}$ from the back of the list past $\isa{suffix}$, whilst on the first and second lines, we make use of properties of folds (recalling that $\isa{apply-operations}$ is defined as a fold).

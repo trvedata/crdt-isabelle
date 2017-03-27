@@ -1,0 +1,100 @@
+\section{Formalising system models using Isabelle}
+\label{sect.high-level.proof.strategy}
+
+All of our proofs are checked with the Isabelle/HOL proof assistant~\cite{DBLP:conf/tphol/WenzelPN08}, which we now briefly introduce so that the reader can easily follow our work.
+A more detailed introduction is provided by standard tutorial material~\cite{DBLP:books/sp/NipkowK14}.
+
+In this section, we provide a high-level overview of our proof strategy, so readers can more easily understand our Isabelle development.
+
+In Section~\ref{sect.abstract.convergence} we present an `abstract convergence theorem' which does not mention networks, nor does it mention any machinery tied to any one particular CRDT implementation. 
+Rather, the theorem statement is phrased in terms of purely abstract `events', and functions that lift events into abstract `state formers'.
+As a result, the theorem may be viewed purely as a property of preorders, or alternatively as a `distillation' of the notion of SEC convergence, which gives sufficient conditions for convergence in this setting.
+
+In Section~\ref{sect.network} we provide an axiomatic model of causal asynchronous networks, built around a broadcast-deliver event model.
+We develop a relation---\emph{happens before}---which captures the notion of `causality' within this network---and is a preorder.
+The abstract convergence theorem of Section~\ref{sect.abstract.convergence} therefore applies, and we `compose' this theorem with our network model, to obtain a convergence theorem for our network.
+
+Note that everything mentioned until this point is completely generic---we are not tied to any CRDT implementation.
+However, we may now use our abstract convergence theorems to prove concrete convergence theorems for given CRDT implementations.
+
+We present a concrete example in Section~\ref{sect.rga}: a mechanisation of the Replicated Growable Array (RGA).
+We first implement the RGA's insert and delete operations, with proofs that each operation commutes with itself, and all operations commute with each other.
+Insertion and deletion only commute under various conditions, which are reflected in a constraining of all possible network behaviours to only those that guarantee that the RGA CRDT remains `well behaved'.
+This constraining can be viewed as an associated `protocol' for the RGA, detailing valid modes of usage of the data type.
+The constrained network provides the right conditions under which all operations commute with each other, and as a corollary of our abstract convergence theorem, we obtain a concrete convergence theorem for our RGA implementation in a constrained network.
+
+
+\subsection{An overview of Isabelle}
+\label{subsect.an.overview.of.isabelle}
+
+Isabelle/HOL is a logic with a strict, polymorphic type system resembling that of mainstream functional programming languages.
+\emph{Function types} are written $\tau_1 \Rightarrow \tau_2$, and are inhabited by \emph{total} functions, mapping elements of $\tau_1$ to elements of $\tau_2$.
+We write $\tau_1 \times \tau_2$ for the \emph{product type} of $\tau_1$ and $\tau_2$, inhabited by pairs of elements of type $\tau_1$ and $\tau_2$, respectively.
+In a similar fashion to Standard ML and OCaml, but differing from Haskell, \emph{type operators} are applied to arguments in reverse order, and therefore write $\tau\ \isa{list}$ and $\tau\ \isa{set}$ for the type of lists of elements of type $\tau$, and the type of mathematical (i.e. potentially infinite) sets of type $\tau$, respectively.
+Type variable are written in lowercase, and preceded with a prime: ${\isacharprime}a \Rightarrow {\isacharprime}a$ denotes the type of a polymorphic identity function, for example.
+\emph{Tagged union} types are introduced with the $\isacommand{datatype}$ keyword, with constructors of these types written with an initial upper case letter.
+
+In Isabelle/HOL's term language we write $\isa{t} \isa{::} \tau$ for a \emph{type ascription}, constraining the type of the term $\isa{t}$ to the type $\tau$.
+We write $\lambda{x}. t$ for an anonymous function mapping an argument $\isa{x}$ to $\isa{t(x)}$, and write the application of term $\isa{t}$ with function type to an argument $\isa{u}$ as $\isa{t\ u}$, as usual.
+Terms of list type are introduced using one of two constructors: $\isa{[]}$, or `nil', standing for the empty list, and infix $\isa{\#}$, or `cons', which prepends an element to an existing list.
+We use $[t_1, \ldots, t_n]$ as syntactic sugar for a list literal, which is desugared into a series of cons applications.
+We write $\{\}$ for the empty set, and use usual mathematical notation for set union, disjunction, membership tests, and so on: $\isa{t} \cup \isa{u}$, $\isa{t} \cap \isa{u}$, and $\isa{x} \in \isa{t}$.
+
+Terms with type $\isa{bool}$ are called \emph{formulae}, writing $\isa{True}$ and $\isa{False}$ for the logical truthity and falsity constants, respectively.
+We write $\isa{t} \longrightarrow \isa{u}$, $\isa{t} \wedge \isa{u}$, and $\isa{t} \vee \isa{u}$ for material implication, conjunction, and disjunction, respectively, between formulae, and write $\neg t$ for the negation of a formula.
+Isabelle/HOL's equality constant is polymorphic: we write $t = u$ for an assertion of equality between two terms of the same type.
+We write $\forall{x}.t$ and $\exists{x}.t$ for universal and existential quantification---and write $\forall{x{\in}t}.u$ and $\exists{x{\in}t}.u$ for their bounded forms, restricted to members of a set $\isa{t}$.
+An alternative implication arrow $\isa{t} \Longrightarrow \isa{u}$ may sometimes be used, and is in fact required by Isabelle in certain contexts---an artefact of Isabelle's status as a logical framework.
+This arrow can safely be read as a standard implication arrow with little loss of understanding.
+
+New non-recursive definitions are entered into Isabelle's global context via the $\mathbf{definition}$ keyword.
+Recursive functions are entered via the $\mathbf{fun}$ keyword, with functions being defined piecewise by pattern matching on inputs with a series of equations.
+All function are total, and therefore recursive functions must be provably terminating, in that they recurse on arguments that are `smaller' with respect to a well-founded relation.
+All termination proofs in this work are generated automatically by Isabelle itself.
+
+Inductive relations are introduced with the $\mathbf{inductive}$ keyword.
+An inductive relation definition of the form
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{inductive} foo\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ list\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}foo\ {\isacharbrackleft}{\isacharbrackright}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}{\isasymlbrakk}\ foo\ xs\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ foo {\isacharparenleft}5\#xs{\isacharparenright}{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
+\noindent
+introduces a new constant $\isa{foo}$ of type $\isa{nat list} \Rightarrow \isa{bool}$.
+The two clauses in the body of the definition enumerate the conditions under which $\isa{foo}\ \isa{xs}$ is true, for arbitrary $\isa{xs}$.
+The definition above states that $\isa{foo}$ is true at the empty list, or given a proof that $\isa{foo}\ \isa{xs}$ is true for some $\isa{xs}$, then $\isa{foo}\ (5\#\isa{xs})$ is true, also.
+Further, $\isa{foo}\ \isa{xs}$ is true in no other circumstances---$\isa{foo}$ is the \emph{smallest} relation closed under the rules defining it.
+In short, the clauses defining $\isa{foo}$ above state that $\isa{foo}\ \isa{xs}$ holds exactly in the case where $\isa{xs}$ is a (potentially empty) list containing only repeated copies of the natural number $5$.
+
+Lemmas, theorems, and corollaries can be asserted using the $\isacommand{lemma}$, $\isacommand{theorem}$, and $\isacommand{corollary}$ keywords, respectively.
+There is no semantic difference between these keywords in Isabelle.
+A theorem statement of the form
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{theorem} goo{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ foo\ xs \isakeyword{and}\ foo\ ys \isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ foo (xs \isacharat ys)
+\end{isabellebody}
+\vspace{0.375em}
+\noindent
+produces a proof obligation, wherein the user is tasked with proving $\isa{foo} (xs \isacharat ys)$ under the two assumptions $\isa{foo}\ xs$ and $\isa{foo}\ ys$, where $xs \isacharat ys$ is list append.
+An optional name, here $\isa{goo}$, is assigned to the theorem, so that it may be referenced in later proofs.
+
+Lastly, we use \emph{locales}---or local theory environments~\cite{DBLP:conf/tphol/KammullerWP99,DBLP:conf/types/HaftmannW08}---extensively throughout our development to structure the proof.
+A declaration of the form
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{locale} hoo = \isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ f\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes} {\isachardoublequoteopen}f\ x = x{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
+\noindent
+introduces a local theory, with a fixed, typed constant $\isa{f}$, and an associated law that states that $\isa{f}$ is the identity function.
+Functions and constants may now be defined, and theorems conjectured and proved, within the context of the $\isa{hoo}$ theory.
+This is indicated syntactically by writing $(\isacommand{in}\ hoo)$ before the name of the constant being defined, or the theorem being conjectured, at the point of definition or conjecture.
+Any function, constant, or theorem, marked in this way may make reference to $\isa{f}$, or the fact that $\isa{f}\ \isa{x} = \isa{x}$ for all $\isa{x}$.
+\emph{Interpreting} a local theory---such as $\isa{hoo}$ above---involves providing a concrete implementation of $\isa{f}$ coupled with a proof that the concrete implementation satisfies the associated law.
+Once interpreted, all functions, definitions, and theorems made within the $\isa{hoo}$ local theory become available to use for that concrete implementation.
