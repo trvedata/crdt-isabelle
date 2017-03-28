@@ -537,17 +537,8 @@ interpretation trivial_network: network "\<lambda>m. []" id
     
 interpretation trivial_causal_network: causal_network "\<lambda>m. []" id
   by standard auto
-
-interpretation non_trivial_node_histories: node_histories "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else []"
-  by standard auto
-
-interpretation non_trivial_network: network "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else []" id
-  apply standard
-    apply(auto split: if_split_asm)
-   apply (metis append.left_neutral non_trivial_node_histories.history_order_def)
-  done
     
-interpretation non_trivial_causal_network: causal_network "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else []" id
-  oops
+interpretation trivial_network_with_ops: network_with_ops "(\<lambda>x::nat \<Rightarrow> nat option. (0::nat))" "\<lambda>m. []" id 0
+  by standard auto
     
 end
