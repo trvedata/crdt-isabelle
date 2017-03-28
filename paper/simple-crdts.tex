@@ -30,7 +30,7 @@ Interpreting the $\isa{operation}$ data type and lifting it into a (partial) sta
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{fun}\ interpret{\isacharunderscore}operation\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}operation\ {\isasymRightarrow}\ int\ {\isasymrightharpoonup}\ int{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}interpret{\isacharunderscore}operation\ Increment\ {\isacharequal}\ Some\ o\ increment{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}interpret{\isacharunderscore}operation\ Decrement\ {\isacharequal}\ Some\ o\ decrement{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}interpret{\isacharunderscore}operation\ Decrement\ {\isacharequal}\ Some\ o\ decrement{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
 Here, $\isa{f}\ \isa{o}\ \isa{g}$ denotes the composition of functions $\isa{f}$ and $\isa{g}$.
@@ -42,7 +42,7 @@ We present only a single commutation lemma, here, eliding the rest:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{lemma}\ increment{\isacharunderscore}decrement{\isacharunderscore}commute{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}increment\ {\isacharparenleft}decrement\ x{\isacharparenright}\ {\isacharequal}\ decrement\ {\isacharparenleft}increment\ x{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}increment\ {\isacharparenleft}decrement\ x{\isacharparenright}\ {\isacharequal}\ decrement\ {\isacharparenleft}increment\ x{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
 Unlike more complex CRDTs, such as the Replicated Growable Array discussed in Section~\ref{sect.rga}, the operations of the increment-decrement counter commute unconditionally.
@@ -50,7 +50,7 @@ As a result, the increment-decrement counter will converge in any execution of a
 We capture this by creating a CRDT-specific locale, $\isa{counter}$, which is just a thin veneer over the $\isa{network}{\isacharunderscore}\isa{with}{\isacharunderscore}\isa{ops}$ locale, specialising the types and providing a fixed initial state (here, $\isa{0}$):
 \vspace{0.375em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{locale}\ counter\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharunderscore}\ {\isacharunderscore}\ interpret{\isacharunderscore}operation\ {\isadigit{0}}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{locale}\ counter\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharunderscore}\ {\isacharunderscore}\ interpret{\isacharunderscore}operation\ {\isadigit{0}}
 \end{isabellebody}
 \vspace{0.375em}
 Within this locale, we can then show that all concurrent delivered messages of a prefix of a node's local history, within a $\isa{counter}$ network commute.
@@ -59,7 +59,7 @@ Compare to the Replicated Growable Array case, this is straightforward, as opera
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ counter{\isacharparenright}\ concurrent{\isacharunderscore}operations{\isacharunderscore}commute{\isacharcolon}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
 From this, and our abstract convergence theorems, we can show convergence for the increment-decrement counter, which is capture by $\isa{counter}{\isacharunderscore}\isa{convergence}$:
@@ -73,3 +73,95 @@ From this, and our abstract convergence theorems, we can show convergence for th
 
 \subsection{Observed-removed set}
 \label{subsect.observed-removed.set}
+
+\begin{isabellebody}
+\isacommand{fun}\isamarkupfalse%
+\ opt{\isacharunderscore}default\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ option\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a{\isachardoublequoteclose}\ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}default\ to{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
+\ \ {\isachardoublequoteopen}opt{\isacharunderscore}default\ {\isacharparenleft}Some\ x{\isacharparenright}\ {\isacharunderscore}\ {\isacharequal}\ x{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ {\isachardoublequoteopen}opt{\isacharunderscore}default\ \ None\ \ \ \ x\ {\isacharequal}\ x{\isachardoublequoteclose}\isanewline
+\end{isabellebody}
+
+\begin{isabellebody}
+\isacommand{datatype}\isamarkupfalse%
+\ {\isacharprime}elem\ operation\isanewline
+\ \ {\isacharequal}\ Add\ {\isacharprime}elem\isanewline
+\ \ {\isacharbar}\ Rem\ {\isacharprime}elem\isanewline
+\end{isabellebody}
+
+\begin{isabellebody}
+\isacommand{type{\isacharunderscore}synonym}\isamarkupfalse%
+\ {\isacharprime}elem\ state\ {\isacharequal}\ {\isachardoublequoteopen}{\isacharprime}elem\ {\isasymrightharpoonup}\ {\isacharprime}elem\ operation\ set{\isachardoublequoteclose}\isanewline
+\end{isabellebody}
+
+\begin{isabellebody}
+\isacommand{locale}\isamarkupfalse%
+\ orset{\isacharunderscore}base\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ msg{\isacharunderscore}id\ history\ interp\ {\isachardoublequoteopen}Map{\isachardot}empty{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{for}\ msg{\isacharunderscore}id\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}elem\ operation\ {\isasymRightarrow}\ {\isacharprime}a{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{and}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharprime}elem\ operation\ event\ list{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{and}\ interp\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}elem\ operation\ {\isasymRightarrow}\ {\isacharprime}elem\ state\ {\isasymrightharpoonup}\ {\isacharprime}elem\ state{\isachardoublequoteclose}\isanewline
+\end{isabellebody}
+
+\begin{isabellebody}
+\isacommand{definition}\isamarkupfalse%
+\ op{\isacharunderscore}elem\ \isakeyword{where}\isanewline
+\ \ {\isachardoublequoteopen}op{\isacharunderscore}elem\ oper\ {\isasymequiv}\ case\ oper\ of\ Add\ e\ {\isasymRightarrow}\ e\ {\isacharbar}\ Rem\ e\ {\isasymRightarrow}\ e{\isachardoublequoteclose}\isanewline
+\end{isabellebody}
+
+\begin{isabellebody}
+\isacommand{definition}\isamarkupfalse%
+\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharunderscore}base{\isacharparenright}\ interpret{\isacharunderscore}op\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}elem\ operation\ {\isasymRightarrow}\ {\isacharprime}elem\ state\ {\isasymrightharpoonup}\ {\isacharprime}elem\ state{\isachardoublequoteclose}\ {\isacharparenleft}{\isachardoublequoteopen}{\isasymlangle}{\isacharunderscore}{\isasymrangle}{\isachardoublequoteclose}\ {\isacharbrackleft}{\isadigit{0}}{\isacharbrackright}\ {\isadigit{1}}{\isadigit{0}}{\isadigit{0}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
+\ \ {\isachardoublequoteopen}interpret{\isacharunderscore}op\ oper\ state\ {\isacharequal}\ {\isacharparenleft}\isanewline
+\ \ \ \ let\ before\ {\isacharequal}\ {\isacharparenleft}state\ {\isacharparenleft}op{\isacharunderscore}elem\ oper{\isacharparenright}{\isacharparenright}\ default\ to\ {\isacharbraceleft}{\isacharbraceright}\ in\isanewline
+\ \ \ \ let\ after\ {\isacharequal}\ case\ oper\ of\isanewline
+\ \ \ \ \ \ Add\ e\ {\isasymRightarrow}\ before\ {\isasymunion}\ {\isacharbraceleft}oper{\isacharbraceright}\ {\isacharbar}\isanewline
+\ \ \ \ \ \ Rem\ e\ {\isasymRightarrow}\ {\isacharbraceleft}add\ {\isasymin}\ before{\isachardot}\ {\isasymnot}\ hb\ add\ oper{\isacharbraceright}\isanewline
+\ \ \ \ in\ Some\ {\isacharparenleft}state\ {\isacharparenleft}{\isacharparenleft}op{\isacharunderscore}elem\ oper{\isacharparenright}\ {\isasymmapsto}\ after{\isacharparenright}{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\end{isabellebody}
+
+\begin{isabellebody}
+\isacommand{locale}\isamarkupfalse%
+\ orset\ {\isacharequal}\ orset{\isacharunderscore}base\ {\isacharunderscore}\ {\isacharunderscore}\ {\isachardoublequoteopen}orset{\isacharunderscore}base{\isachardot}interpret{\isacharunderscore}op\ history{\isachardoublequoteclose}\isanewline
+\end{isabellebody}
+
+\begin{isabellebody}
+\isacommand{lemma}\isamarkupfalse%
+\ map{\isacharunderscore}assign{\isacharunderscore}commute{\isacharcolon}\isanewline
+\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}k{\isadigit{1}}\ {\isasymnoteq}\ k{\isadigit{2}}{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isacharparenleft}{\isasymlambda}x{\isachardot}\ Some\ {\isacharparenleft}x{\isacharparenleft}k{\isadigit{1}}\ {\isasymmapsto}\ f\ {\isacharparenleft}x\ k{\isadigit{1}}\ default\ to\ {\isacharbraceleft}{\isacharbraceright}{\isacharparenright}{\isacharcomma}\ k{\isadigit{2}}\ {\isasymmapsto}\ g\ {\isacharparenleft}x\ k{\isadigit{2}}\ default\ to\ {\isacharbraceleft}{\isacharbraceright}{\isacharparenright}{\isacharparenright}{\isacharparenright}{\isacharparenright}\ {\isacharequal}\isanewline
+\ \ \ \ \ \ \ \ \ {\isacharparenleft}{\isasymlambda}x{\isachardot}\ Some\ {\isacharparenleft}x{\isacharparenleft}k{\isadigit{2}}\ {\isasymmapsto}\ g\ {\isacharparenleft}x\ k{\isadigit{2}}\ default\ to\ {\isacharbraceleft}{\isacharbraceright}{\isacharparenright}{\isacharcomma}\ k{\isadigit{1}}\ {\isasymmapsto}\ f\ {\isacharparenleft}x\ k{\isadigit{1}}\ default\ to\ {\isacharbraceleft}{\isacharbraceright}{\isacharparenright}{\isacharparenright}{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\end{isabellebody}
+
+\begin{isabellebody}
+\isacommand{lemma}\isamarkupfalse%
+\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ add{\isacharunderscore}add{\isacharunderscore}commute{\isacharcolon}\isanewline
+\ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isasymlangle}Add\ e{\isadigit{1}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Add\ e{\isadigit{2}}{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}Add\ e{\isadigit{2}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Add\ e{\isadigit{1}}{\isasymrangle}{\isachardoublequoteclose}\isanewline
+\end{isabellebody}
+
+\begin{isabellebody}
+\isacommand{lemma}\isamarkupfalse%
+\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ add{\isacharunderscore}rem{\isacharunderscore}commute{\isacharcolon}\isanewline
+\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}{\isasymnot}\ hb\ {\isacharparenleft}Add\ e{\isadigit{1}}{\isacharparenright}\ {\isacharparenleft}Rem\ e{\isadigit{2}}{\isacharparenright}\ {\isasymand}\ {\isasymnot}\ hb\ {\isacharparenleft}Rem\ e{\isadigit{2}}{\isacharparenright}\ {\isacharparenleft}Add\ e{\isadigit{1}}{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isasymlangle}Add\ e{\isadigit{1}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Rem\ e{\isadigit{2}}{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}Rem\ e{\isadigit{2}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Add\ e{\isadigit{1}}{\isasymrangle}{\isachardoublequoteclose}
+\end{isabellebody}
+
+\begin{isabellebody}
+\isacommand{lemma}\isamarkupfalse%
+\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ rem{\isacharunderscore}rem{\isacharunderscore}commute{\isacharcolon}\isanewline
+\ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isasymlangle}Rem\ e{\isadigit{1}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Rem\ e{\isadigit{2}}{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}Rem\ e{\isadigit{2}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Rem\ e{\isadigit{1}}{\isasymrangle}{\isachardoublequoteclose}
+\end{isabellebody}
+
+\begin{isabellebody}
+\isacommand{lemma}\isamarkupfalse%
+\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ concurrent{\isacharunderscore}operations{\isacharunderscore}commute{\isacharcolon}\isanewline
+\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}
+\end{isabellebody}
+
+\begin{isabellebody}
+\isacommand{theorem}\isamarkupfalse%
+\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ convergence{\isacharcolon}\isanewline
+\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}ys\ prefix\ of\ j{\isachardoublequoteclose}\isanewline
+\ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}\isanewline
+\end{isabellebody}
