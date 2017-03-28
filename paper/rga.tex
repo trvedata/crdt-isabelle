@@ -11,7 +11,7 @@ The RGA's delete operation does not \emph{remove} elements from the list, but me
 Properly working with the RGA---for example in an application which wishes to print out the elements stored in the array---therefore requires that the application layer be made aware of these tombstones.
 \item
 The RGA comes with preconditions on its operations that are guaranteed by a `protocol', or restriction on message event histories within the network which describe when inserting or deleting an element into the array is well-defined.
-These restrictions are reflected as hypotheses in our convergence theorems, presented below, and are reified as a new local theory specialising the network local theories presented in previous sections to capture those network behaviours that respect the RGA protocol.
+These restrictions are reflected as hypotheses in our convergence theorems, presented below, and are reified as a new locale specialising the network local theories presented in previous sections to capture those network behaviours that respect the RGA protocol.
 \end{enumerate}
 
 Accordingly, we fix a type of `elements' which packages up a value, with metadata.
@@ -137,13 +137,13 @@ The connection between the $\isa{operation}$ data type, and the RGA's supported 
 \end{isabellebody}
 \vspace{0.375em}
 We now begin to develop the RGA `protocol'.
-First, we introduce a small extension of the $\isa{causal-network}$ local theory, which we call a $\isa{network-with-ops}$:
+First, we introduce a small extension of the $\isa{causal-network}$ locale, which we call a $\isa{network-with-ops}$:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{locale} network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharequal}\ causal{\isacharunderscore}network\ history\ \isakeyword{for}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharprime}a\ event\ list{\isachardoublequoteclose}\ {\isacharplus}\ \isakeyword{fixes}\ interp\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}b\ {\isasymrightharpoonup}\ {\isacharprime}b{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-Intuitively, this local theory does not do much more than $\isa{causal-network}$ does, other than provide a fixed function called $\isa{interp}$ which interprets an abstract message and produces a partial function that transforms abstract states, modelled as a type variable, ${\isacharprime}b$.
+Intuitively, this locale does not do much more than $\isa{causal-network}$ does, other than provide a fixed function called $\isa{interp}$ which interprets an abstract message and produces a partial function that transforms abstract states, modelled as a type variable, ${\isacharprime}b$.
 The main reason to introduce $\isa{network-with-ops}$ is to serve as the `exit point' of RGA-agnostic code in our development, and the `entry point' of code tied to a specific RGA.
 
 Immediately, we extend $\isa{network-with-ops}$ further, instantiating the interpretation function with the $\isa{interpret-opers}$ function above, which decodes RGA messages and maps lists to lists.
@@ -158,8 +158,8 @@ In other words, every broadcast message is unique.
 \item
 A node may only broadcast a delete message for some element if it has previously received an insert message for an element with the same identifier, i.e. only existing elements may be deleted from the list.
 \end{enumerate}
-We define a new local theory, $\isa{rga}$, which captures these three laws.
-The new local theory extends $\isa{network-with-ops}$, but also specialises it: messages are now of type $\isa{operation}$ detailing RGA insert and delete operations, and states are ordered lists of elements to match the type of $\isa{interpret-opers}$:
+We define a new locale, $\isa{rga}$, which captures these three laws.
+The new locale extends $\isa{network-with-ops}$, but also specialises it: messages are now of type $\isa{operation}$ detailing RGA insert and delete operations, and states are ordered lists of elements to match the type of $\isa{interpret-opers}$:
 \vspace{0.375em}
 \begin{isabellebody} % TODO: fix me --- layout has gone wrong
 \ \ \ \ \ \ \ \ \isacommand{locale} rga\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharunderscore}\ interpret{\isacharunderscore}opers\ {\isacharplus}\isanewline
@@ -174,7 +174,7 @@ The new local theory extends $\isa{network-with-ops}$, but also specialises it: 
 \noindent
 Here, $\isa{allowed-insert}$, $\isa{insert-id-unique}$, and $\isa{allowed-delete}$ capture points (1)--(3) above, respectively.
 In this new setting, it is straightforward to prove that the function \isa{apply-operations} applied to any prefix for any node in the network cannot fail---that is, at any point in time, a state is in a consistent state different than $\isa{None}$.
-Indeed, this is the \emph{entire point} of the $\isa{rga}$ local theory: it provides the network invariants necessary for the RGA to `behave'.
+Indeed, this is the \emph{entire point} of the $\isa{rga}$ locale: it provides the network invariants necessary for the RGA to `behave'.
 This non-failure property is captured by the following lemma, which uses the lemmas $\isa{delete{\isacharunderscore}no{\isacharunderscore}failure}$ and $\isa{insert{\isacharunderscore}no{\isacharunderscore}failure}$ in its proof:
 \vspace{0.375em}
 \begin{isabellebody}
@@ -184,7 +184,7 @@ This non-failure property is captured by the following lemma, which uses the lem
 \end{isabellebody}
 \vspace{0.375em}
 Further, since delivered messages correspond to operations that are known to commute with each other---insert and delete---we can show that $\isa{concurrent-ops-commute}$ holds for any prefix of delivered events of any node in the network.
-Note here, that we make use of $\isa{delete-commutes}$, $\isa{insert-commutes}$, and $\isa{insert-delete-commute}$ in the proof of this lemma, and we make use of the additional constraints on network behaviour provided by the $\isa{rga}$ local theory to discharge the preconditions on $\isa{insert-commutes}$ and $\isa{insert-delete-commute}$ during the proof:
+Note here, that we make use of $\isa{delete-commutes}$, $\isa{insert-commutes}$, and $\isa{insert-delete-commute}$ in the proof of this lemma, and we make use of the additional constraints on network behaviour provided by the $\isa{rga}$ locale to discharge the preconditions on $\isa{insert-commutes}$ and $\isa{insert-delete-commute}$ during the proof:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{lemma} {\isacharparenleft}\isakeyword{in}\ rga{\isacharparenright}\ concurrent{\isacharunderscore}operations{\isacharunderscore}commute{\isacharcolon}\isanewline

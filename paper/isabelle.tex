@@ -105,7 +105,7 @@ A theorem statement of the form
 produces a proof obligation, wherein the user is tasked with proving $\isa{foo} (xs \isacharat ys)$ under the two assumptions $\isa{foo}\ xs$ and $\isa{foo}\ ys$, where $xs \isacharat ys$ is list append.
 An optional name, here $\isa{goo}$, is assigned to the theorem, so that it may be referenced in later proofs.
 
-Lastly, we use \emph{locales}---or local theory environments~\cite{DBLP:conf/tphol/KammullerWP99,DBLP:conf/types/HaftmannW08}---extensively throughout our development to structure the proof.
+Lastly, we use \emph{locales}---or local theories~\cite{DBLP:conf/tphol/KammullerWP99,DBLP:conf/types/HaftmannW08}---extensively throughout our development to structure the proof.
 A declaration of the form
 \vspace{0.375em}
 \begin{isabellebody}
@@ -115,9 +115,9 @@ A declaration of the form
 \end{isabellebody}
 \vspace{0.375em}
 \noindent
-introduces a local theory, with a fixed, typed constant $\isa{f}$, and an associated law that states that $\isa{f}$ is the identity function.
+introduces a locale, with a fixed, typed constant $\isa{f}$, and an associated law that states that $\isa{f}$ is the identity function.
 Functions and constants may now be defined, and theorems conjectured and proved, within the context of the $\isa{hoo}$ theory.
 This is indicated syntactically by writing $(\isacommand{in}\ hoo)$ before the name of the constant being defined, or the theorem being conjectured, at the point of definition or conjecture.
 Any function, constant, or theorem, marked in this way may make reference to $\isa{f}$, or the fact that $\isa{f}\ \isa{x} = \isa{x}$ for all $\isa{x}$.
-\emph{Interpreting} a local theory---such as $\isa{hoo}$ above---involves providing a concrete implementation of $\isa{f}$ coupled with a proof that the concrete implementation satisfies the associated law.
-Once interpreted, all functions, definitions, and theorems made within the $\isa{hoo}$ local theory become available to use for that concrete implementation.
+\emph{Interpreting} a locale---such as $\isa{hoo}$ above---involves providing a concrete implementation of $\isa{f}$ coupled with a proof that the concrete implementation satisfies the associated law.
+Once interpreted, all functions, definitions, and theorems made within the $\isa{hoo}$ locale become available to use for that concrete implementation.
