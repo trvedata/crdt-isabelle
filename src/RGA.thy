@@ -109,8 +109,8 @@ using assms unfolding element_ids_def
   apply(metis image_eqI prefix_of_appendD prod.sel(1))
   apply(case_tac "x2"; clarsimp)
   defer
-  apply(smt delete_does_not_change_element_ids apply_operations_Deliver bind_eq_Some_conv
-    element_ids_def image_eqI prefix_of_appendD prod.sel(1))
+  apply(drule prefix_of_appendD, clarsimp simp add: bind_eq_Some_conv)
+  apply(metis delete_preserve_indices image_eqI prod.sel(1))
   apply(case_tac "ab=a")
   apply blast
   apply(subgoal_tac "\<exists>xs'. apply_operations xsa = Some xs'")
@@ -280,7 +280,7 @@ using assms
   apply(rule Insert_equal, force, force, force) 
   apply(simp add: delivery_has_a_cause)
   apply(simp add: delivery_has_a_cause)
-  apply(simp add: node_deliver_messages_def prefix_msg_in_history)+
+  apply(auto simp add: node_deliver_messages_def prefix_msg_in_history)
 done
 
 lemma (in rga) insert_commute_assms:
@@ -297,7 +297,7 @@ using assms
   apply(frule allowed_insert)
   apply clarsimp
   apply(metis Insert_equal delivery_has_a_cause fst_conv hb.intros(2) insert_subset local_order_carrier_closed)
-  done
+done
 
 lemma (in rga) Insert_Insert_concurrent:
   assumes "{Deliver (Insert e k), Deliver (Insert e' (Some m))} \<subseteq> set (history i)"
