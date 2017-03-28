@@ -36,10 +36,10 @@
     \draw (network) to (hist);
     \draw (causal) to (network);
     \draw (netops) to (causal);
-    \draw (node cs:name=netops2,angle=170) to [out=90,in=270] (node cs:name=netops, angle=340);
+    \draw (node cs:name=netops2,angle=150) to [out=90,in=270] (node cs:name=netops, angle=340);
     \draw (node cs:name=counter,angle=50)  to [out=90,in=270] (node cs:name=netops, angle=200);
     \draw (node cs:name=orset,  angle=50)  to [out=90,in=270] (node cs:name=netops, angle=270);
-    \draw (node cs:name=rga,    angle=50)  to [out=90,in=270] (node cs:name=netops2,angle=240);
+    \draw (node cs:name=rga,    angle=50)  to [out=90,in=270] (node cs:name=netops2,angle=210);
     \tikzstyle{every path}=[thick,dashed,->]
     \draw (node cs:name=causal, angle=160) to [out=90,in=270] (node cs:name=hb, angle=340);
     \draw (node cs:name=counter,angle=90)  to [out=90,in=270] (node cs:name=sec,angle=210);

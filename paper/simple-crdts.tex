@@ -1,2 +1,52 @@
 \section{Simple CRDTs: Counter and Set}
 \label{sect.simple.crdts}
+
+\subsection{Increment-decrement counter}
+\label{subsect.increment-decrement.counter}
+
+\begin{isabellebody}
+\isanewline
+\isacommand{definition}\isamarkupfalse%
+\ increment\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}int\ {\isasymRightarrow}\ int{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ {\isachardoublequoteopen}increment\ x\ {\isasymequiv}\ {\isadigit{1}}\ {\isacharplus}\ x{\isachardoublequoteclose}\isanewline
+\ \ \isanewline
+\isacommand{definition}\isamarkupfalse%
+\ decrement\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}int\ {\isasymRightarrow}\ int{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ {\isachardoublequoteopen}decrement\ x\ {\isasymequiv}\ x\ {\isacharminus}\ {\isadigit{1}}{\isachardoublequoteclose}\isanewline
+\ \ \isanewline
+\isacommand{lemma}\isamarkupfalse%
+\ increment{\isacharunderscore}decrement{\isacharunderscore}commute{\isacharcolon}\isanewline
+\ \ \isakeyword{shows}\ {\isachardoublequoteopen}increment\ {\isacharparenleft}decrement\ x{\isacharparenright}\ {\isacharequal}\ decrement\ {\isacharparenleft}increment\ x{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\end{isabellebody}
+
+\begin{isabellebody}
+\isacommand{datatype}\isamarkupfalse%
+\ operation\isanewline
+\ \ {\isacharequal}\ Increment\isanewline
+\ \ {\isacharbar}\ Decrement\isanewline
+\ \ \ \ \isanewline
+\isacommand{fun}\isamarkupfalse%
+\ interpret{\isacharunderscore}operation\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}operation\ {\isasymRightarrow}\ int\ {\isasymrightharpoonup}\ int{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ {\isachardoublequoteopen}interpret{\isacharunderscore}operation\ Increment\ {\isacharequal}\ Some\ o\ increment{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ {\isachardoublequoteopen}interpret{\isacharunderscore}operation\ Decrement\ {\isacharequal}\ Some\ o\ decrement{\isachardoublequoteclose}\isanewline
+\ \ \ \ \isanewline
+\isacommand{locale}\isamarkupfalse%
+\ counter\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharunderscore}\ {\isacharunderscore}\ interpret{\isacharunderscore}operation\ {\isadigit{0}}\isanewline
+\ \ \isanewline
+\isacommand{lemma}\isamarkupfalse%
+\ {\isacharparenleft}\isakeyword{in}\ counter{\isacharparenright}\ concurrent{\isacharunderscore}operations{\isacharunderscore}commute{\isacharcolon}\isanewline
+\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\end{isabellebody}
+
+\begin{isabellebody}
+\isacommand{corollary}\isamarkupfalse%
+\ {\isacharparenleft}\isakeyword{in}\ counter{\isacharparenright}\ counter{\isacharunderscore}convergence{\isacharcolon}\isanewline
+\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}ys\ prefix\ of\ j{\isachardoublequoteclose}\isanewline
+\ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}\isanewline
+\end{isabellebody}
+
+\subsection{Observed-removed set}
+\label{subsect.observed-removed.set}

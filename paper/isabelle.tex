@@ -12,12 +12,16 @@ A detailed description of the main modules of our proof follows in Sections~\ref
 \begin{figure}
 \centering
 \input{proof-structure}
-\caption{The main locales of our proof, and how they relate to each other.}\label{fig.proof.structure}
+\caption{The main locales (modules) of our proof, and the relationships between them.
+Solid arrows indicate a more specialised locale that extends a more general locale (like subclassing in OOP).
+Dashed arrows indicate a sublocale that satisfies the assumptions of the superlocale (like implementing an interface in OOP).
+}\label{fig.proof.structure}
 \end{figure}
 
 Since our formalisation of distributed algorithms goes into more depth than most prior work, it is important to have a structure that keeps the proofs manageable.
 Our approach breaks the proof into simple modules with cleanly defined properties---called \emph{locales}---and composes them in order to describe more complex objects.
 This locale structure is illustrated in Figure~\ref{fig.proof.structure} and explained below.
+See Section~\ref{sect.isabelle.locales} for more detail on locales.
 
 Approximately half of our Isabelle proof (by lines of code) is used to construct a general-purpose model of consistency in distributed systems, and is independent of any particular replication algorithm.
 The other half contains our formalisation of three example CRDTs and their proofs of correctness.
@@ -27,9 +31,10 @@ Our definition of correctness in this work is that the algorithms achieve strong
 We describe our formalisation of this definition in Section~\ref{sect.abstract.convergence}.
 In particular, we define what we mean with convergence, and prove an \emph{abstract convergence theorem}, which states that replicas converge if concurrent operations commute.
 We are able to prove this fact without mentioning networks nor any particular CRDT, but merely by reasoning about the ordering and properties of operations.
+This definition constitutes an abstract specification of what we mean with strong eventual consistency.
 
 In Section~\ref{sect.network} we describe an axiomatic model of asynchronous networks, built around a broadcast-deliver event model.
-The definition of the network is important because it allows us to prove that certain properties hold in all possible executions of the network, and that we are not making any assumptions that might be violated---an aspect that has dogged previous verification efforts (see Section~\ref{sect.related.verification}).
+The definition of the network is important because it allows us to prove that certain properties hold in all possible executions of the network, and that we are not making any dangerous assumptions that might be violated---an aspect that has dogged previous verification efforts (see Section~\ref{sect.related.verification}).
 The network is the only part of our proof in which we make any axiomatic assumptions, and we show in Section~\ref{sect.network} that our assumptions are realistic and reflect standard conventions for the modelling of distributed systems.
 We then prove that our network satisfies the ordering properties required by the abstract convergence theorem of Section~\ref{sect.abstract.convergence}, and thus deduce a convergence theorem for our network model.
 
@@ -37,11 +42,13 @@ Note that everything mentioned until this point is completely generic, and not t
 However, we may now use the general-purpose theorems and definitions to prove the SEC properties of concrete algorithms.
 
 We begin in Section~\ref{sect.simple.crdts} with definitions of two simple CRDTs: a counter and an observed-remove set.
-We show that with the previously established tooling in place, it is very easy to prove that these algorithms provide SEC.
+We show that with the previously established tooling in place, it is very easy to prove that these algorithms implement the abstract specification of SEC.
 
 In Section~\ref{sect.rga} we describe our formalisation of a more complex and subtle CRDT, the Replicated Growable Array (RGA).
 We first show how to implement the RGA's insert and delete operations, with proofs that each operation commutes with itself, and all operations commute with each other.
 Insertion and deletion only commute under various conditions, so we prove that these conditions are satisfied in all possible executions of the network, and thus we obtain a concrete convergence theorem for our RGA implementation.
+
+As illustrated in Figure~\ref{fig.proof.structure}, the $\isa{counter}$, $\isa{orset}$, and $\isa{rga}$ locales are defined to extend the network model (so they are able to use all of the lemmas and theories defined there), and we prove that each of them satisfies the abstract specification $\isa{strong-eventual-consistency}$ (which encapsulates the properties that we want).
 
 \subsection{An overview of Isabelle}
 \label{subsect.an.overview.of.isabelle}
@@ -50,25 +57,28 @@ To aid the understanding of later sections, we provide a brief introduction to t
 Readers who are already familiar with Isabelle may skip to Section~\ref{sect.abstract.convergence}.
 A more detailed introduction can be found in the standard tutorial material~\cite{DBLP:books/sp/NipkowK14}.
 
+\subsubsection{Syntax of expressions}\label{sect.isabelle.syntax}
+
 Isabelle/HOL is a logic with a strict, polymorphic type system resembling that of mainstream functional programming languages.
 \emph{Function types} are written $\tau_1 \Rightarrow \tau_2$, and are inhabited by \emph{total} functions, mapping elements of $\tau_1$ to elements of $\tau_2$.
 We write $\tau_1 \times \tau_2$ for the \emph{product type} of $\tau_1$ and $\tau_2$, inhabited by pairs of elements of type $\tau_1$ and $\tau_2$, respectively.
-In a similar fashion to Standard ML and OCaml, but differing from Haskell, \emph{type operators} are applied to arguments in reverse order, and therefore write $\tau\ \isa{list}$ and $\tau\ \isa{set}$ for the type of lists of elements of type $\tau$, and the type of mathematical (i.e. potentially infinite) sets of type $\tau$, respectively.
+In a similar fashion to Standard ML and OCaml, but differing from Haskell, \emph{type operators} are applied to arguments in reverse order, and therefore write $\tau\ \isa{list}$ and $\tau\ \isa{set}$ for the type of lists of elements of type $\tau$, and the type of mathematical (i.e., potentially infinite) sets of type $\tau$, respectively.
 Type variable are written in lowercase, and preceded with a prime: ${\isacharprime}a \Rightarrow {\isacharprime}a$ denotes the type of a polymorphic identity function, for example.
 \emph{Tagged union} types are introduced with the $\isacommand{datatype}$ keyword, with constructors of these types written with an initial upper case letter.
 
-In Isabelle/HOL's term language we write $\isa{t} \isa{::} \tau$ for a \emph{type ascription}, constraining the type of the term $\isa{t}$ to the type $\tau$.
-We write $\lambda{x}. t$ for an anonymous function mapping an argument $\isa{x}$ to $\isa{t(x)}$, and write the application of term $\isa{t}$ with function type to an argument $\isa{u}$ as $\isa{t\ u}$, as usual.
-Terms of list type are introduced using one of two constructors: $\isa{[]}$, or `nil', standing for the empty list, and infix $\isa{\#}$, or `cons', which prepends an element to an existing list.
-We use $[t_1, \ldots, t_n]$ as syntactic sugar for a list literal, which is desugared into a series of cons applications.
-We write $\{\}$ for the empty set, and use usual mathematical notation for set union, disjunction, membership tests, and so on: $\isa{t} \cup \isa{u}$, $\isa{t} \cap \isa{u}$, and $\isa{x} \in \isa{t}$.
+In Isabelle/HOL's term language we write $\isa{t} \mathbin{::} \tau$ for a \emph{type ascription}, constraining the type of the term $\isa{t}$ to the type $\tau$.
+We write $\lambda{x}.\: t$ for an anonymous function mapping an argument $\isa{x}$ to $\isa{t(x)}$, and write the application of term $\isa{t}$ with function type to an argument $\isa{u}$ as $\isa{t\ u}$, as usual.
+Terms of list type are introduced using one of two constructors: the empty list $[\,]$ or `nil', and the infix operator $\isa{\#}$ which is pronounced `cons', and which prepends an element to an existing list.
+We use $[t_1, \ldots, t_n]$ as syntactic sugar for a list literal, and $\isa{xs} \mathbin{\isacharat} \isa{ys}$ to express the concatenation (appending) of two lists $\isa{xs}$ and $\isa{ys}$.
+We write $\{\,\}$ for the empty set, and use usual mathematical notation for set union, disjunction, membership tests, and so on: $\isa{t} \cup \isa{u}$, $\isa{t} \cap \isa{u}$, and $\isa{x} \in \isa{t}$.
 
 Terms with type $\isa{bool}$ are called \emph{formulae}, writing $\isa{True}$ and $\isa{False}$ for the logical truthity and falsity constants, respectively.
-We write $\isa{t} \longrightarrow \isa{u}$, $\isa{t} \wedge \isa{u}$, and $\isa{t} \vee \isa{u}$ for material implication, conjunction, and disjunction, respectively, between formulae, and write $\neg t$ for the negation of a formula.
+We write $\isa{t} \longrightarrow \isa{u}$, $\isa{t} \wedge \isa{u}$, and $\isa{t} \vee \isa{u}$ for material implication, conjunction, and disjunction, respectively, and write $\neg t$ for the negation of a formula.
 Isabelle/HOL's equality constant is polymorphic: we write $t = u$ for an assertion of equality between two terms of the same type.
-We write $\forall{x}.t$ and $\exists{x}.t$ for universal and existential quantification---and write $\forall{x{\in}t}.u$ and $\exists{x{\in}t}.u$ for their bounded forms, restricted to members of a set $\isa{t}$.
-An alternative implication arrow $\isa{t} \Longrightarrow \isa{u}$ may sometimes be used, and is in fact required by Isabelle in certain contexts---an artefact of Isabelle's status as a logical framework.
-This arrow can safely be read as a standard implication arrow with little loss of understanding.
+We write $\forall{x}.\: t$ and $\exists{x}.\: t$ for universal and existential quantification---and write $\forall{x{\in}t}.\: u$ and $\exists{x{\in}t}.\: u$ for their bounded forms, restricted to members of a set $\isa{t}$.
+An alternative implication arrow $\isa{t} \Longrightarrow \isa{u}$ is used by Isabelle in certain contexts; it is subtly different from standard implication $\isa{t} \longrightarrow \isa{u}$, but for purposes of an intuitive understanding, the two forms of implication can be regarded as equivalent.
+
+\subsubsection{Definitions and theorems}\label{sect.isabelle.definitions}
 
 New non-recursive definitions are entered into Isabelle's global context via the $\mathbf{definition}$ keyword.
 Recursive functions are entered via the $\mathbf{fun}$ keyword, with functions being defined piecewise by pattern matching on inputs with a series of equations.
@@ -102,8 +112,10 @@ A theorem statement of the form
 \end{isabellebody}
 \vspace{0.375em}
 \noindent
-produces a proof obligation, wherein the user is tasked with proving $\isa{foo} (xs \isacharat ys)$ under the two assumptions $\isa{foo}\ xs$ and $\isa{foo}\ ys$, where $xs \isacharat ys$ is list append.
+produces a proof obligation, wherein the user is tasked with proving $\isa{foo} (xs \isacharat ys)$ under the two assumptions $\isa{foo}\ xs$ and $\isa{foo}\ ys$.
 An optional name, here $\isa{goo}$, is assigned to the theorem, so that it may be referenced in later proofs.
+
+\subsubsection{Locales}\label{sect.isabelle.locales}
 
 Lastly, we use \emph{locales}---or local theories~\cite{DBLP:conf/tphol/KammullerWP99,DBLP:conf/types/HaftmannW08}---extensively throughout our development to structure the proof.
 A declaration of the form
