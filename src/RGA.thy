@@ -403,51 +403,15 @@ context rga begin
 
 sublocale sec: strong_eventual_consistency weak_hb hb interpret_opers
   "\<lambda>ops.\<exists>xs i. xs prefix of i \<and> node_deliver_messages xs = ops" "[]"
-  apply standard
-  apply(erule exE)+
-  using hb_consistent_prefix apply blast
-  apply(erule exE)+
-  using node_deliver_messages_distinct apply blast
-  apply(erule exE)+
-  using concurrent_operations_commute apply blast
-  apply(erule exE)+
-  apply(metis apply_operations_def apply_operations_never_fails bind.bind_lunit hb.apply_operations_Snoc kleisli_def)
-  apply(erule exE, erule exE)
+  apply(standard; clarsimp)
+      apply(auto simp add: hb_consistent_prefix node_deliver_messages_distinct
+        concurrent_operations_commute apply_operations_def)
+   apply(metis apply_operations_def bind.bind_lunit not_None_eq hb.apply_operations_Snoc kleisli_def apply_operations_never_fails)
   using drop_last_message apply blast
-done
+  done
 
 end
-
-(* Not needed, now? *)
-lemma (in rga) Insert_preserves_order:
-  assumes "(xs@[Deliver (Insert e i)]) prefix of j"
-  shows "\<exists>pre suf. apply_operations xs = Some (pre@suf) \<and> insert (pre@suf) e i = Some (pre @ e # suf)"
-  using assms
-  oops
-(*
-  apply -
-  apply(insert insert_preserves_order)
-  apply(erule_tac x=i in meta_allE)
-  apply(subgoal_tac "\<exists>ys. apply_operations xs = Some ys")
-   apply(erule exE)
-   apply(erule_tac x="ys" in meta_allE)
-   apply(erule_tac x="e" in meta_allE)
-   apply(subgoal_tac "i = None \<or> (\<exists>i'. i = Some i' \<and> i' \<in> fst ` set (the (apply_operations xs)))")
-    apply(subgoal_tac "distinct (map fst ys)")
-     apply force
-    apply(rule apply_operations_distinct[where xs="xs"], force, force)
-   apply(drule allowed_insert_deliver_in_set)
-   apply(erule disjE)
-    apply force
-   apply(erule exE)+
-   apply(rule disjI2)
-   apply(rule_tac x="m'" in exI, erule conjE, rule conjI)
-    apply clarsimp
-   apply(metis assms fst_conv option.sel rga.insert_in_apply_set rga_axioms)
-  using apply_operations_never_fails apply blast
-  done
-*)
-              
+  
 section\<open>Interpretations\<close>
   
 interpretation trivial_rga_implementation: rga "\<lambda>x. []"
