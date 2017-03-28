@@ -13,16 +13,177 @@ fun interpret_opers :: "('id::linorder, 'v) operation \<Rightarrow> ('id, 'v) el
   "interpret_opers (Insert e n) xs  = insert xs e n" |
   "interpret_opers (Delete n)   xs  = delete xs n"
 
+definition element_ids :: "('id, 'v) elt list \<Rightarrow> 'id set" where
+ "element_ids list = fst ` set list"
+
+definition valid_list_op :: "(('id::linorder, 'v) operation \<Rightarrow> 'id) \<Rightarrow> ('id, 'v) elt list \<Rightarrow> ('id::linorder, 'v) operation \<Rightarrow> bool" where
+ "valid_list_op msg_id list oper \<equiv> case oper of
+    Insert e  None      \<Rightarrow> fst e = msg_id oper |
+    Insert e (Some pos) \<Rightarrow> fst e = msg_id oper \<and> pos \<in> element_ids list |
+    Delete         pos  \<Rightarrow> pos \<in> element_ids list"
+
 (* Replicated Growable Array Network *)
-locale rga = network_with_ops msg_id _ interpret_opers "[]"
-  for msg_id :: "('id::linorder, 'v) operation \<Rightarrow> 'id" +
-  assumes insert_msg_id: "Broadcast (Insert e n) \<in> set (history i) \<Longrightarrow> fst e = msg_id (Insert e n)"
-  assumes allowed_insert: "Broadcast (Insert e n) \<in> set (history i) \<Longrightarrow> n = None \<or> 
-                            (\<exists>e' n'. n = Some (fst e') \<and> Deliver (Insert e' n') \<sqsubset>\<^sup>i Broadcast (Insert e n))"
-  assumes allowed_delete: "Broadcast (Delete x) \<in> set (history i) \<Longrightarrow> (\<exists>n' v b. Deliver (Insert (x, v, b) n') \<sqsubset>\<^sup>i Broadcast (Delete x))"
-    
+locale rga = network_with_constrained_ops msg_id _ interpret_opers "[]" "valid_list_op msg_id"
+  for msg_id :: "('id::linorder, 'v) operation \<Rightarrow> 'id"
+
 locale id_consistent_rga_network = rga +
   assumes ids_consistent: "hb (Insert e2 n2) (Insert e1 n1) \<Longrightarrow> fst e2 < fst e1"
+
+definition indices :: "('id, 'v) operation event list \<Rightarrow> 'id list" where
+  "indices xs \<equiv>
+     List.map_filter (\<lambda>x. case x of Deliver (Insert e i) \<Rightarrow> Some (fst e) | _ \<Rightarrow> None) xs"
+
+lemma indices_Nil [simp]:
+  shows "indices [] = []"
+by(auto simp: indices_def map_filter_def)
+
+lemma indices_append [simp]:
+  shows "indices (xs@ys) = indices xs @ indices ys"
+by(auto simp: indices_def map_filter_def)
+
+lemma indices_Broadcast_singleton [simp]:
+  shows "indices [Broadcast b] = []"
+by(auto simp: indices_def map_filter_def)
+
+lemma indices_Deliver_Insert [simp]:
+  shows "indices [Deliver (Insert e n)] = [fst e]"
+by(auto simp: indices_def map_filter_def)
+
+lemma indices_Deliver_Delete [simp]:
+  shows "indices [Deliver (Delete n)] = []"
+by(auto simp: indices_def map_filter_def)
+
+lemma (in rga) idx_in_elem_inserted [intro]:
+  assumes "Deliver (Insert e n) \<in> set xs"
+  shows   "fst e \<in> set (indices xs)"
+using assms by(induction xs, auto simp add: indices_def map_filter_def)
+
+lemma (in rga) apply_opers_idx_elems:
+  assumes "es prefix of i"
+      and "apply_operations es = Some xs"
+    shows "element_ids xs = set (indices es)"
+using assms unfolding element_ids_def
+  apply(induction es arbitrary: xs rule: rev_induct; clarsimp)
+  apply(case_tac x; clarsimp)
+  apply blast
+  apply(case_tac "x2"; clarsimp)
+  apply(auto split: bind_splits)
+  apply(metis (no_types, hide_lams) Un_insert_right image_eqI insert_iff insert_preserve_indices
+        option.sel prefix_of_appendD prod.sel(1) sup_bot.comm_neutral)
+  apply(metis Un_insert_right fst_conv insert_iff insert_preserve_indices option.sel)
+  apply(metis (no_types, hide_lams) Un_insert_right insert_iff insert_preserve_indices' option.sel
+        prefix_of_appendD sup_bot.comm_neutral)
+  apply(metis delete_preserve_indices fst_conv image_eqI prefix_of_appendD)
+  using delete_preserve_indices apply blast
+done
+
+lemma (in rga) delete_does_not_change_element_ids:
+  assumes "es @ [Deliver (Delete n)] prefix of i"
+  and "apply_operations es = Some xs1"
+  and "apply_operations (es @ [Deliver (Delete n)]) = Some xs2"
+  shows "element_ids xs1 = element_ids xs2"
+proof -
+  have "indices es = indices (es @ [Deliver (Delete n)])"
+    by simp
+  then show ?thesis
+    by (metis (no_types) assms prefix_of_appendD rga.apply_opers_idx_elems rga_axioms)
+qed
+
+lemma (in rga) someone_inserted_id:
+  assumes "es @ [Deliver (Insert (k, v, f) n)] prefix of i"
+  and "apply_operations es = Some xs1"
+  and "apply_operations (es @ [Deliver (Insert (k, v, f) n)]) = Some xs2"
+  and "a \<in> element_ids xs2"
+  and "a \<noteq> k"
+  shows "a \<in> element_ids xs1"
+using assms apply_opers_idx_elems by auto
+
+lemma (in rga) deliver_insert_exists:
+  assumes "es prefix of i"
+      and "apply_operations es = Some xs"
+      and "a \<in> element_ids xs"
+    shows "\<exists>v f n. Deliver (Insert (a, v, f) n) \<in> set es"
+using assms unfolding element_ids_def
+  apply(induction es arbitrary: xs rule: rev_induct; clarsimp)
+  apply(case_tac x; clarsimp)
+  apply(metis image_eqI prefix_of_appendD prod.sel(1))
+  apply(case_tac "x2"; clarsimp)
+  defer
+  apply(smt delete_does_not_change_element_ids apply_operations_Deliver bind_eq_Some_conv
+    element_ids_def image_eqI prefix_of_appendD prod.sel(1))
+  apply(case_tac "ab=a")
+  apply blast
+  apply(subgoal_tac "\<exists>xs'. apply_operations xsa = Some xs'")
+  defer
+  apply(meson bind_eq_Some_conv)
+  apply(erule exE)
+  apply(metis (no_types, lifting) someone_inserted_id apply_operations_Deliver element_ids_def
+    image_eqI prefix_of_appendD prod.sel(1))
+done
+
+lemma (in rga) insert_in_apply_set:
+  assumes "es @ [Deliver (Insert e (Some a))] prefix of i"
+      and "Deliver (Insert e' n) \<in> set es"
+      and "apply_operations es = Some s"
+    shows "fst e' \<in> element_ids s"
+using assms apply_opers_idx_elems idx_in_elem_inserted prefix_of_appendD by blast
+
+lemma (in rga) insert_msg_id:
+  assumes "Broadcast (Insert e n) \<in> set (history i)"
+  shows "fst e = msg_id (Insert e n)"
+  apply(subgoal_tac "\<exists>state. valid_list_op msg_id state (Insert e n)")
+  defer
+  using assms broadcast_is_valid apply blast
+  apply(erule exE)
+  apply(unfold valid_list_op_def)
+  apply(clarsimp)
+  apply(case_tac n)
+  apply(simp, simp)
+done
+
+lemma (in rga) allowed_insert:
+  assumes "Broadcast (Insert e n) \<in> set (history i)"
+  shows "n = None \<or> (\<exists>e' n'. n = Some (fst e') \<and> Deliver (Insert e' n') \<sqsubset>\<^sup>i Broadcast (Insert e n))"
+  apply(subgoal_tac "\<exists>pre. pre @ [Broadcast (Insert e n)] prefix of i")
+  defer
+  apply(simp add: assms events_before_exist)
+  apply(erule exE)
+  apply(subgoal_tac "\<exists>state. apply_operations pre = Some state \<and> valid_list_op msg_id state (Insert e n)")
+  defer
+  apply(simp add: broadcast_only_valid_ops)
+  apply(erule exE, erule conjE)
+  apply(unfold valid_list_op_def)
+  apply(case_tac n)
+  apply simp+
+  apply(subgoal_tac "a \<in> element_ids state")
+  defer
+  using apply_opers_idx_elems apply blast
+  apply(subgoal_tac "\<exists>v' f' n'. Deliver (Insert (a, v', f') n') \<in> set pre")
+  defer
+  using deliver_insert_exists apply auto[1]
+  using events_in_local_order apply blast
+done
+
+lemma (in rga) allowed_delete:
+  assumes "Broadcast (Delete x) \<in> set (history i)"
+  shows "\<exists>n' v b. Deliver (Insert (x, v, b) n') \<sqsubset>\<^sup>i Broadcast (Delete x)"
+  apply(subgoal_tac "\<exists>pre. pre @ [Broadcast (Delete x)] prefix of i")
+  defer
+  apply(simp add: assms events_before_exist)
+  apply(erule exE)
+  apply(subgoal_tac "\<exists>state. apply_operations pre = Some state \<and> valid_list_op msg_id state (Delete x)")
+  defer
+  apply(simp add: broadcast_only_valid_ops)
+  apply(erule exE, erule conjE)
+  apply(unfold valid_list_op_def)
+  apply(subgoal_tac "x \<in> element_ids state")
+  defer
+  using apply_opers_idx_elems apply simp
+  apply(subgoal_tac "\<exists>v' f' n'. Deliver (Insert (x, v', f') n') \<in> set pre")
+  defer
+  using deliver_insert_exists apply auto[1]
+  using events_in_local_order apply blast
+done
 
 lemma (in rga) insert_id_unique:
   assumes "fst e1 = fst e2"
@@ -66,78 +227,11 @@ lemma (in rga) allowed_insert_deliver_in_set:
 by(metis assms Un_insert_right insert_subset list.simps(15) set_append prefix_to_carriers
     allowed_insert_deliver local_order_prefix_closed_last)
 
-lemma (in rga) apply_operations_empty [simp]:
-  shows "apply_operations [] = Some []"
-by auto
-
-lemma (in rga) apply_operations_Broadcast [simp]:
-  shows "apply_operations (xs @ [Broadcast m]) = apply_operations xs"
-by(auto simp add: node_deliver_messages_def map_filter_def)
-
-lemma (in rga) apply_operations_Deliver [simp]:
-  shows "apply_operations (xs @ [Deliver m]) = (apply_operations xs \<bind> \<langle>m\<rangle>)"
-by(auto simp add: node_deliver_messages_def map_filter_def kleisli_def)
-
-definition indices :: "('id, 'v) operation event list \<Rightarrow> 'id list" where
-  "indices xs \<equiv>
-     List.map_filter (\<lambda>x. case x of Deliver (Insert e i) \<Rightarrow> Some (fst e) | _ \<Rightarrow> None) xs"
-
-lemma indices_Nil [simp]:
-  shows "indices [] = []"
-by(auto simp: indices_def map_filter_def)
-
-lemma indices_append [simp]:
-  shows "indices (xs@ys) = indices xs @ indices ys"
-by(auto simp: indices_def map_filter_def)
-
-lemma indices_Broadcast_singleton [simp]:
-  shows "indices [Broadcast b] = []"
-by(auto simp: indices_def map_filter_def)
-
-lemma indices_Deliver_Insert [simp]:
-  shows "indices [Deliver (Insert e n)] = [fst e]"
-by(auto simp: indices_def map_filter_def)
-
-lemma indices_Deliver_Delete [simp]:
-  shows "indices [Deliver (Delete n)] = []"
-by(auto simp: indices_def map_filter_def)
-
-lemma (in rga) idx_in_elem_inserted [intro]:
-  assumes "Deliver (Insert e n) \<in> set xs"
-  shows   "fst e \<in> set (indices xs)"
-using assms by(induction xs, auto simp add: indices_def map_filter_def)
-
-lemma (in rga) apply_opers_idx_elems:
-  assumes "es prefix of i"
-      and "apply_operations es = Some xs"
-    shows "fst ` set xs = set (indices es)"
-using assms
-  apply(induction es arbitrary: xs rule: rev_induct; clarsimp)
-  apply(case_tac x; clarsimp)
-  apply blast
-  apply(case_tac "x2"; clarsimp)
-  apply(auto split: bind_splits)
-  apply(metis (no_types, hide_lams) Un_insert_right image_eqI insert_iff insert_preserve_indices
-        option.sel prefix_of_appendD prod.sel(1) sup_bot.comm_neutral)
-  apply(metis Un_insert_right fst_conv insert_iff insert_preserve_indices option.sel)
-  apply(metis (no_types, hide_lams) Un_insert_right insert_iff insert_preserve_indices' option.sel
-        prefix_of_appendD sup_bot.comm_neutral)
-  apply(metis delete_preserve_indices fst_conv image_eqI prefix_of_appendD)
-  using delete_preserve_indices apply blast
-done
-
-lemma (in rga) insert_in_apply_set:
-  assumes "es @ [Deliver (Insert e (Some a))] prefix of i"
-      and "Deliver (Insert e' n) \<in> set es"
-      and "apply_operations es = Some s"
-    shows "fst e' \<in> fst ` set s"
-using assms apply_opers_idx_elems idx_in_elem_inserted prefix_of_appendD by blast
-
 lemma (in rga) Insert_no_failure:
   assumes "es @ [Deliver (Insert e n)] prefix of i" 
       and "apply_operations es = Some s"
     shows "\<exists>ys. insert s e n = Some ys"
-by(metis allowed_insert_deliver_in_set assms fst_conv insert_in_apply_set insert_no_failure)
+by(metis element_ids_def allowed_insert_deliver_in_set assms fst_conv insert_in_apply_set insert_no_failure)
 
 lemma (in rga) delete_no_failure:
   assumes "es @ [Deliver (Delete n)] prefix of i"
@@ -149,7 +243,7 @@ using assms
   apply clarsimp
   apply(rule delete_no_failure)
   apply(drule idx_in_elem_inserted)
-  apply(auto simp add: apply_opers_idx_elems)
+  apply(metis apply_opers_idx_elems element_ids_def prefix_of_appendD prod.sel(1))
 done
 
 lemma (in rga) Insert_equal:
@@ -302,12 +396,12 @@ corollary (in rga) rga_convergence:
       and "xs prefix of i"
       and "ys prefix of j"
     shows "apply_operations xs = apply_operations ys"
-using assms by(auto intro: hb.convergence_ext concurrent_operations_commute
+using assms by(auto simp add: apply_operations_def intro: hb.convergence_ext concurrent_operations_commute
                 node_deliver_messages_distinct hb_consistent_prefix)
 
 context rga begin
 
-sublocale crdt: op_based_crdt weak_hb hb interpret_opers
+sublocale sec: strong_eventual_consistency weak_hb hb interpret_opers
   "\<lambda>ops.\<exists>xs i. xs prefix of i \<and> node_deliver_messages xs = ops" "[]"
   apply standard
   apply(erule exE)+
@@ -317,7 +411,7 @@ sublocale crdt: op_based_crdt weak_hb hb interpret_opers
   apply(erule exE)+
   using concurrent_operations_commute apply blast
   apply(erule exE)+
-  apply (metis apply_operations_never_fails bind.bind_lunit hb.apply_operations_Snoc kleisli_def)
+  apply(metis apply_operations_def apply_operations_never_fails bind.bind_lunit hb.apply_operations_Snoc kleisli_def)
   apply(erule exE, erule exE)
   using drop_last_message apply blast
 done
@@ -357,8 +451,8 @@ lemma (in rga) Insert_preserves_order:
 section\<open>Interpretations\<close>
   
 interpretation trivial_rga_implementation: rga "\<lambda>x. []"
-  by standard (auto simp add: trivial_node_histories.history_order_def)
-    
+  by (standard, auto simp add: trivial_node_histories.history_order_def trivial_node_histories.prefix_of_node_history_def)
+
 interpretation non_trivial_rga_implementation: rga "\<lambda>m. if m = 0 then [Broadcast (Insert (0, 0, False) None), Deliver (Insert (0, 0, False) None)] else []"
 oops
 

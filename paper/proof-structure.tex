@@ -1,0 +1,49 @@
+\begin{tikzpicture}[auto,scale=1.0]
+
+\tikzstyle{locale}=[draw,anchor=base,minimum width=30pt,text height=8pt,text depth=3pt]
+
+\node (preorder) at (0,7.5) [locale] {$\isa{preorder}$};
+\node (hb)       at (0,6)   [locale] {$\isa{happens-before}$};
+\node (sec)      at (0,4)   [locale] {$\isa{strong-eventual-consistency}$};
+\node (hist)     at (5,6)   [locale] {$\isa{node-histories}$};
+\node (network)  at (5,5)   [locale] {$\isa{network}$};
+\node (causal)   at (5,4)   [locale] {$\isa{causal-network}$};
+\node (netops)   at (5,3)   [locale] {$\isa{network-with-ops}$};
+\node (netops2)  at (7.5,1.5) [locale] {$\isa{network-with-constrained-ops}$};
+\node (counter)  at (1,0)   [locale] {$\isa{counter}$};
+\node (orset)    at (3,0)   [locale] {$\isa{orset}$};
+\node (rga)      at (5,0)   [locale] {$\isa{rga}$};
+
+\begin{scope}[thick,dotted]
+    \path [draw] (-2.5,6.8) -- ( 10,6.8);
+    \path [draw] (-2.5,0.8) -- ( 10,0.8);
+    \path [draw] ( 2.8,0.8) -- (2.8,6.8);
+\end{scope}
+
+\begin{scope}[left,text width=5cm,text ragged left,font=\footnotesize]
+    \node at (10, 7.2) {Isabelle standard library};
+    \node at (10, 6.2) {Network model\\(Section \ref{sect.network})};
+\end{scope}
+\begin{scope}[text width=5cm,font=\footnotesize]
+    \node at (0, 1.4) {Abstract convergence\\(Section \ref{sect.abstract.convergence})};
+    \node at (0, 0.2) {Example CRDTs\\(Sections \ref{sect.simple.crdts} and \ref{sect.rga})};
+\end{scope}
+
+\begin{scope}[>=open triangle 60]
+    \tikzstyle{every path}=[thick,->]
+    \draw (hb) to (preorder);
+    \draw (sec) to (hb);
+    \draw (network) to (hist);
+    \draw (causal) to (network);
+    \draw (netops) to (causal);
+    \draw (node cs:name=netops2,angle=170) to [out=90,in=270] (node cs:name=netops, angle=340);
+    \draw (node cs:name=counter,angle=50)  to [out=90,in=270] (node cs:name=netops, angle=200);
+    \draw (node cs:name=orset,  angle=50)  to [out=90,in=270] (node cs:name=netops, angle=270);
+    \draw (node cs:name=rga,    angle=50)  to [out=90,in=270] (node cs:name=netops2,angle=240);
+    \tikzstyle{every path}=[thick,dashed,->]
+    \draw (node cs:name=causal, angle=160) to [out=90,in=270] (node cs:name=hb, angle=340);
+    \draw (node cs:name=counter,angle=90)  to [out=90,in=270] (node cs:name=sec,angle=210);
+    \draw (node cs:name=orset,  angle=90)  to [out=90,in=270] (node cs:name=sec,angle=270);
+    \draw (node cs:name=rga,    angle=90)  to [out=90,in=270] (node cs:name=sec,angle=330);
+\end{scope}
+\end{tikzpicture}

@@ -19,7 +19,7 @@ node has a local copy of some data structure (such as a document). A node that h
 data is called a \emph{replica}. Each node may independently read and modify the data, and a
 replication algorithm propagates any updates (modifications) to other replicas via the network.
 
-\subsection{Properties of Networks}\label{sect.background.networks}
+\subsection{Properties of networks}\label{sect.background.networks}
 
 Various replication algorithms provide different consistency guarantees, and the most appropriate
 choice depends on the properties of the network. For example, many online services today rely on a
@@ -33,16 +33,16 @@ notion of total ordering enables strong consistency models such as linearizabili
 However, peer-to-peer networks have no such central server that can be assumed to be always
 reachable. It is possible to provide the same guarantee of totally ordered delivery in peer-to-peer
 networks; this abstraction is known as \emph{total order broadcast} or \emph{atomic broadcast}
-\cite{Cachin:2011wt}. Unfortunately, it is expensive: it requires a quorum of nodes (typically a
-majority) to be reachable in order to make progress \cite{Chandra:1996cp}; in a peer-to-peer network
-of mobile devices, it is likely that less than a majority of devices is online at any one time, and
-so any algorithm for total order broadcast would be stalled.
+\cite{Cachin:2011wt,Defago:2004ji}. Unfortunately, it is expensive: it requires a quorum of nodes
+(typically a majority) to be reachable in order to make progress \cite{Chandra:1996cp}; in a
+peer-to-peer network of mobile devices, it is likely that less than a majority of devices is online
+at any one time, and so any algorithm for total order broadcast would be stalled.
 
 As discussed in Section~\ref{sect.introduction}, we aim to support scenarios in which subsets of
 nodes can communicate with each other, but some are disconnected (\emph{partitioned}) from others.
 For example, consider some data shared between two users, each of whom has two devices. Each user
 may want to synchronise the data between their two devices using a local wireless link, even if they
-are temporarily disconnected from the internet, and re-synchronize with the other user when they are
+are temporarily disconnected from the internet, and re-synchronise with the other user when they are
 next online. In this scenario, strong consistency across both users could only be achieved by
 preventing users from making any offline updates; if updates are allowed, weaker consistency is
 inevitable \cite{Attiya:2015dm,Davidson:1985hv}.
@@ -76,10 +76,10 @@ constrain the values that reads may return before consistency is eventually reac
 \emph{Strong eventual consistency} (SEC) is a more refined definition that we can use in this
 context \cite{Shapiro:2011un}. It requires \emph{convergence} of replicas, which is defined
 informally as: ``whenever any two replicas have delivered the same set of updates, they have
-equivalent state'' (we present our formal definition in Section~\ref{sect.convergence}). Two states
-are equivalent if all reads return the same result in both states. A replica can perform reads and
-writes using only its local state, without waiting for network communication, and exchange updates
-with other replicas asynchronously when a network connection is available. This definition
+equivalent state'' (we present our formal definition in Section~\ref{sect.abstract.convergence}).
+Two states are equivalent if all reads return the same result in both states. A replica can perform
+reads and writes using only its local state, without waiting for network communication, and exchange
+updates with other replicas asynchronously when a network connection is available. This definition
 constrains the values that reads may return at any time, making it a stronger property than eventual
 consistency.
 
