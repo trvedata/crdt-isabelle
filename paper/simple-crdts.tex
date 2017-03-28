@@ -4,32 +4,49 @@
 \subsection{Increment-decrement counter}
 \label{subsect.increment-decrement.counter}
 
+The increment-decrement counter is perhaps the simplest CRDT, and a paradigmatic example of a replicated data structure with commutative operations.
+As the name suggests, the data structure supports two operations: $\isa{increment}$ and $\isa{decrement}$ which respectively increment and decrement a shared integer counter:
+\vspace{0.375em}
 \begin{isabellebody}
-\isanewline
-\isacommand{definition}\isamarkupfalse%
-\ increment\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}int\ {\isasymRightarrow}\ int{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}increment\ x\ {\isasymequiv}\ {\isadigit{1}}\ {\isacharplus}\ x{\isachardoublequoteclose}\isanewline
-\ \ \isanewline
-\isacommand{definition}\isamarkupfalse%
-\ decrement\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}int\ {\isasymRightarrow}\ int{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}decrement\ x\ {\isasymequiv}\ x\ {\isacharminus}\ {\isadigit{1}}{\isachardoublequoteclose}\isanewline
-\ \ \isanewline
-\isacommand{lemma}\isamarkupfalse%
-\ increment{\isacharunderscore}decrement{\isacharunderscore}commute{\isacharcolon}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}increment\ {\isacharparenleft}decrement\ x{\isacharparenright}\ {\isacharequal}\ decrement\ {\isacharparenleft}increment\ x{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{datatype}\ operation {\isacharequal}\ Increment\ {\isacharbar}\ Decrement
 \end{isabellebody}
+\vspace{0.375em}
+Providing a semantics for these two operations is straightforward, so we only present the function implementing the increment operation, here, eliding the corresponding implementation of decrement:
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{definition}\ increment\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}int\ {\isasymRightarrow}\ int{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}increment\ x\ {\isasymequiv}\ {\isadigit{1}}\ {\isacharplus}\ x{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
+Note that neither $\isa{increment}$ nor $\isa{decrement}$ fail: both functions are defined on Isabelle's $\isa{int}$ type of unbounded integers.
+We could also have implemented the counter using fixed bitwidth integers (e.g. 32- or 64-bit machine words) with wrap-around on overflow.
+This alternative design choice would not have impacted the proofs presented here.
+
+Interpreting the $\isa{operation}$ data type and lifting it into a (partial) state transformer is a straightforward exercise in pattern matching:
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{fun}\ interpret{\isacharunderscore}operation\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}operation\ {\isasymRightarrow}\ int\ {\isasymrightharpoonup}\ int{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}interpret{\isacharunderscore}operation\ Increment\ {\isacharequal}\ Some\ o\ increment{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}interpret{\isacharunderscore}operation\ Decrement\ {\isacharequal}\ Some\ o\ decrement{\isachardoublequoteclose}\isanewline
+\end{isabellebody}
+\vspace{0.375em}
+Here, $\isa{f}\ \isa{o}\ \isa{g}$ denotes the composition of functions $\isa{f}$ and $\isa{g}$.
+Note that as neither of the $\isa{increment}$ and $\isa{decrement}$ operations fail, each must be composed with the $\isa{Some}$ constructor of the $\isa{option}$ type to effect the lifting into a partial state transformer, suitable for use with our $\isa{network}{\isacharunderscore}\isa{with}{\isacharunderscore}\isa{ops}$ locale.
+
+Showing that both operations commute with each other, and with themselves, is also straightforward.
+We present only a single commutation lemma, here, eliding the rest:
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{lemma}\ increment{\isacharunderscore}decrement{\isacharunderscore}commute{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}increment\ {\isacharparenleft}decrement\ x{\isacharparenright}\ {\isacharequal}\ decrement\ {\isacharparenleft}increment\ x{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\end{isabellebody}
+\vspace{0.375em}
+Isabelle's automated proof search facilities spot the proofs of all commutation lemmas easily.
+
+Note here, that unlike more complex CRDTs, such as the Replicated Growable Array which will be discussed in Section~\ref{sect.rga}, the operations of the increment-decrement counter commute unconditionally.
+As a result, the increment-decrement counter will converge
 
 \begin{isabellebody}
-\isacommand{datatype}\isamarkupfalse%
-\ operation\isanewline
-\ \ {\isacharequal}\ Increment\isanewline
-\ \ {\isacharbar}\ Decrement\isanewline
-\ \ \ \ \isanewline
-\isacommand{fun}\isamarkupfalse%
-\ interpret{\isacharunderscore}operation\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}operation\ {\isasymRightarrow}\ int\ {\isasymrightharpoonup}\ int{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}interpret{\isacharunderscore}operation\ Increment\ {\isacharequal}\ Some\ o\ increment{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ {\isachardoublequoteopen}interpret{\isacharunderscore}operation\ Decrement\ {\isacharequal}\ Some\ o\ decrement{\isachardoublequoteclose}\isanewline
-\ \ \ \ \isanewline
 \isacommand{locale}\isamarkupfalse%
 \ counter\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharunderscore}\ {\isacharunderscore}\ interpret{\isacharunderscore}operation\ {\isadigit{0}}\isanewline
 \ \ \isanewline
