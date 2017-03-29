@@ -84,8 +84,8 @@ We first define a type of messages corresponding to the two operations supported
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{datatype}\ {\isacharprime}a\ operation\ {\isacharequal}\ Add\ {\isacharprime}a\ {\isacharbar}\ Rem\ {\isacharprime}a
-\isanewline\isanewline
-\ \ \ \ \ \ \ \ \isacommand{type{\isacharunderscore}synonym}\ {\isacharprime}a\ state\ {\isacharequal}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymrightharpoonup}\ {\isacharprime}a\ operation\ set{\isachardoublequoteclose}
+\quad\quad\quad\quad
+\isacommand{type{\isacharunderscore}synonym}\ {\isacharprime}a\ state\ {\isacharequal}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ set{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
 Here, we model a set containing elements of type ${\isacharprime}a$ as a partial map from ${\isacharprime}a$ to sets of ${\isacharprime}a\ \isa{operation}$.
@@ -93,8 +93,8 @@ This partial map records all insertion messages that have been sent for a partic
 If no insertion messages have been observed, then the map returns $\isa{None}$.
 
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{locale}\ orset{\isacharunderscore}base\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ msg{\isacharunderscore}id\ history\ interp\ {\isachardoublequoteopen}Map{\isachardot}empty{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{for}\ msg{\isacharunderscore}id\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ operation\ {\isasymRightarrow}\ {\isacharprime}a{\isachardoublequoteclose}\ \isakeyword{and}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharprime}a\ operation\ event\ list{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{locale}\ orset{\isacharunderscore}base\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ msg{\isacharunderscore}id\ history\ interp\ {\isachardoublequoteopen}{\isasymlambda}x{\isachardot}\ {\isacharbraceleft}{\isacharbraceright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{for}\ msg{\isacharunderscore}id\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ operation\ {\isasymRightarrow}\ {\isacharprime}b{\isachardoublequoteclose}\ \isakeyword{and}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharprime}a\ operation\ event\ list{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ interp\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ operation\ {\isasymRightarrow}\ {\isacharprime}a\ state\ {\isasymrightharpoonup}\ {\isacharprime}a\ state{\isachardoublequoteclose}
 \end{isabellebody}
 
@@ -106,9 +106,9 @@ If no insertion messages have been observed, then the map returns $\isa{None}$.
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{definition}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharunderscore}base{\isacharparenright}\ interpret{\isacharunderscore}op\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ operation\ {\isasymRightarrow}\ {\isacharprime}a\ state\ {\isasymrightharpoonup}\ {\isacharprime}a\ state{\isachardoublequoteclose}\ {\isacharparenleft}{\isachardoublequoteopen}{\isasymlangle}{\isacharunderscore}{\isasymrangle}{\isachardoublequoteclose}\ {\isacharbrackleft}{\isadigit{0}}{\isacharbrackright}\ {\isadigit{1}}{\isadigit{0}}{\isadigit{0}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}interpret{\isacharunderscore}op\ oper\ state\ {\isasymequiv}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ let\ before\ {\isacharequal}\ opt{\isacharunderscore}default\ {\isacharparenleft}state\ {\isacharparenleft}op{\isacharunderscore}elem\ oper{\isacharparenright}{\isacharparenright}\ {\isacharbraceleft}{\isacharbraceright}{\isacharsemicolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ after\ \ {\isacharequal}\ case\ oper\ of\ Add\ e\ {\isasymRightarrow}\ before\ {\isasymunion}\ {\isacharbraceleft}oper{\isacharbraceright}\ {\isacharbar}\ Rem\ e\ {\isasymRightarrow}\ {\isacharbraceleft}add\ {\isasymin}\ before{\isachardot}\ {\isasymnot}\ hb\ add\ oper{\isacharbraceright}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ in\ \ Some\ {\isacharparenleft}state\ {\isacharparenleft}{\isacharparenleft}op{\isacharunderscore}elem\ oper{\isacharparenright}\ {\isasymmapsto}\ after{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \ \ \ \ \ let\ before\ {\isacharequal}\ state\ {\isacharparenleft}op{\isacharunderscore}elem\ oper{\isacharparenright}{\isacharsemicolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ after\ \ {\isacharequal}\ case\ oper\ of\ Add\ e\ {\isasymRightarrow}\ before\ {\isasymunion}\ {\isacharbraceleft}e{\isacharbraceright}\ {\isacharbar}\ Rem\ e\ {\isasymRightarrow}\ {\isacharbraceleft}add\ {\isasymin}\ before{\isachardot}\ {\isasymnot}\ hb\ {\isacharparenleft}Add\ add{\isacharparenright}\ oper{\isacharbraceright}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ in\ \ Some\ {\isacharparenleft}state\ {\isacharparenleft}{\isacharparenleft}op{\isacharunderscore}elem\ oper{\isacharparenright}\ {\isacharcolon}{\isacharequal}\ after{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 Here, $\isa{opt}-\isa{default}$ is a function of type ${\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ option\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a$ which takes an option value and unpacks it in the case it is $\isa{Some}$ or returns a default value in the case that it is $\isa{None}$.
 
