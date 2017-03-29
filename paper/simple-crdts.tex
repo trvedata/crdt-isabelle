@@ -1,51 +1,74 @@
-\section{Simple CRDTs: Counter and Set}
+\section{Two other CRDTs: Counter and Set}
 \label{sect.simple.crdts}
+
+We close the technical body of our paper with a demonstration that our network and abstract convergence theorem truly form a `framework' for mechanically verifying the convergence of operation-based CRDTs.
+In particular, we demonstrate the convergence of two well-known CRDTs---the increment-decrement counter, and the observed-removed set---again as corollaries of our abstract convergence theorem.
+This bolsters our claim that the network and abstract convergence layers of our mechanisation are reusable components, and fully independent of any one CRDT implementation.
 
 \subsection{Increment-decrement counter}
 \label{subsect.increment-decrement.counter}
 
+The increment-decrement counter is perhaps the simplest CRDT, and a paradigmatic example of a replicated data structure with commutative operations.
+As the name suggests, the data structure supports two operations: $\isa{increment}$ and $\isa{decrement}$ which respectively increment and decrement a shared integer counter:
+\vspace{0.375em}
 \begin{isabellebody}
-\isanewline
-\isacommand{definition}\isamarkupfalse%
-\ increment\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}int\ {\isasymRightarrow}\ int{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}increment\ x\ {\isasymequiv}\ {\isadigit{1}}\ {\isacharplus}\ x{\isachardoublequoteclose}\isanewline
-\ \ \isanewline
-\isacommand{definition}\isamarkupfalse%
-\ decrement\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}int\ {\isasymRightarrow}\ int{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}decrement\ x\ {\isasymequiv}\ x\ {\isacharminus}\ {\isadigit{1}}{\isachardoublequoteclose}\isanewline
-\ \ \isanewline
-\isacommand{lemma}\isamarkupfalse%
-\ increment{\isacharunderscore}decrement{\isacharunderscore}commute{\isacharcolon}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}increment\ {\isacharparenleft}decrement\ x{\isacharparenright}\ {\isacharequal}\ decrement\ {\isacharparenleft}increment\ x{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{datatype}\ operation {\isacharequal}\ Increment\ {\isacharbar}\ Decrement
 \end{isabellebody}
-
+\vspace{0.375em}
+Providing a semantics for these two operations is straightforward, so we only present the function implementing the increment operation, here, eliding the corresponding implementation of decrement:
+\vspace{0.375em}
 \begin{isabellebody}
-\isacommand{datatype}\isamarkupfalse%
-\ operation\isanewline
-\ \ {\isacharequal}\ Increment\isanewline
-\ \ {\isacharbar}\ Decrement\isanewline
-\ \ \ \ \isanewline
-\isacommand{fun}\isamarkupfalse%
-\ interpret{\isacharunderscore}operation\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}operation\ {\isasymRightarrow}\ int\ {\isasymrightharpoonup}\ int{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}interpret{\isacharunderscore}operation\ Increment\ {\isacharequal}\ Some\ o\ increment{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ {\isachardoublequoteopen}interpret{\isacharunderscore}operation\ Decrement\ {\isacharequal}\ Some\ o\ decrement{\isachardoublequoteclose}\isanewline
-\ \ \ \ \isanewline
-\isacommand{locale}\isamarkupfalse%
-\ counter\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharunderscore}\ {\isacharunderscore}\ interpret{\isacharunderscore}operation\ {\isadigit{0}}\isanewline
-\ \ \isanewline
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ counter{\isacharparenright}\ concurrent{\isacharunderscore}operations{\isacharunderscore}commute{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{definition}\ increment\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}int\ {\isasymRightarrow}\ int{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}increment\ x\ {\isasymequiv}\ {\isadigit{1}}\ {\isacharplus}\ x{\isachardoublequoteclose}
 \end{isabellebody}
-
+\vspace{0.375em}
+Note that neither $\isa{increment}$ nor $\isa{decrement}$ fail on under- or overflow, as both functions are defined on a type of unbounded (mathematical) integers.
+We could also have implemented the counter using fixed bitwidth integers---e.g. signed 32- or 64-bit machine words---with wrap-around on overflow, or some other similar design choice.
+Any reasonable alternative design would not have impacted the proofs presented here.
+Interpreting the $\isa{operation}$ data type and lifting it into a (partial) state transformer is a straightforward exercise in pattern matching:
+\vspace{0.375em}
 \begin{isabellebody}
-\isacommand{corollary}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ counter{\isacharparenright}\ counter{\isacharunderscore}convergence{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}ys\ prefix\ of\ j{\isachardoublequoteclose}\isanewline
-\ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{fun}\ interpret{\isacharunderscore}operation\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}operation\ {\isasymRightarrow}\ int\ {\isasymrightharpoonup}\ int{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}interpret{\isacharunderscore}operation\ Increment\ {\isacharequal}\ Some\ o\ increment{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}interpret{\isacharunderscore}operation\ Decrement\ {\isacharequal}\ Some\ o\ decrement{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
+Here, $\isa{f}\ \isa{o}\ \isa{g}$ denotes the composition of functions $\isa{f}$ and $\isa{g}$.
+Note that as neither of the $\isa{increment}$ and $\isa{decrement}$ operations fail, each must be composed with the $\isa{Some}$ constructor of the $\isa{option}$ type to effect the lifting into a partial state transformer, suitable for use with our $\isa{network}{\isacharunderscore}\isa{with}{\isacharunderscore}\isa{ops}$ locale.
+
+We next consider commutation of increment and decrement.
+Showing that both operations commute with each other, and with themselves, is an easy exercise in applying Isabelle's proof automation.
+We present only a single commutation lemma, here, eliding the rest:
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{lemma}\ increment{\isacharunderscore}decrement{\isacharunderscore}commute{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}increment\ {\isacharparenleft}decrement\ x{\isacharparenright}\ {\isacharequal}\ decrement\ {\isacharparenleft}increment\ x{\isacharparenright}{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
+Unlike more complex CRDTs, such as the Replicated Growable Array discussed in Section~\ref{sect.rga}, the operations of the increment-decrement counter commute unconditionally.
+As a result, the increment-decrement counter will converge in any execution of a causal asynchronous network, without restriction on possible network behaviours.
+We capture this by creating a CRDT-specific locale, $\isa{counter}$, which is just a thin veneer over the $\isa{network}{\isacharunderscore}\isa{with}{\isacharunderscore}\isa{ops}$ locale, specialising the types and providing a fixed initial state (here, $\isa{0}$):
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{locale}\ counter\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharunderscore}\ {\isacharunderscore}\ interpret{\isacharunderscore}operation\ {\isadigit{0}}
+\end{isabellebody}
+\vspace{0.375em}
+Within this locale, we can then show that all concurrent delivered messages of a prefix of a node's local history, within a $\isa{counter}$ network commute.
+Compare to the Replicated Growable Array case, this is straightforward, as operations commute unconditionally:
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ counter{\isacharparenright}\ concurrent{\isacharunderscore}operations{\isacharunderscore}commute{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
+From this, and our abstract convergence theorems, we can show convergence for the increment-decrement counter, which is capture by $\isa{counter}{\isacharunderscore}\isa{convergence}$:
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{corollary}\ {\isacharparenleft}\isakeyword{in}\ counter{\isacharparenright}\ counter{\isacharunderscore}convergence{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}ys\ prefix\ of\ j{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
 \subsection{Observed-removed set}

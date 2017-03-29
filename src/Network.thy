@@ -54,8 +54,7 @@ lemma (in node_histories) node_order_is_total:
       and "e2 \<in> set (history i)"
       and "e1 \<noteq> e2"
     shows "e1 \<sqsubset>\<^sup>i e2 \<or> e2 \<sqsubset>\<^sup>i e1"
-  using assms unfolding history_order_def
-  by (metis list_split_two_elems histories_distinct)
+  using assms unfolding history_order_def by(metis list_split_two_elems histories_distinct)
 
 definition (in node_histories) prefix_of_node_history :: "'evt list \<Rightarrow> nat \<Rightarrow> bool" (infix "prefix of" 50) where
   "xs prefix of i \<equiv> \<exists>ys. xs@ys = history i"
@@ -63,9 +62,8 @@ definition (in node_histories) prefix_of_node_history :: "'evt list \<Rightarrow
 lemma (in node_histories) carriers_head_lt:
   assumes "y#ys = history i"
   shows   "\<not>(x \<sqsubset>\<^sup>i y)"
-using assms unfolding history_order_def
-  apply -
-  apply clarsimp
+using assms
+  apply(clarsimp simp add: history_order_def)
   apply (subgoal_tac "xs @ x # ysa = [] \<and> zs = ys")
   apply clarsimp
   apply (rule_tac xs="history i" and ys="[y]" in pre_suf_eq_distinct_list)
@@ -460,13 +458,13 @@ using assms
   apply(simp add: List.map_filter_def)
   apply(subgoal_tac "(\<And>m n. m < length xs \<Longrightarrow> n < m \<Longrightarrow> xs ! n \<sqsubset>\<^sup>i xs ! m)")
   apply clarsimp
-  apply(smt Suc_less_eq less_SucI less_trans_Suc nth_append)
+  apply(erule_tac x=m in meta_allE, erule_tac x=n in meta_allE, clarsimp simp add: nth_append)
   apply(subst map_filter_append)
   apply(clarsimp simp add: map_filter_def)
   apply(rule hb.hb_consistent.intros)
   apply(subgoal_tac "(\<And>m n. m < length xs \<Longrightarrow> n < m \<Longrightarrow> xs ! n \<sqsubset>\<^sup>i xs ! m)")
   apply clarsimp
-  apply(smt Suc_less_eq less_SucI less_trans_Suc nth_append)
+  apply(erule_tac x=m in meta_allE, erule_tac x=n in meta_allE, clarsimp simp add: nth_append)
   apply clarsimp
   apply(case_tac x; clarsimp)
   apply(drule set_elem_nth, erule exE, erule conjE)
@@ -537,17 +535,8 @@ interpretation trivial_network: network "\<lambda>m. []" id
     
 interpretation trivial_causal_network: causal_network "\<lambda>m. []" id
   by standard auto
-
-interpretation non_trivial_node_histories: node_histories "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else []"
-  by standard auto
-
-interpretation non_trivial_network: network "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else []" id
-  apply standard
-    apply(auto split: if_split_asm)
-   apply (metis append.left_neutral non_trivial_node_histories.history_order_def)
-  done
     
-interpretation non_trivial_causal_network: causal_network "\<lambda>m. if m = 0 then [Broadcast id, Deliver id] else []" id
-  oops
+interpretation trivial_network_with_ops: network_with_ops "(\<lambda>x::nat \<Rightarrow> nat option. (0::nat))" "\<lambda>m. []" id 0
+  by standard auto
     
 end
