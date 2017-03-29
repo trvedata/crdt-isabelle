@@ -3,17 +3,13 @@ theory
 imports
   Network
 begin
-  
-fun opt_default :: "'a option \<Rightarrow> 'a \<Rightarrow> 'a" where
-  "opt_default (Some x) _ = x" |
-  "opt_default  None    x = x"
 
 datatype 'a operation = Add 'a | Rem 'a
 
-type_synonym 'a state = "'a \<rightharpoonup> 'a operation set"
+type_synonym 'a state = "'a \<Rightarrow> 'a set"
 
-locale orset_base = network_with_ops msg_id history interp "Map.empty"
-  for msg_id :: "'a operation \<Rightarrow> 'a" and history :: "nat \<Rightarrow> 'a operation event list"
+locale orset_base = network_with_ops msg_id history interp "\<lambda>x. {}"
+  for msg_id :: "'a operation \<Rightarrow> 'b" and history :: "nat \<Rightarrow> 'a operation event list"
     and interp :: "'a operation \<Rightarrow> 'a state \<rightharpoonup> 'a state"
 
 definition op_elem where
@@ -21,10 +17,10 @@ definition op_elem where
 
 definition (in orset_base) interpret_op :: "'a operation \<Rightarrow> 'a state \<rightharpoonup> 'a state" ("\<langle>_\<rangle>" [0] 1000) where
   "interpret_op oper state \<equiv>
-     let before = opt_default (state (op_elem oper)) {};
-         after  = case oper of Add e \<Rightarrow> before \<union> {oper} | Rem e \<Rightarrow> {add \<in> before. \<not> hb add oper}
-     in  Some (state ((op_elem oper) \<mapsto> after))"
-
+     let before = state (op_elem oper);
+         after  = case oper of Add e \<Rightarrow> before \<union> {e} | Rem e \<Rightarrow> {add \<in> before. \<not> hb (Add add) oper}
+     in  Some (state ((op_elem oper) := after))"
+  
 locale orset = orset_base _ _ "orset_base.interpret_op history"
 
 lemma (in orset) add_add_commute:
@@ -47,19 +43,19 @@ lemma (in orset) concurrent_operations_commute:
   apply(clarsimp simp: hb.concurrent_ops_commute_def)
   apply(case_tac "x"; case_tac "y")
   apply(auto simp add: hb.concurrent_def add_add_commute add_rem_commute rem_rem_commute)
-done
-
+  done
+  
 theorem (in orset) convergence:
   assumes "set (node_deliver_messages xs) = set (node_deliver_messages ys)"
       and "xs prefix of i" and "ys prefix of j"
     shows "apply_operations xs = apply_operations ys"
 using assms by(auto simp add: apply_operations_def intro: hb.convergence_ext concurrent_operations_commute
                 node_deliver_messages_distinct hb_consistent_prefix)
-
+              
 context orset begin
 
 sublocale sec: strong_eventual_consistency weak_hb hb interpret_op
-  "\<lambda>ops.\<exists>xs i. xs prefix of i \<and> node_deliver_messages xs = ops" "Map.empty"
+  "\<lambda>ops.\<exists>xs i. xs prefix of i \<and> node_deliver_messages xs = ops" "\<lambda>x.{}"
   apply(standard; clarsimp)
       apply(auto simp add: hb_consistent_prefix node_deliver_messages_distinct concurrent_operations_commute)
    apply (metis (no_types, lifting) interpret_op_def)
