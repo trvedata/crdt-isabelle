@@ -167,13 +167,27 @@ In fact, the same single line of Isabelle proof is used to obtain the convergenc
 
 As this recipe described above demonstrates, in this work we have not only isolated a series of reusable lemmas and models of networks, but also identified a fixed proof strategy that developers of new operation-based CRDTs can use to obtain a convergence theorem for their replicated type.
 
+Our framework is readily extensible to state-based CRDTs and OT algorithms which satisfy the $\mathit{TP}_1$  property alone, or algorithms which satisfy both $\mathit{TP}_1$ and $\mathit{TP}_2$. State-based CRDTs can be incorporated by \ldots. OT algorithms can be included in the framework by \ldots.
+
+In addition, our framework may allow us to show the equivalence of some classes of SEC algorithms which have traditionally been thought to be distinct. In particular, we conjecture that op-based CRDT algorithms may well be equivalent to OT algorithms which satisfy both $\mathit{TP}_1$ and $\mathit{TP}_2$ properties. [More?]
+
 \subsection{Limitations}
 \label{sect.limitations}
 
 \section{Conclusion}
 \label{sect.conclusion}
 
+In this paper we introduced a new approach for proving the correctness of SEC algorithms: instead of defining axioms related to the basic properties of any individual algorithm, we instead build up from a formal, realistic model of a computer network which may delay, drop or reorder messages sent between computers. We then complemented this model with an abstract specification of SEC. We took this approach both to ease the burden of constructing proofs of new SEC algorithms, but also to address the difficulties with previous approaches where peer-reviewed proofs, including mechanised proofs, have later been shown to be incorrect.
+
+We used our framework to show that three op-based CRDT algorithms do indeed provide the SEC property under all possible valid executions of our network model. Our second and third proofs took only a few hours to write and under 100 lines of additional code, demonstrating that our framework is readily reusable. As outlined in Section~\ref{sect.discussion}, our framework is also amenable to the inclusion of SEC algorithms based on OT as well as state-based CRDTs.
+
+Our work was motivated by the desire to support a wider range of SEC algorithms in distributed systems. OT algorithms which support the $\mathit{TP}_1$ alone are already widely used in systems such as Google Docs, however these require all clients communicate changes via a single central server. Similarly, state-based CRDTs are used in systems such as Riak. Both of these approaches are limiting -- in the case of OT, the requirement for a central server prevents offline editing and direct collaboration via local WiFi; and in the case of state-based CRDTs, algorithms to support complex data structures such as ordered lists are yet to be found and in any case are likely impractical if small changes are regularly made to lists containing many items. Consequently, our approach provides the groundwork for a new generation of applications which use truly distributed SEC alogrithms, including robust, collaborative applications working on complex data structures in a peer-to-peer setting, something which is likely to become increasingly important in a world where mobile devices are becoming ever more prevalent.
+
 \section*{Acknowledgements}
+
+Blinded for review.
+
+%TODO: Boeing, REMS, Colleagues who have provided feedback.
 
 \bibliography{references}{}
 
