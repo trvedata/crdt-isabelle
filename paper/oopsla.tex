@@ -28,7 +28,7 @@ Indeed, many published algorithms have later been shown to be broken, even those
 
 In this work, we focus on the correctness of Conflict-free Replicated Data Types (CRDTs), a class of algorithm that provides Strong Eventual Consistency guarantees for replicated data.
 We provide a modular and reusable framework in the Isabelle interactive theorem prover for verifying the correctness of CRDT implementations.
-We sidestep correctness issues that have dogged previous mechanised proofs in this area by axiomatically modelling a large class of networks---the asynchronous causal networks---using five uncontroversial axioms and incrementally building up in composable layers, obtaining machine-checked guarantees that our theorems hold in all possible network behaviours.
+We sidestep correctness issues that have dogged previous mechanised proofs in this area by axiomatically modelling a large class of networks---the asynchronous causal networks---using five uncontroversial axioms and incrementally building up in composable layers, obtaining a machine-checked assurance that our theorems hold in all possible network behaviours.
 We identify an abstract convergence theorem, a property of order relations, with which we obtain correctness theorems for three concrete CRDT implementations---the Replicated Growable Array, the ORSet, and a increment-decrement counter---as corollaries with a thin-layer of CRDT-specific code, validating our claim to have created a framework for CRDT verification.
 \end{abstract}
 
@@ -173,7 +173,8 @@ a bit of a mystery''---which makes formal verification particularly important.
 \section{Conclusion}
 \label{sect.conclusion}
 
-In this paper we introduced a new approach for proving the correctness of SEC algorithms: instead of defining axioms related to the basic properties of any individual algorithm, we instead build up from a formal, realistic model of a computer network which may delay, drop or reorder messages sent between computers. We then complemented this model with an abstract specification of SEC.
+In this paper we introduced a new approach for proving the correctness of SEC algorithms: instead of defining axioms related to the basic properties of any individual algorithm, we instead build up from a formal, realistic model of a computer network which may delay, drop or reorder messages sent between computers.
+We then complemented this model with an abstract specification of SEC.
 We took this approach both to ease the burden of constructing proofs of new SEC algorithms, but also to address the difficulties with previous approaches where peer-reviewed proofs, including mechanised proofs, have later been shown to be incorrect.
 
 We used our framework to show that three op-based CRDT algorithms do indeed provide the SEC property under all possible valid executions of our network model.
