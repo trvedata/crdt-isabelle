@@ -64,7 +64,7 @@ Isabelle/HOL is a logic with a strict, polymorphic type system resembling that o
 We write $\tau_1 \times \tau_2$ for the \emph{product type} of $\tau_1$ and $\tau_2$, inhabited by pairs of elements of type $\tau_1$ and $\tau_2$, respectively.
 In a similar fashion to Standard ML and OCaml, but differing from Haskell, \emph{type operators} are applied to arguments in reverse order, and therefore write $\tau\ \isa{list}$ and $\tau\ \isa{set}$ for the type of lists of elements of type $\tau$, and the type of mathematical (i.e., potentially infinite) sets of type $\tau$, respectively.
 Type variables are written in lowercase, and preceded with a prime: ${\isacharprime}a \Rightarrow {\isacharprime}a$ denotes the type of a polymorphic identity function, for example.
-\emph{Tagged union} types are introduced with the $\isacommand{datatype}$ keyword, with constructors of these types written with an initial upper case letter.
+\emph{Tagged union} types are introduced with the $\isacommand{datatype}$ keyword, with constructors of these types usually written with an initial upper case letter.
 
 In Isabelle/HOL's term language we write $\isa{t} \mathbin{::} \tau$ for a \emph{type ascription}, constraining the type of the term $\isa{t}$ to the type $\tau$.
 We write $\lambda{x}.\: t$ for an anonymous function mapping an argument $\isa{x}$ to $\isa{t(x)}$, and write the application of term $\isa{t}$ with function type to an argument $\isa{u}$ as $\isa{t\ u}$, as usual.

@@ -23,7 +23,7 @@
 
 \begin{abstract}
 Data replication is commonly used in distributed systems to maintain an up-to-date copy of a data structure across multiple computers. There are a wide variety of data replication algorithms which explore the trade-off between varying levels of data consistency across computers versus operational constraints and system performance. This paper focuses on a class of algorithms which provide Strong Eventual Consistency (SEC), including Operational Transformations (OTs) and Conflict-free Replicated Data Types (CRDTs). These algorithms are worthy of study not only because they are widely used today, but also because previous peer-reviewed SEC algorithms have later turned out to be incorrect, including those which claim to provide a mechanised proof of correctness.
-Such past failures occurred because the axioms used in proofs were subsequently shown to contain subtle errors. The core difficulty in designing SEC algorithms arises from the fact that computer networks may delay, drop and reorder messages sent between computers. We therefore build on this foundation and start by constructing a realistic, formal model of how a computer network enables communication between machines in a distributed system using just five simple axioms. We implement our framework using Isabelle, an interactive theorem prover, and use it to prove the correctness of SEC algorithms across all possible combinations of message delays, re-orderings and deletions. In particular, we provide the first mechanised proofs of counter, set and ordered-list CRDTs. We also demonstrate our framework is highly reusable -- our second and third proofs took a few hours of time and under 100 lines of additional code.
+Such past failures occurred because the axioms used in proofs were subsequently shown to contain subtle errors. The core difficulty in designing SEC algorithms arises from the fact that computer networks may delay, drop and reorder messages sent between computers. We therefore build on this foundation and start by constructing a realistic, formal model of how a computer network enables communication between machines in a distributed system using just five simple axioms. We implement our framework using the interactive theorem prover Isabelle/HOL, and use it to prove the correctness of SEC algorithms across all possible combinations of message delays, re-orderings and deletions. In particular, we provide the first mechanised proofs of counter, set and ordered-list CRDTs. We also demonstrate our framework is highly modular and reusable -- our second and third proofs took a few hours of time and under 100 lines of additional code.
 \end{abstract}
 \maketitle
 
@@ -70,13 +70,12 @@ In this work we advance the state of the art of distributed programming by estab
 for formally verifying the correctness of algorithms for achieving consistency in replication,
 conflict resolution, and data synchronisation. We demonstrate, for the first time, machine-checked
 proofs of correctness of several replicated data structures. Our framework provides general-purpose
-tools for such correctness proofs, allowing other algorithms to be verified more easily in future.
+tools for such correctness proofs, allowing other algorithms to be verified easily in future.
 
 %%%%%
 
 Most deployed systems today address replication problems by relying on a central server that is
-trusted to hold the authoritative copy of the data, i.e. by making the distributed system less
-distributed. The use of a central server introduces a number of limitations:
+trusted to hold the authoritative copy of the data. The use of a central server introduces a number of limitations:
 \begin{itemize}
 \item It limits offline usage: for example, a user cannot synchronise changes between their
     smartphone and laptop via a local wireless connection, but must instead connect both devices to
@@ -101,13 +100,12 @@ their supposed guarantees. Informal reasoning in this domain has repeatedly prod
 look plausible, but actually turn out to be flawed.
 
 In this work, we contribute to a better understanding of algorithms for peer-to-peer collaboration
-by establishing techniques for formally verifying their correctness. We use Isabelle, a generic
+by establishing techniques for formally verifying their correctness. We use Isabelle/HOL, a generic
 proof assistant tool \cite{DBLP:conf/tphol/WenzelPN08}, to create formal specifications of an
 asynchronous network and distributed algorithms executing in such a system. We then use this
-framework to produce a machine-checked proof of correctness of one particular algorithm for
-peer-to-peer collaboration---the Replicated Growable Array (RGA) of \citet{Roh:2011dw}, an example
-of a Conflict-Free Replicated Data Type (CRDT) as introduced by
-\citet{Shapiro:2011wy,Shapiro:2011un}.
+framework to produce machine-checked proof of correctness of three different Conflict-Free Replicated Data Types (CRDT) as introduced by
+\citet{Shapiro:2011wy,Shapiro:2011un}. We prove in particular the correctness of an algorithm for
+peer-to-peer collaboration---the Replicated Growable Array (RGA) of \citet{Roh:2011dw}.
 The algorithm is subtle---\citet{Attiya:2016kh} wrote, ``the reason why RGA actually works has been
 a bit of a mystery''---which makes formal verification particularly important.
 

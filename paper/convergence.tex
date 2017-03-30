@@ -20,12 +20,12 @@ The \emph{happens-before} relation, as introduced by \citet{Lamport:1978jq}, cap
 It can be defined in terms of sending and receiving messages on a network, and we give such a definition in Section~\ref{sect.network}.
 However, for now, we keep it abstract and general.
 We write $\isa{x} \prec \isa{y}$ to indicate that operation $\isa{x}$ happened before $\isa{y}$, where $\prec$ is a predicate of type $\isacharprime\isa{oper} \mathbin{\isasymRightarrow} \isacharprime\isa{oper} \mathbin{\isasymRightarrow} \isa{bool}$.
-In words, $\prec$ can be applied to two operations of some abstract type $\isacharprime\isa{oper}$, returning either $\isa{True}$ or $\isa{False}$.
-(Note that in the distributed systems literature it is conventional to write the happens-before relation as $\isa{x} \rightarrow \isa{y}$, but we reserve the arrow operator to denote logical implication.)
+In words, $\prec$ can be applied to two operations of some abstract type $\isacharprime\isa{oper}$, returning either $\isa{True}$ or $\isa{False}$
+\footnote{Note that in the distributed systems literature it is conventional to write the happens-before relation as $\isa{x} \rightarrow \isa{y}$, but we reserve the arrow operator to denote logical implication.}.
 
-Our only restriction on the happens-before relation $\prec$ is that it must be a \emph{strict partial order}, that is, it must be irreflexive ($\neg (\isa{x}\prec\isa{x})$) and transitive ($\isa{x}\prec\isa{y} \wedge \isa{y}\prec\isa{z} \Longrightarrow \isa{x}\prec\isa{z}$), which implies that it must also be antisymmetric ($\isa{x}\prec\isa{y} \Longrightarrow \neg(\isa{y}\prec\isa{x})$).
+Our only restriction on the happens-before relation $\prec$ is that it must be a \emph{strict partial order}, that is, it must be irreflexive and transitive, which implies that it is also antisymmetric.
 We say that two operations $x$ and $y$ are \emph{concurrent}, written $x \mathbin{\isasymparallel} y$, whenever one does not happen before the other:
-$x \mathbin{\isasymparallel} y \equiv \neg (\isa{x} \prec \isa{y}) \wedge \neg (\isa{y} \prec \isa{x})$.
+$\neg (\isa{x} \prec \isa{y})$ and $\neg (\isa{y} \prec \isa{x})$.
 Thus, given any two operations $\isa{x}$ and $\isa{y}$, there are three mutually exclusive ways in which they can be related: either $\isa{x} \prec \isa{y}$, or $\isa{y} \prec \isa{x}$, or $\isa{x} \mathbin{\isasymparallel} \isa{y}$.
 
 As discussed above, the purpose of the happens-before partial order is to require that some operations must be applied in a particular order, while allowing concurrent operations to be reordered with respect to each other.
@@ -124,9 +124,8 @@ This theorem states that two hb-consistent lists of distinct operations, which a
 \vspace{0.375em}
 We sketch the proof of this theorem, which proceeds by induction on $\isa{xs}$.
 The case for the empty list is immediate, so we consider the step case only.
-Assuming the conclustion $\isa{apply-operations}\ \isa{xs} = \isa{apply-operations}\ \isa{ys}$ holds for \isa{xs}, we prove that when a new operation $\isa{x}$ is added to the end of $\isa{xs}$, that is, $\isa{xs}' = \isa{xs}\mathbin{@}[\isa{x}]$, we can also insert $\isa{x}$ into $\isa{ys}$ to obtain $\isa{ys}'$ such that $\isa{xs}'$ and $\isa{ys}'$ have the same interpretation.
-Since $\isa{xs}$ and $\isa{ys}$ have the same elements, one may split $\isa{ys}'$ such that $\isa{ys}' = \isa{prefix}\mathbin{@}[\isa{x}]\mathbin{@}\isa{suffix}$ for some $\isa{prefix}$ and $\isa{suffix}$, where all operations in $\isa{suffix}$ are concurrent with $\isa{x}$.
-By the induction hypothesis, $\isa{apply-operations}\ \isa{xs} = \isa{apply-operations}\ (\isa{prefix}\mathbin{@}\isa{suffix})$.
+Assuming the induction hypothesis $\isa{apply-operations}\ \isa{xs} = \isa{apply-operations}\ \isa{ys}$, we prove that when a new operation $\isa{x}$ is added to the end of $\isa{xs}$, that is, $\isa{xs}' = \isa{xs}\mathbin{@}[\isa{x}]$, we can also insert $\isa{x}$ into $\isa{ys}$ to obtain $\isa{ys}'$ such that $\isa{xs}'$ and $\isa{ys}'$ have the same interpretation.
+Since $\isa{xs}'$ and $\isa{ys}'$ have the same elements, one may split $\isa{ys}'$ such that $\isa{ys}' = \isa{prefix}\mathbin{@}[\isa{x}]\mathbin{@}\isa{suffix}$ for some $\isa{prefix}$ and $\isa{suffix}$, where all operations in $\isa{suffix}$ are concurrent with $\isa{x}$ and $\isa{ys} = \isa{prefix}\mathbin{@}\isa{suffix}$.
 We then have a chain of equations:
 {\small{\begin{align*}
   \isa{apply-operations}\ (\isa{xs} \mathbin{@} [\isa{x}])
