@@ -84,13 +84,11 @@ We first define a type of messages corresponding to the two operations supported
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{datatype}\ {\isacharprime}a\ operation\ {\isacharequal}\ Add\ {\isacharprime}a\ {\isacharbar}\ Rem\ {\isacharprime}a
-\quad\quad\quad\quad
+\quad\quad\quad\quad\quad\quad
 \isacommand{type{\isacharunderscore}synonym}\ {\isacharprime}a\ state\ {\isacharequal}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ set{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-Here, we model a set containing elements of type ${\isacharprime}a$ as a partial map from ${\isacharprime}a$ to sets of ${\isacharprime}a\ \isa{operation}$.
-This partial map records all insertion messages that have been sent for a particular element.
-If no insertion messages have been observed, then the map returns $\isa{None}$.
+Here, we model a set containing elements of type ${\isacharprime}a$ as a function from ${\isacharprime}a$ to sets of ${\isacharprime}a$.
 
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{locale}\ orset{\isacharunderscore}base\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ msg{\isacharunderscore}id\ history\ interp\ {\isachardoublequoteopen}{\isasymlambda}x{\isachardot}\ {\isacharbraceleft}{\isacharbraceright}{\isachardoublequoteclose}\isanewline
