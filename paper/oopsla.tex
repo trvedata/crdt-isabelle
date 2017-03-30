@@ -22,9 +22,26 @@
 %\date{Computer Laboratory, University of Cambridge}
 
 \begin{abstract}
-Data replication is commonly used in distributed systems to maintain an up-to-date copy of a data structure across multiple computers. There are a wide variety of data replication algorithms which explore the trade-off between varying levels of data consistency across computers versus operational constraints and system performance. This paper focuses on a class of algorithms which provide Strong Eventual Consistency (SEC), including Operational Transformations (OTs) and Conflict-free Replicated Data Types (CRDTs). These algorithms are worthy of study not only because they are widely used today, but also because previous peer-reviewed SEC algorithms have later turned out to be incorrect, including those which claim to provide a mechanised proof of correctness.
-Such past failures occurred because the axioms used in proofs were subsequently shown to contain subtle errors. The core difficulty in designing SEC algorithms arises from the fact that computer networks may delay, drop and reorder messages sent between computers. We therefore build on this foundation and start by constructing a realistic, formal model of how a computer network enables communication between machines in a distributed system using just five simple axioms. We implement our framework using the interactive theorem prover Isabelle/HOL, and use it to prove the correctness of SEC algorithms across all possible combinations of message delays, re-orderings and deletions. In particular, we provide the first mechanised proofs of counter, set and ordered-list CRDTs. We also demonstrate our framework is highly modular and reusable -- our second and third proofs took a few hours of time and under 100 lines of additional code.
+Data replication is used in distributed systems to maintain an up-to-date copy of a data structure across multiple computers, with a variety of data replication algorithms in existence which explore the trade-off between varying levels of data consistency versus operational constraints and system performance.
+However, despite decades of research, algorithms for achieving replication with conflict resolution in distributed systems are still poorly understood.
+Indeed, many published algorithms have later been shown to be broken, even those accompanied by supposed mechanised proofs of correctness.
+
+In this work, we focus on the correctness of Conflict-free Replicated Data Types (CRDTs).
+We provide a modular and reusable framework in the Isabelle interactive theorem prover for verifying the correctness of CRDT implementations.
+We sidestep correctness issues that have dogged previous mechanised proofs in this area by axiomatically modelling a large class of networks---the asynchronous causal networks---using five uncontroversial axioms and incrementally building up in composable layers, obtaining guarantees that our theorems hold in all possible network behaviours.
+We identify an abstract convergence theorem, a property of order relations, with which we obtain correctness theorems for three concrete CRDT implementations---the Replicated Growable Array, the ORSet, and a increment-decrement counter---as corollaries with a thin-layer of CRDT-specific code, validating our claim to have created a framework for CRDT verification.
 \end{abstract}
+
+%\begin{abstract}
+%Data replication is used in distributed systems to maintain an up-to-date copy of a data structure across multiple computers, with a variety of data replication algorithms in existence which explore the trade-off between varying levels of data consistency across computers versus operational constraints and system performance.
+%In this paper we focus on Conflict-free Replicated Data Types (CRDTs), a class of algorithm which provide Strong Eventual Consistency (SEC).
+%These algorithms are worthy of study not only because they are widely used today, but also because previous peer-reviewed SEC algorithms have later turned out to be incorrect, including those which claimed to possess a mechanised proof of correctness.
+%Such past failures occurred because the axioms used in proofs were subsequently shown to contain subtle errors.
+%The core difficulty in designing SEC algorithms arises from the fact that computer networks may delay, drop and reorder messages sent between computers.
+%We therefore construct a realistic, formal model of how a computer network enables communication between machines in a distributed system using just five uncontroversial axioms.
+%We implement our framework using the interactive theorem prover Isabelle/HOL, and use it to prove the correctness of SEC algorithms across all possible combinations of message delays, re-orderings and deletions.
+%In particular, we provide the first mechanised proofs of convergence for counter, set and ordered-list CRDTs.
+%\end{abstract}
 \maketitle
 
 
