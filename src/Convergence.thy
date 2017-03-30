@@ -322,4 +322,12 @@ done
 
 end
 
+(*  
+locale foo = happens_before +
+    fixes op_history :: "'a list \<Rightarrow> bool"
+    and initial_state :: "'b"
+  assumes "\<And>xs ys. set xs = set ys \<Longrightarrow> op_history xs \<Longrightarrow> op_history ys \<Longrightarrow> apply_operations xs = apply_operations ys"
+    and "\<And>xs. op_history xs \<Longrightarrow> apply_operations xs initial_state \<noteq> None"
+*)
+
 end

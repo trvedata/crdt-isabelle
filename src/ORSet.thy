@@ -4,36 +4,107 @@ imports
   Network
 begin
 
-datatype 'a operation = Add 'a | Rem 'a
+datatype ('id, 'a) operation = Add "'id" "'a" | Rem "'id set" "'a"
 
-type_synonym 'a state = "'a \<Rightarrow> 'a set"
+type_synonym ('id, 'a) state = "'a \<Rightarrow> 'id set"
 
-locale orset_base = network_with_ops msg_id history interp "\<lambda>x. {}"
-  for msg_id :: "'a operation \<Rightarrow> 'b" and history :: "nat \<Rightarrow> 'a operation event list"
-    and interp :: "'a operation \<Rightarrow> 'a state \<rightharpoonup> 'a state"
+definition op_elem :: "('id, 'a) operation \<Rightarrow> 'a" where
+  "op_elem oper \<equiv> case oper of Add i e \<Rightarrow> e | Rem is e \<Rightarrow> e"
 
-definition op_elem where
-  "op_elem oper \<equiv> case oper of Add e \<Rightarrow> e | Rem e \<Rightarrow> e"
-
-definition (in orset_base) interpret_op :: "'a operation \<Rightarrow> 'a state \<rightharpoonup> 'a state" ("\<langle>_\<rangle>" [0] 1000) where
+definition interpret_op :: "('id, 'a) operation \<Rightarrow> ('id, 'a) state \<rightharpoonup> ('id, 'a) state" ("\<langle>_\<rangle>" [0] 1000) where
   "interpret_op oper state \<equiv>
      let before = state (op_elem oper);
-         after  = case oper of Add e \<Rightarrow> before \<union> {e} | Rem e \<Rightarrow> {add \<in> before. \<not> hb (Add add) oper}
+         after  = case oper of Add i e \<Rightarrow> before \<union> {i} | Rem is e \<Rightarrow> before - is
      in  Some (state ((op_elem oper) := after))"
+    
+definition valid_behaviours :: "(('id, 'a) operation \<Rightarrow> 'id) \<Rightarrow> ('id, 'a) state \<Rightarrow> ('id, 'a) operation \<Rightarrow> bool" where
+  "valid_behaviours msg_id state oper \<equiv>
+     case oper of
+       Add i  e \<Rightarrow> i = msg_id oper
+     | Rem is e \<Rightarrow> is = state e"
   
-locale orset = orset_base _ _ "orset_base.interpret_op history"
+locale orset = network_with_constrained_ops msg_id history interpret_op "\<lambda>x. {}" "valid_behaviours msg_id"
+  for msg_id :: "('id, 'a) operation \<Rightarrow> 'id" and history :: "nat \<Rightarrow> ('id, 'a) operation event list"
 
 lemma (in orset) add_add_commute:
-  shows "\<langle>Add e1\<rangle> \<rhd> \<langle>Add e2\<rangle> = \<langle>Add e2\<rangle> \<rhd> \<langle>Add e1\<rangle>"
+  shows "\<langle>Add i1 e1\<rangle> \<rhd> \<langle>Add i2 e2\<rangle> = \<langle>Add i2 e2\<rangle> \<rhd> \<langle>Add i1 e1\<rangle>"
   by(auto simp add: interpret_op_def op_elem_def kleisli_def, fastforce)
 
 lemma (in orset) add_rem_commute:
-  assumes "\<not> hb (Add e1) (Rem e2) \<and> \<not> hb (Rem e2) (Add e1)"
-  shows "\<langle>Add e1\<rangle> \<rhd> \<langle>Rem e2\<rangle> = \<langle>Rem e2\<rangle> \<rhd> \<langle>Add e1\<rangle>"
-  using assms by(cases "e1 = e2"; fastforce simp add: interpret_op_def op_elem_def kleisli_def)
+  assumes "i \<notin> is"
+  shows "\<langle>Add i e1\<rangle> \<rhd> \<langle>Rem is e2\<rangle> = \<langle>Rem is e2\<rangle> \<rhd> \<langle>Add i e1\<rangle>"
+  using assms by(auto simp add: interpret_op_def kleisli_def op_elem_def, fastforce)
+    
+definition (in orset) element_ids :: "('id, 'a) state \<Rightarrow> 'id set" where
+  "element_ids f \<equiv> \<Union>i. f i"
+  
+definition (in orset) indices :: "('id, 'a) operation event list \<Rightarrow> 'id list" where
+  "indices es \<equiv> List.map_filter (\<lambda>x. case x of Deliver (Add i e) \<Rightarrow> Some i | _ \<Rightarrow> None) es"
+    
+lemma (in orset) apply_operations_never_fails:
+  assumes "xs prefix of i"
+  shows "apply_operations xs \<noteq> None"
+  using assms
+  apply(induction xs rule: rev_induct)
+   apply clarsimp
+  apply(case_tac "x"; clarsimp)
+   apply force
+  using interpret_op_def apply (metis bind.bind_lunit prefix_of_appendD)
+  done
+    
+lemma (in orset) Broadcast_Deliver_prefix_closed:
+  assumes "pre@[Broadcast (Rem is e)] prefix of j"
+    and "i \<in> is"
+  shows "Deliver (Add i e) \<in> set pre"
+  sorry
+    
+lemma (in orset) concurrent_add_remove_independent_technical:
+  assumes "i \<in> is"
+    and "xs prefix of j"
+    and "Add i e \<in> set (node_deliver_messages xs)" and "Rem is e \<in> set (node_deliver_messages xs)"
+  shows "hb (Add i e) (Rem is e)"
+    using assms
+  apply(subgoal_tac "\<exists>pre k. pre@[Broadcast (Rem is e)] prefix of k")
+   apply clarsimp
+     apply(frule broadcast_only_valid_ops, clarsimp simp add: valid_behaviours_def)
+     apply(subgoal_tac "Deliver (Add i e) \<in> set pre")
+      apply(rule_tac i=k in hb.intros(2))
+    using events_in_local_order apply blast
+     apply(rule Broadcast_Deliver_prefix_closed, assumption, assumption)
+    using delivery_has_a_cause events_before_exist prefix_msg_in_history apply blast
+    done
+      
+lemma (in orset) Deliver_Add_same_id_same_message:
+  assumes "Deliver (Add i e1) \<in> set (history j)" and "Deliver (Add i e2) \<in> set (history j)"
+  shows "e1 = e2"
+    sorry
+      
+lemma (in orset) ids_imply_messages_same:
+  assumes "i \<in> is"
+    and "xs prefix of j"
+    and "Add i e1 \<in> set (node_deliver_messages xs)" and "Rem is e2 \<in> set (node_deliver_messages xs)"
+  shows "e1 = e2"
+  using assms
+      apply(subgoal_tac "\<exists>pre k. pre@[Broadcast (Rem is e2)] prefix of k")
+   apply clarsimp
+     apply(frule broadcast_only_valid_ops, clarsimp simp add: valid_behaviours_def)
+   apply(subgoal_tac "Deliver (Add i e2) \<in> set pre")
+    apply(rule_tac j=j and i=i in Deliver_Add_same_id_same_message)
+  using prefix_msg_in_history apply blast
+  using causal_broadcast events_in_local_order local_order_prefix_closed prefix_contains_msg prefix_to_carriers apply blast
+   apply(rule Broadcast_Deliver_prefix_closed, assumption, assumption)
+  using delivery_has_a_cause events_before_exist prefix_msg_in_history apply blast
+  done
+
+corollary (in orset) concurrent_add_remove_independent:
+  assumes "\<not> hb (Add i e1) (Rem is e2)" and "\<not> hb (Rem is e2) (Add i e1)"
+    and "xs prefix of j"
+    and "Add i e1 \<in> set (node_deliver_messages xs)" and "Rem is e2 \<in> set (node_deliver_messages xs)"
+  shows "i \<notin> is"
+  using assms ids_imply_messages_same concurrent_add_remove_independent_technical by fastforce
 
 lemma (in orset) rem_rem_commute:
-  shows "\<langle>Rem e1\<rangle> \<rhd> \<langle>Rem e2\<rangle> = \<langle>Rem e2\<rangle> \<rhd> \<langle>Rem e1\<rangle>"
+  shows "\<langle>Rem i1 e1\<rangle> \<rhd> \<langle>Rem i2 e2\<rangle> = \<langle>Rem i2 e2\<rangle> \<rhd> \<langle>Rem i1 e1\<rangle>"
   by(unfold interpret_op_def op_elem_def kleisli_def, fastforce)
 
 lemma (in orset) concurrent_operations_commute:
@@ -42,7 +113,7 @@ lemma (in orset) concurrent_operations_commute:
   using assms
   apply(clarsimp simp: hb.concurrent_ops_commute_def)
   apply(case_tac "x"; case_tac "y")
-  apply(auto simp add: hb.concurrent_def add_add_commute add_rem_commute rem_rem_commute)
+  apply(auto simp add: hb.concurrent_def add_add_commute add_rem_commute rem_rem_commute concurrent_add_remove_independent)
   done
   
 theorem (in orset) convergence:
@@ -64,3 +135,5 @@ done
 
 end
 end
+
+  
