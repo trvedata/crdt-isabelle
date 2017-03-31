@@ -98,6 +98,7 @@ Rather, the commutation property is only required to hold for operations that ar
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ xs\ {\isasymequiv} {\isasymforall}x\ y{\isachardot}\ {\isacharbraceleft}x{\isacharcomma}\ y{\isacharbraceright}\ {\isasymsubseteq}\ set\ xs\ {\isasymlongrightarrow}\ x\ {\isasymparallel}\ y\ {\isasymlongrightarrow}\ {\isasymlangle}x{\isasymrangle}{\isasymrhd}{\isasymlangle}y{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}y{\isasymrangle}{\isasymrhd}{\isasymlangle}x{\isasymrangle}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
+\ifextended
 Given this definition, we work towards our main convergence theorem: if a replication algorithm satisfies $\isa{concurrent-ops-commute}$ (and some side conditions detailed below), then we can deduce that it always converges.
 It easier to prove commutativity than to prove convergence, so this theorem significantly simplifies the convergence proof for concrete algorithms, as demonstrated in Sections~\ref{sect.rga} and~\ref{sect.simple.crdts}.
 
@@ -113,6 +114,9 @@ Here, $\isa{concurrent-set}\ \isa{x}\ \isa{suffix}$ asserts that the operation $
 Intuitively, $\isa{concurrent-ops-commute-concurrent-set}$ captures the fact that the interpretation of a list of operations is invariant under relative ordering of concurrent operations, provided that those operations are known to commute.
 
 Using this lemma, and the rest of the machinery defined above, we can now state and prove our main theorem, $\isa{convergence}$.
+\else
+Given this definition, we can now state and prove our main theorem, $\isa{convergence}$.
+\fi
 This theorem states that two hb-consistent lists of distinct operations, which are permutations of each other and in which concurrent operations commute, have the same interpretation:
 \vspace{0.375em}
 \begin{isabellebody}
@@ -122,6 +126,7 @@ This theorem states that two hb-consistent lists of distinct operations, which a
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
+\ifextended
 We sketch the proof of this theorem, which proceeds by induction on $\isa{xs}$.
 The case for the empty list is immediate, so we consider the step case only.
 Assuming the induction hypothesis $\isa{apply-operations}\ \isa{xs} = \isa{apply-operations}\ \isa{ys}$, we prove that when a new operation $\isa{x}$ is added to the end of $\isa{xs}$, that is, $\isa{xs}' = \isa{xs}\mathbin{@}[\isa{x}]$, we can also insert $\isa{x}$ into $\isa{ys}$ to obtain $\isa{ys}'$ such that $\isa{xs}'$ and $\isa{ys}'$ have the same interpretation.
@@ -136,6 +141,9 @@ We then have a chain of equations:
   &= \isa{apply-operations}\ \isa{ys}{\isacharprime}
 \end{align*}}}
 On the third line above, we make use of $\isa{concurrent-ops-commute-concurrent-set}$ to move the element $\isa{x}$ from the back of the list past $\isa{suffix}$, whilst on the first and second lines, we make use of properties of folds (recalling that $\isa{apply-operations}$ is defined as a fold).
+\else
+The proof can be found in the supplementary material of this paper.
+\fi
 
 \subsection{Formalising Strong Eventual Consistency}
 
