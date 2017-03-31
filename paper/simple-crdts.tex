@@ -142,42 +142,6 @@ From this, and our abstract convergence theorems, we can show convergence for th
 
 \begin{isabellebody}
 \isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ {\isacharbrackleft}simp{\isacharbrackright}{\isacharcolon}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}added{\isacharunderscore}ids\ {\isacharbrackleft}{\isacharbrackright}\ e\ {\isacharequal}\ {\isacharbrackleft}{\isacharbrackright}{\isachardoublequoteclose}\isanewline
-\end{isabellebody}
-
-\begin{isabellebody}
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ {\isacharbrackleft}simp{\isacharbrackright}{\isacharcolon}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}added{\isacharunderscore}ids\ {\isacharparenleft}xs\ {\isacharat}\ ys{\isacharparenright}\ e\ {\isacharequal}\ added{\isacharunderscore}ids\ xs\ e\ {\isacharat}\ added{\isacharunderscore}ids\ ys\ e{\isachardoublequoteclose}\isanewline
-\end{isabellebody}
-
-\begin{isabellebody}
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ added{\isacharunderscore}ids{\isacharunderscore}Broadcast{\isacharunderscore}collapse\ {\isacharbrackleft}simp{\isacharbrackright}{\isacharcolon}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}added{\isacharunderscore}ids\ {\isacharparenleft}{\isacharbrackleft}Broadcast\ e{\isacharbrackright}{\isacharparenright}\ e{\isacharprime}\ {\isacharequal}\ {\isacharbrackleft}{\isacharbrackright}{\isachardoublequoteclose}\isanewline
-\end{isabellebody}
-
-\begin{isabellebody}
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ added{\isacharunderscore}ids{\isacharunderscore}Deliver{\isacharunderscore}Rem{\isacharunderscore}collapse\ {\isacharbrackleft}simp{\isacharbrackright}{\isacharcolon}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}added{\isacharunderscore}ids\ {\isacharparenleft}{\isacharbrackleft}Deliver\ {\isacharparenleft}Rem\ is\ e{\isacharparenright}{\isacharbrackright}{\isacharparenright}\ e{\isacharprime}\ {\isacharequal}\ {\isacharbrackleft}{\isacharbrackright}{\isachardoublequoteclose}\isanewline
-\end{isabellebody}
-
-\begin{isabellebody}
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ added{\isacharunderscore}ids{\isacharunderscore}Deliver{\isacharunderscore}Add{\isacharunderscore}diff{\isacharunderscore}collapse\ {\isacharbrackleft}simp{\isacharbrackright}{\isacharcolon}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}e\ {\isasymnoteq}\ e{\isacharprime}\ {\isasymLongrightarrow}\ added{\isacharunderscore}ids\ {\isacharparenleft}{\isacharbrackleft}Deliver\ {\isacharparenleft}Add\ i\ e{\isacharparenright}{\isacharbrackright}{\isacharparenright}\ e{\isacharprime}\ {\isacharequal}\ {\isacharbrackleft}{\isacharbrackright}{\isachardoublequoteclose}\isanewline
-\end{isabellebody}
-
-\begin{isabellebody}
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ added{\isacharunderscore}ids{\isacharunderscore}Deliver{\isacharunderscore}Add{\isacharunderscore}same{\isacharunderscore}collapse\ {\isacharbrackleft}simp{\isacharbrackright}{\isacharcolon}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}added{\isacharunderscore}ids\ {\isacharparenleft}{\isacharbrackleft}Deliver\ {\isacharparenleft}Add\ i\ e{\isacharparenright}{\isacharbrackright}{\isacharparenright}\ e\ {\isacharequal}\ {\isacharbrackleft}i{\isacharbrackright}{\isachardoublequoteclose}\isanewline
-\end{isabellebody}
-
-\begin{isabellebody}
-\isacommand{lemma}\isamarkupfalse%
 \ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ apply{\isacharunderscore}operations{\isacharunderscore}added{\isacharunderscore}ids{\isacharcolon}\isanewline
 \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}es\ prefix\ of\ j{\isachardoublequoteclose}\isanewline
 \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ es\ {\isacharequal}\ Some\ f{\isachardoublequoteclose}\isanewline
@@ -242,23 +206,26 @@ From this, and our abstract convergence theorems, we can show convergence for th
 \ \ \isakeyword{shows}\ {\isachardoublequoteopen}i\ {\isasymnotin}\ is{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
 
+Using this technical lemma, we may show that 
 \begin{isabellebody}
 \isacommand{lemma}\isamarkupfalse%
 \ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ rem{\isacharunderscore}rem{\isacharunderscore}commute{\isacharcolon}\isanewline
 \ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isasymlangle}Rem\ i{\isadigit{1}}\ e{\isadigit{1}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Rem\ i{\isadigit{2}}\ e{\isadigit{2}}{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}Rem\ i{\isadigit{2}}\ e{\isadigit{2}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Rem\ i{\isadigit{1}}\ e{\isadigit{1}}{\isasymrangle}{\isachardoublequoteclose}\isanewline
 \end{isabellebody}
-
+We now obtain the final convergence theorem for the ORSet.
+First, we show a familiar lemma: all the concurrent delivered messages of a prefix of any node's local history commute within the ORSet network:
+\vspace{0.375em}
 \begin{isabellebody}
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ concurrent{\isacharunderscore}operations{\isacharunderscore}commute{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{lemma} {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ concurrent{\isacharunderscore}operations{\isacharunderscore}commute{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
-
+\vspace{0.375em}
+From this, and our abstract convergence theorems, we can show convergence for the ORSet, which is captured by $\isa{convergence}$:
+\vspace{0.375em}
 \begin{isabellebody}
-\isacommand{theorem}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ convergence{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}ys\ prefix\ of\ j{\isachardoublequoteclose}\isanewline
-\ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{theorem} {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ convergence{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}ys\ prefix\ of\ j{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}
 \end{isabellebody}
