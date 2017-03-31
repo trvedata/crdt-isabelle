@@ -112,21 +112,32 @@ An an insertion message is tagged with an identifier, whereas a deletion message
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}valid{\isacharunderscore}behaviours\ msg{\isacharunderscore}id\ state\ oper\ {\isasymequiv}\ case\ oper\ of\ Add\ i\ \ e\ {\isasymRightarrow}\ i\ {\isacharequal}\ msg{\isacharunderscore}id\ oper\ {\isacharbar}\ Rem\ is\ e\ {\isasymRightarrow}\ is\ {\isacharequal}\ state\ e{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-
+We now defined a CRDT-specific locale, here called $\isa{orset}$, which extends the $\isa{network}{\isacharunderscore}with{\isacharunderscore}\isa{constrained}{\isacharunderscore}\isa{ops}$ locale:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{locale}\ orset\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}constrained{\isacharunderscore}ops\ msg{\isacharunderscore}id\ history\ interpret{\isacharunderscore}op\ {\isachardoublequoteopen}{\isasymlambda}x{\isachardot}\ {\isacharbraceleft}{\isacharbraceright}{\isachardoublequoteclose}\ {\isachardoublequoteopen}valid{\isacharunderscore}behaviours\ msg{\isacharunderscore}id{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{for}\ msg{\isacharunderscore}id\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isasymRightarrow}\ {\isacharprime}id{\isachardoublequoteclose}\ \isakeyword{and}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ event\ list{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
+Note that we set the initial state of the network to ${\isasymlambda}x{\isachardot}$, constrain the type of messages to ${\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation$, and use $valid{\isacharunderscore}behaviours$ defined above to constrain the possible valid behaviours of the ORSet network.
 
+Using the $\isa{orset}$ locale, we first show that $\isa{apply}{\isacharunderscore}operations$ in this network never fails---i.e. never returns $\isa{None}$ on some prefix of the local history of a node in the network:
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ apply{\isacharunderscore}operations{\isacharunderscore}never{\isacharunderscore}fails{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isasymnoteq}\ None{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
+Next, we demonstrate commutativity of insertion and deletion operations within the network.
+Insertion operations commute with each other unconditionally:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ add{\isacharunderscore}add{\isacharunderscore}commute{\isacharcolon}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isasymlangle}Add\ i{\isadigit{1}}\ e{\isadigit{1}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Add\ i{\isadigit{2}}\ e{\isadigit{2}}{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}Add\ i{\isadigit{2}}\ e{\isadigit{2}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Add\ i{\isadigit{1}}\ e{\isadigit{1}}{\isasymrangle}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-
+Insertion and deletion operations commute only in the case where the identifier of the insertion operation is not an element of the set of identifiers of the remove operation:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ add{\isacharunderscore}rem{\isacharunderscore}commute{\isacharcolon}\isanewline
@@ -134,19 +145,12 @@ An an insertion message is tagged with an identifier, whereas a deletion message
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isasymlangle}Add\ i\ e{\isadigit{1}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Rem\ is\ e{\isadigit{2}}{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}Rem\ is\ e{\isadigit{2}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Add\ i\ e{\isadigit{1}}{\isasymrangle}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
+Both $\isa{add}{\isacharunderscore}\isa{add}{\isacharunderscore}\isa{commute}$ and $\isa{add}{\isacharunderscore}\isa{rem}{\isacharunderscore}\isa{commute}$ are straightforward to show by unfolding definitions.
 
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{definition}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ added{\isacharunderscore}ids\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ event\ list\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}id\ list{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}added{\isacharunderscore}ids\ es\ p\ {\isasymequiv}\ List{\isachardot}map{\isacharunderscore}filter\ {\isacharparenleft}{\isasymlambda}x{\isachardot}\ case\ x\ of\ Deliver\ {\isacharparenleft}Add\ i\ e{\isacharparenright}\ {\isasymRightarrow}\ if\ e\ {\isacharequal}\ p\ then\ Some\ i\ else\ None\ {\isacharbar}\ {\isacharunderscore}\ {\isasymRightarrow}\ None{\isacharparenright}\ es{\isachardoublequoteclose}
-\end{isabellebody}
-\vspace{0.375em}
-
-\vspace{0.375em}
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ apply{\isacharunderscore}operations{\isacharunderscore}never{\isacharunderscore}fails{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isasymnoteq}\ None{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
 
