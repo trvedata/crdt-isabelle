@@ -1,0 +1,136 @@
+\section{Formalising system models using Isabelle}
+\label{sect.isabelle}
+
+We now introduce our formalisation of distributed systems in which we are able to prove that the strong eventual consistency (SEC) properties hold for a selection of operation-based CRDTs.
+All of our proofs are checked with the Isabelle/HOL proof assistant~\cite{DBLP:conf/tphol/WenzelPN08}.
+In this section, we provide a high-level summary of our proof strategy, and introduce the key concepts and syntax of Isabelle.
+A detailed description of the main modules of our proof follows in Sections~\ref{sect.abstract.convergence} to \ref{sect.rga}.
+
+\subsection{High-level proof strategy}
+\label{sect.high-level.proof.strategy}
+
+\begin{figure}
+\centering
+\input{proof-structure}
+\caption{The main locales (modules) of our proof, and the relationships between them.
+Solid arrows indicate a more specialised locale that extends a more general locale (like subclassing in OOP).
+Dashed arrows indicate a sublocale that satisfies the assumptions of the superlocale (like implementing an interface in OOP).
+}\label{fig.proof.structure}
+\end{figure}
+
+Since our formalisation of distributed algorithms goes into more depth than most prior work, it is important to have a structure that keeps the proofs manageable.
+Our approach breaks the proof into simple modules with cleanly defined properties---called \emph{locales}---and composes them in order to describe more complex objects.
+This locale structure is illustrated in Figure~\ref{fig.proof.structure} and explained below.
+See Section~\ref{sect.isabelle.locales} for more detail on locales.
+
+Approximately half of our Isabelle proof (by lines of code) is used to construct a general-purpose model of consistency in distributed systems, and is independent of any particular replication algorithm.
+The other half contains our formalisation of three example CRDTs and their proofs of correctness.
+By keeping the general-purpose modules abstract and implementation-independent, we construct a library of specifications and theorems that can be reused for future proofs.
+
+Our definition of correctness in this work is that the algorithms achieve strong eventual consistency as described in Section~\ref{sect.eventual.consistency}.
+We describe our formalisation of this definition in Section~\ref{sect.abstract.convergence}.
+In particular, we define what we mean with convergence, and prove an \emph{abstract convergence theorem}, which states that replicas converge if concurrent operations commute.
+We are able to prove this fact without mentioning networks nor any particular CRDT, but merely by reasoning about the ordering and properties of operations.
+This definition constitutes an abstract specification of what we mean with strong eventual consistency.
+
+In Section~\ref{sect.network} we describe an axiomatic model of asynchronous networks, built around a broadcast-deliver event model.
+The definition of the network is important because it allows us to prove that certain properties hold in all possible executions of the network, and that we are not making any dangerous assumptions that might be violated---an aspect that has dogged previous verification efforts (see Section~\ref{sect.related.verification}).
+The network is the only part of our proof in which we make any axiomatic assumptions, and we show in Section~\ref{sect.network} that our assumptions are realistic and reflect standard conventions for the modelling of distributed systems.
+We then prove that our network satisfies the ordering properties required by the abstract convergence theorem of Section~\ref{sect.abstract.convergence}, and thus deduce a convergence theorem for our network model.
+
+Note that everything mentioned until this point is completely generic, and not tied to any particular replication algorithm or CRDT implementation.
+However, we may now use the general-purpose theorems and definitions to prove the SEC properties of concrete algorithms.
+
+In Section~\ref{sect.rga} we describe our formalisation of the Replicated Growable Array (RGA), a CRDT for ordered lists.
+We first show how to implement the RGA's insert and delete operations, with proofs that each operation commutes with itself, and that all operations commute with each other.
+Insertion and deletion only commute under various conditions, so we prove that these conditions are satisfied in all possible executions of the network, and thus we obtain a concrete convergence theorem for our RGA implementation.
+
+Next, in Section~\ref{sect.simple.crdts}, we demonstrate the generality of our proof framework with definitions of two simple CRDTs: a counter and an observed-remove set (ORSet).
+We show that with the previously established tooling in place, it is very easy to prove that these algorithms implement the abstract specification of SEC.
+
+As illustrated in Figure~\ref{fig.proof.structure}, the $\isa{counter}$, $\isa{orset}$, and $\isa{rga}$ locales are defined to extend the network model (so they are able to use all of their definitions and lemmas), and we prove that each of them satisfies the abstract specification $\isa{strong-eventual-consistency}$ (which encapsulates the properties that we want).
+
+\subsection{An overview of Isabelle}
+\label{subsect.an.overview.of.isabelle}
+
+To aid the understanding of later sections, we provide a brief introduction to the key concepts and syntax of Isabelle.
+Readers who are already familiar with Isabelle may skip to Section~\ref{sect.abstract.convergence}.
+A more detailed introduction can be found in the standard tutorial material~\cite{DBLP:books/sp/NipkowK14}.
+
+\subsubsection{Syntax of expressions}\label{sect.isabelle.syntax}
+
+Isabelle/HOL is a logic with a strict, polymorphic type system resembling that of mainstream functional programming languages.
+\emph{Function types} are written $\tau_1 \Rightarrow \tau_2$, and are inhabited by \emph{total} functions, mapping elements of $\tau_1$ to elements of $\tau_2$.
+We write $\tau_1 \times \tau_2$ for the \emph{product type} of $\tau_1$ and $\tau_2$, inhabited by pairs of elements of type $\tau_1$ and $\tau_2$, respectively.
+In a similar fashion to Standard ML and OCaml, but differing from Haskell, \emph{type operators} are applied to arguments in reverse order, and therefore write $\tau\ \isa{list}$ and $\tau\ \isa{set}$ for the type of lists of elements of type $\tau$, and the type of mathematical (i.e., potentially infinite) sets of type $\tau$, respectively.
+Type variables are written in lowercase, and preceded with a prime: ${\isacharprime}a \Rightarrow {\isacharprime}a$ denotes the type of a polymorphic identity function, for example.
+\emph{Tagged union} types are introduced with the $\isacommand{datatype}$ keyword, with constructors of these types usually written with an initial upper case letter.
+
+In Isabelle/HOL's term language we write $\isa{t} \mathbin{::} \tau$ for a \emph{type ascription}, constraining the type of the term $\isa{t}$ to the type $\tau$.
+We write $\lambda{x}.\: t$ for an anonymous function mapping an argument $\isa{x}$ to $\isa{t(x)}$, and write the application of term $\isa{t}$ with function type to an argument $\isa{u}$ as $\isa{t\ u}$, as usual.
+Terms of list type are introduced using one of two constructors: the empty list $[\,]$ or `nil', and the infix operator $\isa{\#}$ which is pronounced `cons', and which prepends an element to an existing list.
+We use $[t_1, \ldots, t_n]$ as syntactic sugar for a list literal, and $\isa{xs} \mathbin{\isacharat} \isa{ys}$ to express the concatenation (appending) of two lists $\isa{xs}$ and $\isa{ys}$.
+We write $\{\,\}$ for the empty set, and use usual mathematical notation for set union, disjunction, membership tests, and so on: $\isa{t} \cup \isa{u}$, $\isa{t} \cap \isa{u}$, and $\isa{x} \in \isa{t}$.
+
+Terms with type $\isa{bool}$ are called \emph{formulae}, writing $\isa{True}$ and $\isa{False}$ for the logical truthity and falsity constants, respectively.
+We write $\isa{t} \longrightarrow \isa{u}$, $\isa{t} \wedge \isa{u}$, and $\isa{t} \vee \isa{u}$ for material implication, conjunction, and disjunction, respectively, and write $\neg t$ for the negation of a formula.
+Isabelle/HOL's equality constant is polymorphic: we write $t = u$ for an assertion of equality between two terms of the same type.
+We write $\forall{x}.\: t$ and $\exists{x}.\: t$ for universal and existential quantification---and write $\forall{x{\in}t}.\: u$ and $\exists{x{\in}t}.\: u$ for their bounded forms, restricted to members of a set $\isa{t}$.
+An alternative implication arrow $\isa{t} \Longrightarrow \isa{u}$ is used by Isabelle in certain contexts; it is subtly different from standard implication $\isa{t} \longrightarrow \isa{u}$, but for purposes of an intuitive understanding, the two forms of implication can be regarded as equivalent.
+
+\subsubsection{Definitions and theorems}\label{sect.isabelle.definitions}
+
+New non-recursive definitions are entered into Isabelle's global context using the $\mathbf{definition}$ keyword.
+Recursive functions are defined using the $\mathbf{fun}$ keyword, and support pattern matching on the parameters.
+All functions are total, and therefore every recursive function must be proved to always terminate.
+The termination proofs in this work are generated automatically by Isabelle itself.
+
+Inductive relations are defined with the $\mathbf{inductive}$ keyword.
+For example, the definition
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{inductive} only-fives\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ list\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}only-fives\ {\isacharbrackleft}{\isacharbrackright}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}{\isasymlbrakk}\ only-fives\ xs\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ only-fives {\isacharparenleft}5\#xs{\isacharparenright}{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
+\noindent
+introduces a new constant $\isa{only-fives}$ of type $\isa{nat list} \Rightarrow \isa{bool}$.
+The two clauses in the body of the definition enumerate the conditions under which $\isa{only-fives}\ \isa{xs}$ is true, for arbitrary $\isa{xs}$: firstly, $\isa{only-fives}$ is true for the empty list; and secondly, if you know that $\isa{only-fives}\ \isa{xs}$ is true for some $\isa{xs}$, then you can deduce that $\isa{only-fives}\ (5\#\isa{xs})$ (i.e., $\isa{xs}$ prefixed with a new list element that is the number 5) is also true.
+Moreover, $\isa{only-fives}\ \isa{xs}$ is true in no other circumstances---$\isa{only-fives}$ is the \emph{smallest} relation closed under the rules defining it.
+In short, the clauses defining $\isa{only-fives}$ above state that $\isa{only-fives}\ \isa{xs}$ holds exactly in the case where $\isa{xs}$ is a (potentially empty) list containing only repeated copies of the natural number $5$.
+
+Lemmas, theorems, and corollaries can be asserted using the $\isacommand{lemma}$, $\isacommand{theorem}$, and $\isacommand{corollary}$ keywords, respectively.
+There is no semantic difference between these keywords in Isabelle.
+For example,
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{theorem} only-fives-concat{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ only-fives\ xs \isakeyword{and}\ only-fives\ ys \isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ only-fives (xs \isacharat ys)
+\end{isabellebody}
+\vspace{0.375em}
+\noindent
+conjectures that if $\isa{xs}$ and $\isa{ys}$ are both lists of fives, then their concatenation $xs \mathbin{\isacharat} ys$ is also a list of fives.
+Isabelle then requires that this claim be proved by using one of its proof methods, for example by induction.
+Some proofs can be automated, whilst others require the user to provide explicit reasoning steps.
+The theorem is assigned a name, here $\isa{only-fives-concat}$, so that it may be referenced in later proofs.
+
+\subsubsection{Locales}\label{sect.isabelle.locales}
+
+Lastly, we use \emph{locales}---or local theories~\cite{DBLP:conf/tphol/KammullerWP99,DBLP:conf/types/HaftmannW08}---extensively to structure the proof, as shown in Figure~\ref{fig.proof.structure}.
+A declaration of the form
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{locale} foo = \isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ f\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes} {\isachardoublequoteopen}f\ x = x{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
+\noindent
+introduces a locale, with a fixed, typed constant $\isa{f}$, and an associated law that states that $\isa{f}$ is the identity function.
+Functions and constants may now be defined, and theorems conjectured and proved, within the context of the $\isa{foo}$ theory.
+This is indicated syntactically by writing $(\isacommand{in}\ \isa{foo})$ before the name of the constant being defined, or the theorem being conjectured, at the point of definition or conjecture.
+Any function, constant, or theorem, marked in this way may make reference to $\isa{f}$, or the fact that $\isa{f}\ \isa{x} = \isa{x}$ for all $\isa{x}$.
+\emph{Interpreting} a locale---such as $\isa{foo}$ above---involves providing a concrete implementation of $\isa{f}$ coupled with a proof that the concrete implementation satisfies the associated law.
+Once interpreted, all functions, definitions, and theorems made within the $\isa{foo}$ locale become available to use for that concrete implementation.

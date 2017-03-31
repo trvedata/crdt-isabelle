@@ -1,51 +1,147 @@
-\section{Related Work}
-\label{sect.relatedwork}
+\section{Related work}\label{sect.relatedwork}
 
-In particular, we study the Replicated Growable Array (RGA) CRDT~\cite{Roh:2011dw}, which represents
-a collaboratively editable document as a sequence of characters. There are previous pen-and-paper
-correctness proofs of RGA in the literature~\cite{Attiya:2016kh,Kleppmann:2016ve,Roh:2009ws}, but to
-our knowledge, ours is the first mechanized proof of the convergence of RGA.
+In a system where different replicas may concurrently perform updates without coordinating with each
+other, strong eventual consistency (SEC, see Section~\ref{sect.eventual.consistency}) requires a
+conflict resolution algorithm to reconcile concurrent updates. In some cases, a trivial algorithm is
+used, for example:
 
-In doing so, we go much further than previous correctness proofs of collaborative editing
-algorithms. Previous formalizations of OT using theorem
-provers~\cite{Imine:2003ks,Imine:2006kn,Sinchuk:2016cf,Jungnickel:2015ua} focus on proving that the
-transformation functions satisfy given properties (such as the transformation properties
-$\mathit{TP}_1$ and $\mathit{TP}_2$~\cite{Oster:2006tr,Ressel:1996wx}), and do not explicitly model
-the network. A previous formalization of CRDTs~\cite{Zeller:2014fl}, also using Isabelle, considers
-other datatypes (sets, registers, counters) but not the ordered sequence datatype provided by RGA.
+\begin{description}
+\item[User-defined conflict resolution:] Some systems store all conflicting versions of the data,
+and either leave it for manual resolution by a user, or invoke a user-defined merge function.
+However, manual resolution is an unacceptable burden for the user in many applications, and defining
+merge functions in application code is error-prone; for example, \citet{DeCandia:2007ui} describe a
+shopping cart anomaly at Amazon that arose due to poor conflict resolution.
+
+\item[Last write wins (LWW):] Each version of the data structure is assigned a unique timestamp.
+When there is a conflict, the system picks the version with the highest timestamp and discards other
+versions. Although LWW achieves convergence, it does so at the cost of losing user input, which is
+often unacceptable.
+\end{description}
+
+However, there are also algorithms that achieve convergence automatically, without discarding
+updates. In Sections~\ref{sect.related.crdts} and~\ref{sect.related.ot} we summarise two main lines
+of work, CRDTs and OT, which have the same fundamental goal of conflict resolution and convergence,
+but which take different approaches towards achieving it.
+
+\subsection{Conflict-free Replicated Data Types (CRDTs)}\label{sect.related.crdts}
+
+Some operations, such as addition of numbers, are naturally commutative. Thus, if the replicated
+data structure is a number whose value can only be incremented or decremented (a counter),
+convergence can be achieved by applying the increment and decrement operations in any order at each
+replica.
+
+\emph{Conflict-free replicated data types} (CRDTs) generalise this idea to other data structures and
+operations. For example, an ordered list (sequence) of values can be modified by inserting or
+deleting elements at specified positions, and a map (dictionary) datatype can be modified by setting
+the value associated with a key or deleting a key-value pair from the map. In a CRDT, those
+modification operations are constructed to be commutative by attaching additional metadata to the
+data structure.
+
+To propagate changes between replicas, a CRDT either captures every update as an operation and
+broadcasts it to other replicas (an \emph{operation-based} CRDT), or periodically broadcasts its
+entire replica state (a \emph{state-based} CRDT). Operation-based CRDTs require operations to be
+commutative; state-based CRDTs require a merge function over a join-semilattice, allowing two states
+to be combined such that the result reflects changes made in both replicas. The two models have
+different performance characteristics, but equivalent expressivity
+\cite{Shapiro:2011wy,Shapiro:2011un}.
+
+Many common abstract datatypes have been formulated as CRDTs, including
+registers \cite{Shapiro:2011wy,Shapiro:2011un}, counters, maps \cite{Baquero:2016iv},
+sets \cite{Bieniusa:2012wu,Bieniusa:2012gt}, XML \cite{Martin:2010ih},
+and JSON trees \cite{Kleppmann:2016ve}. For ordered lists, several algorithms have been defined:
+RGA \cite{Roh:2011dw}, Treedoc \cite{Preguica:2009fz}, WOOT \cite{Oster:2006wj},
+Logoot \cite{Weiss:2010hx}, and LSEQ \cite{Nedelec:2013ky,Nedelec:2016eo}.
+State-based CRDTs have been deployed commercially in the Riak database \cite{Brown:2014hs}.
+Cloud types \cite{Burckhardt:2012jy} have similarities to CRDTs, using a relational data model.
+
+In this work we formally verify three representative operation-based CRDTs: a counter
+\cite{Shapiro:2011wy}, an OR-Set \cite{Bieniusa:2012gt}, and the RGA algorithm for ordered lists
+\cite{Roh:2011dw}. While the counter and set are quite straightforward, RGA is subtle.
 
 
-\subsection{Formal Verification}
+\subsection{Operational Transformation (OT)}\label{sect.related.ot}
 
-Zeller et al. have used Isabelle to formally specify and verify a number of state-based CRDTs~\cite{Zeller:2014fl}.
+Another family of algorithms for achieving convergence of replicas uses the \emph{operational
+transformation} (OT) approach. They are designed for collaborative editing, that is, multiple users
+concurrently modifying a document on their local device, and propagating updates asynchronously to
+other users' devices. The replicated data structure is most commonly assumed to be a text document,
+represented as an ordered list of characters that may be modified by inserting or deleting
+characters at arbitrary positions in the string. OT algorithms for ordered lists include
+dOPT \cite{Ellis:1989ue}, Jupiter \cite{Nichols:1995fd}, adOPTed \cite{Ressel:1996wx},
+GOT \cite{Sun:1998un}, GOTO \cite{Sun:1998vf}, SOCT2 \cite{Suleiman:1997gl,Suleiman:1998eu},
+SOCT3/4 \cite{Vidot:2000ch}, IMOR \cite{Imine:2003ks}, SDT \cite{Li:2004er,Li:2008hw}, and
+TTF \cite{Oster:2006tr}.  The approach has also been generalised to other data structures such as
+XML trees \cite{Ignat:2003jy,Davis:2002iv,Jungnickel:2015ua} and vector graphics documents
+\cite{Sun:2002jb}.
 
-Some operational transformation functions have also been formally specified and verified using the
-SPIKE theorem prover~\cite{Imine:2003ks,Imine:2006kn}, Coq~\cite{Sinchuk:2016cf}, and
-Isabelle~\cite{Jungnickel:2015ua}. These efforts focus on proving that the transformation functions
-satisfy given properties (such as the \emph{transformation properties} $\mathit{TP}_1$ and
-$\mathit{TP}_2$~\cite{Oster:2006tr,Ressel:1996wx}).
+Unlike CRDTs, in which update operations are commutative by definition, OT allows non-commutative
+operations. Instead, OT relies on \emph{transforming} concurrent operations, allowing them to be
+reordered on different nodes while ensuring a convergent outcome.
 
-control algorithm (also known as integration algorithm)
+The required properties of this transformation function depend on assumptions about the network.
+Many OT algorithms assume that operations are sequenced through a central server and delivered to
+all clients in the same order. This design was originally pioneered by the Jupiter system
+\cite{Nichols:1995fd} and is now used by all widely-deployed OT-based collaboration systems,
+including Google Docs \cite{DayRichter:2010tt}, Microsoft Word Online, Etherpad
+\cite{Etherpad:2011um}, Apache (formerly Google) Wave \cite{Wang:2015vo}, and Novell Vibe
+\cite{Spiewak:2010vw}. With a central server, each client only needs to reorder its operations with
+respect to the server's operation sequence, which simplifies the transformation.
 
-Prove commutativity properties of the transformation function, but do not formally relate these
-properties to a particular network model. Informal reasoning is used to demonstrate that these
-properties do indeed ensure convergence in all possible
-executions~\cite{Suleiman:1998eu,Sun:1998vf}.
+On the other hand, as discussed in Section~\ref{sect.background.networks}, total order broadcast is
+too restrictive for many peer-to-peer systems. Without total order broadcast, OT algorithms must
+tolerate a higher degree of concurrency. Although a number of OT algorithms were purported to
+guarantee convergence in peer-to-peer networks, many of them were later proved to be incorrect, as
+discussed in the next section.
 
+\subsection{Formal verification}\label{sect.related.verification}
 
-% \cite{Burckhardt:2014ft}
-% \cite{Roh:2009ws}
-% \cite{Bieniusa:2012gt}
-% \cite{Wang:2015vo}
-% \cite{Spiewak:2010vw}
-% \cite{Google:2015vk}
-% \cite{Lemonik:2016wh}
-% \cite{Lamport:1978jq}
-% \cite{Preguica:2012fx}
-% \cite{Schwarz:1994gl}
-% \cite{ParkerJr:1983jb}
-% vector clocks~\cite{Fidge:1988tv,Raynal:1996jl}
-% \cite{Defago:2004ji}
-% \cite{Chandra:1996cp}
-% \cite{Davidson:1985hv}
-% \cite{DeCandia:2007ui}
+Even though a data structure such as an ordered list may seem as though it ought to be simple, the
+history of algorithms for achieving convergence in a distributed setting has been fraught with
+difficulty. Informal reasoning has repeatedly produced approaches that fail to converge in certain
+scenarios, and even several formal ``proofs'' later turned out to be false.
+
+For OT, the properties that the transformation function must satisfy were first formalised by
+\citet{Ressel:1996wx}. These properties are known as $\mathit{TP}_1$ and $\mathit{TP}_2$; systems
+with a central server or total order broadcast need only satisfy $\mathit{TP}_1$, whereas
+decentralised systems must satisfy both properties in order to ensure convergence. While
+$\mathit{TP}_1$ has proved to be readily achievable in practice, and all the aforementioned
+widely-deployed OT systems rely on it, the $\mathit{TP}_2$ property has been a significant source of
+problems.
+
+The original peer-reviewed publications of dOPT, adOPTed, IMOR, SOCT2, and SDT all claimed that
+their transformation functions satisfied $\mathit{TP}_2$, but those claims were subsequently shown
+to be false by giving counter-examples \cite{Imine:2003ks,Imine:2006kn,Oster:2005vi}. In the case of
+dOPT and adOPTed, the $\mathit{TP}_2$ claim had originally been asserted without proof. In the case
+of SOCT2 and SDT, there were hand-written ``proofs'' that later turned out to be incorrect. For IMOR
+and SOCT2, there had even been machine-checked ``proofs'' \cite{Imine:2003ks}, but
+\citet{Oster:2005vi} showed that they also were invalid because they made incorrect assumptions.
+
+\citet{Randolph:2015gj} have even shown that in the classic formulation of OT it is impossible to
+achieve $\mathit{TP}_2$. To our knowledge, TTF is at present the only $\mathit{TP}_2$-claiming OT
+algorithm for which no counter-example is known, and it circumvents the impossibility result of
+\citet{Randolph:2015gj} by using a different formulation of the transformation
+\cite{Oster:2006tr,Levien:2016wz}.
+
+Formal proofs of the $\mathit{TP}_1$ property have been more successful: \citet{Sinchuk:2016cf} and
+\citet{Jungnickel:2015ua} verify transformation functions for trees, using Coq and Isabelle/HOL
+respectively. For CRDTs, the only machine-checked verification of which we are aware is an Isabelle
+formalisation of state-based sets, registers, and counters by \citet{Zeller:2014fl}; this work does
+not consider any ordered list datatypes or any operation-based CRDTs.
+
+The convergence of the RGA CRDT for ordered lists, which we study in this paper, has previously been
+demonstrated in handwritten proofs \cite{Attiya:2016kh,Kleppmann:2016ve,Roh:2009ws}. Although we
+have no reason to doubt the correctness of those proofs, the historic experience with
+$\mathit{TP}_2$ makes us wary of claims whose assumptions and reasoning process have not been
+checked rigorously. Other authors have also pointed out that handwritten proofs are laborious and
+difficult to check by hand \cite{Li:2008hw,Li:2005jq}.
+
+To our knowledge, our work is the first mechanised proof of operation-based CRDTs in general, and of
+any ordered list CRDT in particular. As \citet{Oster:2005vi} have demonstrated, machine-checked
+proofs are not immune to errors that are due to false assumptions. To avoid this trap, we prove not
+only the commutativity of operations (which is subject to certain assumptions), but also that those
+assumptions are guaranteed to hold in all executions of our network model. The network model in turn
+is specified by a small set of axioms that are not specific to any particular CRDT, and whose
+correctness can be robustly defended (see Section~\ref{sect.network}).
+
+\citet{Burckhardt:2014ft} present a similar framework for reasoning about replicated datatypes, but
+do not support mechanised proofs at present.

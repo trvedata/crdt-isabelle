@@ -284,4 +284,50 @@ corollary convergence_ext:
   using convergence assms by metis
 end
 
+
+section\<open>Specification that an Operation-Based CRDT must satisfy\<close>
+
+locale strong_eventual_consistency = happens_before +
+  fixes op_history :: "'a list \<Rightarrow> bool"
+    and initial_state :: "'b"
+  assumes causality:     "op_history xs \<Longrightarrow> hb_consistent xs"
+  assumes distinctness:  "op_history xs \<Longrightarrow> distinct xs"
+  assumes commutativity: "op_history xs \<Longrightarrow> concurrent_ops_commute xs"
+  assumes no_failure:    "op_history(xs@[x]) \<Longrightarrow> apply_operations xs initial_state = Some state \<Longrightarrow> \<langle>x\<rangle> state \<noteq> None"
+  assumes trunc_history: "op_history(xs@[x]) \<Longrightarrow> op_history xs"
+begin
+
+theorem sec_convergence:
+  assumes "set xs = set ys"
+          "op_history xs"
+          "op_history ys"
+  shows   "apply_operations xs = apply_operations ys"
+by (meson assms convergence causality commutativity distinctness)
+
+theorem sec_progress:
+  assumes "op_history xs"
+  shows   "apply_operations xs initial_state \<noteq> None"
+using assms
+  apply(induction xs rule: rev_induct)
+  apply simp
+  apply(subgoal_tac "apply_operations xs initial_state \<noteq> None")
+  apply(subgoal_tac "apply_operations (xs @ [x]) = apply_operations xs \<rhd> \<langle>x\<rangle>")
+  apply(simp add: kleisli_def bind_def)
+  apply(erule exE)
+  apply(case_tac "\<langle>x\<rangle> y")
+  using no_failure apply blast
+  apply simp+
+  using trunc_history apply blast
+done
+
+end
+
+(*  
+locale foo = happens_before +
+    fixes op_history :: "'a list \<Rightarrow> bool"
+    and initial_state :: "'b"
+  assumes "\<And>xs ys. set xs = set ys \<Longrightarrow> op_history xs \<Longrightarrow> op_history ys \<Longrightarrow> apply_operations xs = apply_operations ys"
+    and "\<And>xs. op_history xs \<Longrightarrow> apply_operations xs initial_state \<noteq> None"
+*)
+
 end
