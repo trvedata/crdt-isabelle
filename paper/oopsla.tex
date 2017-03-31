@@ -22,14 +22,14 @@
 %\date{Computer Laboratory, University of Cambridge}
 
 \begin{abstract}
-Data replication is used in distributed systems to maintain an up-to-date copy of a data structure across multiple computers, with a variety of algorithms in existence which explore the trade-off between varying levels of data consistency versus operational constraints and system performance.
-However, despite decades of research, algorithms for achieving replication with conflict resolution in distributed systems are still poorly understood.
-Indeed, many published algorithms have later been shown to be broken, even those accompanied by supposed mechanised proofs of correctness.
+Data replication is used in distributed systems to maintain an up-to-date copy of a data structure across multiple computers in a network, with a variety of algorithms in existence which explore the trade-off between varying levels of data consistency versus operational constraints and system performance.
+However, despite decades of research, algorithms for achieving replication in distributed systems are still poorly understood.
+Indeed, many published algorithms have later been shown to be incorrect, even those accompanied by supposed mechanised proofs of correctness.
 
 In this work, we focus on the correctness of Conflict-free Replicated Data Types (CRDTs), a class of algorithm that provides Strong Eventual Consistency guarantees for replicated data.
-We provide a modular and reusable framework in the Isabelle interactive theorem prover for verifying the correctness of CRDT implementations.
+We provide a modular and reusable framework in the Isabelle/HOL interactive theorem prover for verifying the correctness of CRDT implementations.
 We sidestep correctness issues that have dogged previous mechanised proofs in this area by axiomatically modelling a large class of networks---the asynchronous causal networks---using five uncontroversial axioms and incrementally building up in composable layers, obtaining a machine-checked assurance that our theorems hold in all possible network behaviours.
-We identify an abstract convergence theorem, a property of order relations, with which we obtain correctness theorems for three concrete CRDT implementations---the Replicated Growable Array, the ORSet, and a increment-decrement counter---as corollaries with a thin-layer of CRDT-specific code, validating our claim to have created a framework for CRDT verification.
+We identify an abstract convergence theorem, a property of order relations, with which we obtain correctness theorems for three concrete implementations---the Replicated Growable Array, the Observed-Removed Set, and a increment-decrement counter---as corollaries with a thin-layer of CRDT-specific code, validating our claim to have created a framework for CRDT verification.
 \end{abstract}
 
 %\begin{abstract}
