@@ -1,4 +1,5 @@
 \documentclass[acmlarge,review,anonymous]{acmart}\settopmatter{printfolios=true}
+%\documentclass[acmlarge]{acmart}\settopmatter{}
 
 \bibliographystyle{ACM-Reference-Format}
 \citestyle{acmauthoryear}
@@ -17,12 +18,75 @@
 
 \hyphenation{App-Jet}
 
-\setcopyright{none} % For review submission
+%% PACMPL journal information will be supplied by publisher for camera-ready submission
+\acmJournal{PACMPL}
+\acmVolume{--}
+\acmNumber{--}
+\acmArticle{0}
+\acmYear{2017}
+\acmMonth{4}
+\acmDOI{10.1145/nnnnnnn.nnnnnnn}
+\startPage{1}
+\setcopyright{none}
 
 \begin{document}
 \title{Verifying Strong Eventual Consistency in Distributed Systems}
-%\author{Victor~B.~F.~Gomes, Martin Kleppmann, Dominic P.~Mulligan,\\Alastair R. Beresford}
-%\date{Computer Laboratory, University of Cambridge}
+
+%% Each author should be introduced by \author, followed by \authornote (optional),
+%% \orcid (optional), \affiliation, and \email.
+%% An author may have multiple affiliations and/or emails; repeat the appropriate command.
+%% Many elements are not rendered, but should be provided for metadata extraction tools.
+\author{Victor B.\ F.\ Gomes}
+%\orcid{nnnn-nnnn-nnnn-nnnn}
+\affiliation{
+  \position{Research Associate}
+  \department{Computer Laboratory}
+  \institution{University of Cambridge}
+  \streetaddress{15 JJ Thomson Avenue}
+  \city{Cambridge}
+  \postcode{CB3 0FD}
+  \country{UK}
+}
+\email{vb358@cam.ac.uk}
+
+\author{Martin Kleppmann}
+\orcid{0000-0001-7252-6958}
+\affiliation{
+  \position{Research Associate}
+  \department{Computer Laboratory}
+  \institution{University of Cambridge}
+  \streetaddress{15 JJ Thomson Avenue}
+  \city{Cambridge}
+  \postcode{CB3 0FD}
+  \country{UK}
+}
+\email{mk428@cam.ac.uk}
+
+\author{Dominic P.\ Mulligan}
+%\orcid{nnnn-nnnn-nnnn-nnnn}
+\affiliation{
+  \position{Research Associate}
+  \department{Computer Laboratory}
+  \institution{University of Cambridge}
+  \streetaddress{15 JJ Thomson Avenue}
+  \city{Cambridge}
+  \postcode{CB3 0FD}
+  \country{UK}
+}
+\email{dpm36@cam.ac.uk}
+
+\author{Alastair R.\ Beresford}
+\orcid{0000-0003-0818-6535}
+\affiliation{
+  \position{Senior Lecturer}
+  \department{Computer Laboratory}
+  \institution{University of Cambridge}
+  \streetaddress{15 JJ Thomson Avenue}
+  \city{Cambridge}
+  \postcode{CB3 0FD}
+  \country{UK}
+}
+\email{arb33@cam.ac.uk}
 
 \begin{abstract}
 Data replication is used in distributed systems to maintain an up-to-date copy of a data structure across multiple computers in a network, with a variety of algorithms in existence which explore the trade-off between varying levels of data consistency versus operational constraints and system performance.
@@ -45,6 +109,51 @@ We identify an abstract convergence theorem, a property of order relations, with
 %We implement our framework using the interactive theorem prover Isabelle/HOL, and use it to prove the correctness of SEC algorithms across all possible combinations of message delays, re-orderings and deletions.
 %In particular, we provide the first mechanised proofs of convergence for counter, set and ordered-list CRDTs.
 %\end{abstract}
+
+\begin{CCSXML}
+<ccs2012>
+<concept>
+<concept_id>10003033.10003039.10003041.10003042</concept_id>
+<concept_desc>Networks~Protocol testing and verification</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10010520.10010521.10010537.10010540</concept_id>
+<concept_desc>Computer systems organization~Peer-to-peer architectures</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10003033.10003039.10003041.10003043</concept_id>
+<concept_desc>Networks~Formal specifications</concept_desc>
+<concept_significance>300</concept_significance>
+</concept>
+<concept>
+<concept_id>10003752.10003809.10010172</concept_id>
+<concept_desc>Theory of computation~Distributed algorithms</concept_desc>
+<concept_significance>300</concept_significance>
+</concept>
+<concept>
+<concept_id>10003752.10010124.10010138.10010142</concept_id>
+<concept_desc>Theory of computation~Program verification</concept_desc>
+<concept_significance>300</concept_significance>
+</concept>
+<concept>
+<concept_id>10011007.10011074.10011099.10011692</concept_id>
+<concept_desc>Software and its engineering~Formal software verification</concept_desc>
+<concept_significance>300</concept_significance>
+</concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Networks~Protocol testing and verification}
+\ccsdesc[500]{Computer systems organization~Peer-to-peer architectures}
+\ccsdesc[300]{Networks~Formal specifications}
+\ccsdesc[300]{Theory of computation~Distributed algorithms}
+\ccsdesc[300]{Theory of computation~Program verification}
+\ccsdesc[300]{Software and its engineering~Formal software verification}
+
+\keywords{strong eventual consistency, verification, distributed systems, replication, convergence, CRDTs, automated theorem proving}
+
 \maketitle
 
 
@@ -203,14 +312,18 @@ We speculate that our framework is also amenable to the inclusion of SEC algorit
 Further, we also speculate that our framework could be used to demonstrate the equivalence of classes of SEC algorithms.
 We leave this to future work.
 
-\section*{Acknowledgements}
+%% contents of acknowledgement section are automatically suppressed when the 'anonymous' documentclass option is set
+\begin{acks}
+    %% Commands \grantsponsor{<sponsorID>}{<name>}{<url>} and \grantnum[<url>]{<sponsorID>}{<number>}
+    %% should be used to acknowledge financial support and will be used by metadata extraction tools.
+    This research was supported by grants from
+    \grantsponsor{GS100000003}{The Boeing Company}{http://dx.doi.org/10.13039/100000003} and
+    \grantsponsor{GS501100000266}{EPSRC}{http://dx.doi.org/10.13039/501100000266}.
 
-Blinded for review.
-
-%TODO: Boeing, REMS, Colleagues who have provided feedback.
+    %TODO: REMS, Colleagues who have provided feedback.
+\end{acks}
 
 \bibliography{references}{}
-
 \input{appendix}
 
 \end{document}
