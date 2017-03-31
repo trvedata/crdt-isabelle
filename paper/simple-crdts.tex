@@ -82,127 +82,148 @@ We model this with a datatype:
 \end{isabellebody}
 Here, ${\isacharprime}id$ is an abstract type of message identifiers.
 An an insertion message is tagged with an identifier, whereas a deletion message is tagged with a set of identifiers 
+\vspace{0.375em}
 \begin{isabellebody}
 \isacommand{type{\isacharunderscore}synonym}\isamarkupfalse%
-\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ state\ {\isacharequal}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}id\ set{\isachardoublequoteclose}\isanewline
+\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ state\ {\isacharequal}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}id\ set{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{0.375em}
 
+\vspace{0.375em}
 \begin{isabellebody}
-\isacommand{definition}\isamarkupfalse%
-\ op{\isacharunderscore}elem\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isasymRightarrow}\ {\isacharprime}a{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}op{\isacharunderscore}elem\ oper\ {\isasymequiv}\ case\ oper\ of\ Add\ i\ e\ {\isasymRightarrow}\ e\ {\isacharbar}\ Rem\ is\ e\ {\isasymRightarrow}\ e{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{definition}\ op{\isacharunderscore}elem\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isasymRightarrow}\ {\isacharprime}a{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}op{\isacharunderscore}elem\ oper\ {\isasymequiv}\ case\ oper\ of\ Add\ i\ e\ {\isasymRightarrow}\ e\ {\isacharbar}\ Rem\ is\ e\ {\isasymRightarrow}\ e{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{0.375em}
 
+\vspace{0.375em}
 \begin{isabellebody}
-\isacommand{definition}\isamarkupfalse%
-\ interpret{\isacharunderscore}op\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ state\ {\isasymrightharpoonup}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ state{\isachardoublequoteclose}\ {\isacharparenleft}{\isachardoublequoteopen}{\isasymlangle}{\isacharunderscore}{\isasymrangle}{\isachardoublequoteclose}\ {\isacharbrackleft}{\isadigit{0}}{\isacharbrackright}\ {\isadigit{1}}{\isadigit{0}}{\isadigit{0}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}interpret{\isacharunderscore}op\ oper\ state\ {\isasymequiv}\isanewline
-\ \ \ \ \ let\ before\ {\isacharequal}\ state\ {\isacharparenleft}op{\isacharunderscore}elem\ oper{\isacharparenright}{\isacharsemicolon}\isanewline
-\ \ \ \ \ \ \ \ \ after\ \ {\isacharequal}\ case\ oper\ of\ Add\ i\ e\ {\isasymRightarrow}\ before\ {\isasymunion}\ {\isacharbraceleft}i{\isacharbraceright}\ {\isacharbar}\ Rem\ is\ e\ {\isasymRightarrow}\ before\ {\isacharminus}\ is\isanewline
-\ \ \ \ \ in\ \ Some\ {\isacharparenleft}state\ {\isacharparenleft}{\isacharparenleft}op{\isacharunderscore}elem\ oper{\isacharparenright}\ {\isacharcolon}{\isacharequal}\ after{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{definition}\ interpret{\isacharunderscore}op\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ state\ {\isasymrightharpoonup}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ state{\isachardoublequoteclose}\ {\isacharparenleft}{\isachardoublequoteopen}{\isasymlangle}{\isacharunderscore}{\isasymrangle}{\isachardoublequoteclose}\ {\isacharbrackleft}{\isadigit{0}}{\isacharbrackright}\ {\isadigit{1}}{\isadigit{0}}{\isadigit{0}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}interpret{\isacharunderscore}op\ oper\ state\ {\isasymequiv}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ let\ before\ {\isacharequal}\ state\ {\isacharparenleft}op{\isacharunderscore}elem\ oper{\isacharparenright}{\isacharsemicolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ after\ \ {\isacharequal}\ case\ oper\ of\ Add\ i\ e\ {\isasymRightarrow}\ before\ {\isasymunion}\ {\isacharbraceleft}i{\isacharbraceright}\ {\isacharbar}\ Rem\ is\ e\ {\isasymRightarrow}\ before\ {\isacharminus}\ is\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ in\ \ Some\ {\isacharparenleft}state\ {\isacharparenleft}{\isacharparenleft}op{\isacharunderscore}elem\ oper{\isacharparenright}\ {\isacharcolon}{\isacharequal}\ after{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{0.375em}
 
+\vspace{0.375em}
 \begin{isabellebody}
-\isacommand{definition}\isamarkupfalse%
-\ valid{\isacharunderscore}behaviours\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isasymRightarrow}\ {\isacharprime}id{\isacharparenright}\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ state\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}valid{\isacharunderscore}behaviours\ msg{\isacharunderscore}id\ state\ oper\ {\isasymequiv}\ case\ oper\ of\ Add\ i\ \ e\ {\isasymRightarrow}\ i\ {\isacharequal}\ msg{\isacharunderscore}id\ oper\ {\isacharbar}\ Rem\ is\ e\ {\isasymRightarrow}\ is\ {\isacharequal}\ state\ e{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{definition}\ valid{\isacharunderscore}behaviours\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isasymRightarrow}\ {\isacharprime}id{\isacharparenright}\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ state\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}valid{\isacharunderscore}behaviours\ msg{\isacharunderscore}id\ state\ oper\ {\isasymequiv}\ case\ oper\ of\ Add\ i\ \ e\ {\isasymRightarrow}\ i\ {\isacharequal}\ msg{\isacharunderscore}id\ oper\ {\isacharbar}\ Rem\ is\ e\ {\isasymRightarrow}\ is\ {\isacharequal}\ state\ e{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{0.375em}
 
+\vspace{0.375em}
 \begin{isabellebody}
-\isacommand{locale}\isamarkupfalse%
-\ orset\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}constrained{\isacharunderscore}ops\ msg{\isacharunderscore}id\ history\ interpret{\isacharunderscore}op\ {\isachardoublequoteopen}{\isasymlambda}x{\isachardot}\ {\isacharbraceleft}{\isacharbraceright}{\isachardoublequoteclose}\ {\isachardoublequoteopen}valid{\isacharunderscore}behaviours\ msg{\isacharunderscore}id{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{for}\ msg{\isacharunderscore}id\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isasymRightarrow}\ {\isacharprime}id{\isachardoublequoteclose}\ \isakeyword{and}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ event\ list{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{locale}\ orset\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}constrained{\isacharunderscore}ops\ msg{\isacharunderscore}id\ history\ interpret{\isacharunderscore}op\ {\isachardoublequoteopen}{\isasymlambda}x{\isachardot}\ {\isacharbraceleft}{\isacharbraceright}{\isachardoublequoteclose}\ {\isachardoublequoteopen}valid{\isacharunderscore}behaviours\ msg{\isacharunderscore}id{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{for}\ msg{\isacharunderscore}id\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isasymRightarrow}\ {\isacharprime}id{\isachardoublequoteclose}\ \isakeyword{and}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ event\ list{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{0.375em}
 
+\vspace{0.375em}
 \begin{isabellebody}
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ add{\isacharunderscore}add{\isacharunderscore}commute{\isacharcolon}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isasymlangle}Add\ i{\isadigit{1}}\ e{\isadigit{1}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Add\ i{\isadigit{2}}\ e{\isadigit{2}}{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}Add\ i{\isadigit{2}}\ e{\isadigit{2}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Add\ i{\isadigit{1}}\ e{\isadigit{1}}{\isasymrangle}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ add{\isacharunderscore}add{\isacharunderscore}commute{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isasymlangle}Add\ i{\isadigit{1}}\ e{\isadigit{1}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Add\ i{\isadigit{2}}\ e{\isadigit{2}}{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}Add\ i{\isadigit{2}}\ e{\isadigit{2}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Add\ i{\isadigit{1}}\ e{\isadigit{1}}{\isasymrangle}{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{0.375em}
 
+\vspace{0.375em}
 \begin{isabellebody}
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ add{\isacharunderscore}rem{\isacharunderscore}commute{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i\ {\isasymnotin}\ is{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isasymlangle}Add\ i\ e{\isadigit{1}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Rem\ is\ e{\isadigit{2}}{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}Rem\ is\ e{\isadigit{2}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Add\ i\ e{\isadigit{1}}{\isasymrangle}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ add{\isacharunderscore}rem{\isacharunderscore}commute{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i\ {\isasymnotin}\ is{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isasymlangle}Add\ i\ e{\isadigit{1}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Rem\ is\ e{\isadigit{2}}{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}Rem\ is\ e{\isadigit{2}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Add\ i\ e{\isadigit{1}}{\isasymrangle}{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{0.375em}
 
+\vspace{0.375em}
 \begin{isabellebody}
-\isacommand{definition}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ added{\isacharunderscore}ids\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ event\ list\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}id\ list{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ {\isachardoublequoteopen}added{\isacharunderscore}ids\ es\ p\ {\isasymequiv}\ List{\isachardot}map{\isacharunderscore}filter\ {\isacharparenleft}{\isasymlambda}x{\isachardot}\ case\ x\ of\ Deliver\ {\isacharparenleft}Add\ i\ e{\isacharparenright}\ {\isasymRightarrow}\ if\ e\ {\isacharequal}\ p\ then\ Some\ i\ else\ None\ {\isacharbar}\ {\isacharunderscore}\ {\isasymRightarrow}\ None{\isacharparenright}\ es{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{definition}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ added{\isacharunderscore}ids\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ event\ list\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}id\ list{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}added{\isacharunderscore}ids\ es\ p\ {\isasymequiv}\ List{\isachardot}map{\isacharunderscore}filter\ {\isacharparenleft}{\isasymlambda}x{\isachardot}\ case\ x\ of\ Deliver\ {\isacharparenleft}Add\ i\ e{\isacharparenright}\ {\isasymRightarrow}\ if\ e\ {\isacharequal}\ p\ then\ Some\ i\ else\ None\ {\isacharbar}\ {\isacharunderscore}\ {\isasymRightarrow}\ None{\isacharparenright}\ es{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{0.375em}
 
+\vspace{0.375em}
 \begin{isabellebody}
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ apply{\isacharunderscore}operations{\isacharunderscore}never{\isacharunderscore}fails{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isasymnoteq}\ None{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ apply{\isacharunderscore}operations{\isacharunderscore}never{\isacharunderscore}fails{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isasymnoteq}\ None{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{0.375em}
 
+\vspace{0.375em}
 \begin{isabellebody}
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ apply{\isacharunderscore}operations{\isacharunderscore}added{\isacharunderscore}ids{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}es\ prefix\ of\ j{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ es\ {\isacharequal}\ Some\ f{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}f\ x\ {\isasymsubseteq}\ set\ {\isacharparenleft}added{\isacharunderscore}ids\ es\ x{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ apply{\isacharunderscore}operations{\isacharunderscore}added{\isacharunderscore}ids{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}es\ prefix\ of\ j{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ es\ {\isacharequal}\ Some\ f{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}f\ x\ {\isasymsubseteq}\ set\ {\isacharparenleft}added{\isacharunderscore}ids\ es\ x{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{0.375em}
 
+\vspace{0.375em}
 \begin{isabellebody}
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ Deliver{\isacharunderscore}added{\isacharunderscore}ids{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i\ {\isasymin}\ set\ {\isacharparenleft}added{\isacharunderscore}ids\ xs\ e{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}Deliver\ {\isacharparenleft}Add\ i\ e{\isacharparenright}\ {\isasymin}\ set\ xs{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ Deliver{\isacharunderscore}added{\isacharunderscore}ids{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i\ {\isasymin}\ set\ {\isacharparenleft}added{\isacharunderscore}ids\ xs\ e{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}Deliver\ {\isacharparenleft}Add\ i\ e{\isacharparenright}\ {\isasymin}\ set\ xs{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{0.375em}
 
+\vspace{0.375em}
 \begin{isabellebody}
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ Broadcast{\isacharunderscore}Deliver{\isacharunderscore}prefix{\isacharunderscore}closed{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ {\isacharat}\ {\isacharbrackleft}Broadcast\ {\isacharparenleft}Rem\ ix\ e{\isacharparenright}{\isacharbrackright}\ prefix\ of\ j{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}i\ {\isasymin}\ ix{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}Deliver\ {\isacharparenleft}Add\ i\ e{\isacharparenright}\ {\isasymin}\ set\ xs{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ Broadcast{\isacharunderscore}Deliver{\isacharunderscore}prefix{\isacharunderscore}closed{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ {\isacharat}\ {\isacharbrackleft}Broadcast\ {\isacharparenleft}Rem\ ix\ e{\isacharparenright}{\isacharbrackright}\ prefix\ of\ j{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}i\ {\isasymin}\ ix{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}Deliver\ {\isacharparenleft}Add\ i\ e{\isacharparenright}\ {\isasymin}\ set\ xs{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{0.375em}
 
+\vspace{0.375em}
 \begin{isabellebody}
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ Broadcast{\isacharunderscore}Deliver{\isacharunderscore}prefix{\isacharunderscore}closed{\isadigit{2}}{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ j{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}Broadcast\ {\isacharparenleft}Rem\ ix\ e{\isacharparenright}\ {\isasymin}\ set\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}i\ {\isasymin}\ ix{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}Deliver\ {\isacharparenleft}Add\ i\ e{\isacharparenright}\ {\isasymin}\ set\ xs{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ Broadcast{\isacharunderscore}Deliver{\isacharunderscore}prefix{\isacharunderscore}closed{\isadigit{2}}{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ j{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}Broadcast\ {\isacharparenleft}Rem\ ix\ e{\isacharparenright}\ {\isasymin}\ set\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}i\ {\isasymin}\ ix{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}Deliver\ {\isacharparenleft}Add\ i\ e{\isacharparenright}\ {\isasymin}\ set\ xs{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{0.375em}
 
+\vspace{0.375em}
 \begin{isabellebody}
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ concurrent{\isacharunderscore}add{\isacharunderscore}remove{\isacharunderscore}independent{\isacharunderscore}technical{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i\ {\isasymin}\ is{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}xs\ prefix\ of\ j{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}Add\ i\ e\ {\isasymin}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}Rem\ is\ e\ {\isasymin}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb\ {\isacharparenleft}Add\ i\ e{\isacharparenright}\ {\isacharparenleft}Rem\ is\ e{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ concurrent{\isacharunderscore}add{\isacharunderscore}remove{\isacharunderscore}independent{\isacharunderscore}technical{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i\ {\isasymin}\ is{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}xs\ prefix\ of\ j{\isachardoublequoteclose} \isanewline 
+\ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}Add\ i\ e\ {\isasymin}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}Rem\ is\ e\ {\isasymin}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb\ {\isacharparenleft}Add\ i\ e{\isacharparenright}\ {\isacharparenleft}Rem\ is\ e{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{0.375em}
 
+\vspace{0.375em}
 \begin{isabellebody}
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ Deliver{\isacharunderscore}Add{\isacharunderscore}same{\isacharunderscore}id{\isacharunderscore}same{\isacharunderscore}message{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}Deliver\ {\isacharparenleft}Add\ i\ e{\isadigit{1}}{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}Deliver\ {\isacharparenleft}Add\ i\ e{\isadigit{2}}{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}e{\isadigit{1}}\ {\isacharequal}\ e{\isadigit{2}}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ Deliver{\isacharunderscore}Add{\isacharunderscore}same{\isacharunderscore}id{\isacharunderscore}same{\isacharunderscore}message{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}Deliver\ {\isacharparenleft}Add\ i\ e{\isadigit{1}}{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}Deliver\ {\isacharparenleft}Add\ i\ e{\isadigit{2}}{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}e{\isadigit{1}}\ {\isacharequal}\ e{\isadigit{2}}{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{0.375em}
 
+\vspace{0.375em}
 \begin{isabellebody}
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ ids{\isacharunderscore}imply{\isacharunderscore}messages{\isacharunderscore}same{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i\ {\isasymin}\ is{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}xs\ prefix\ of\ j{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}Add\ i\ e{\isadigit{1}}\ {\isasymin}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}Rem\ is\ e{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}e{\isadigit{1}}\ {\isacharequal}\ e{\isadigit{2}}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ ids{\isacharunderscore}imply{\isacharunderscore}messages{\isacharunderscore}same{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i\ {\isasymin}\ is{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}xs\ prefix\ of\ j{\isachardoublequoteclose} \isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}Add\ i\ e{\isadigit{1}}\ {\isasymin}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}Rem\ is\ e{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}e{\isadigit{1}}\ {\isacharequal}\ e{\isadigit{2}}{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{0.375em}
 
+\vspace{0.375em}
 \begin{isabellebody}
-\isacommand{corollary}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ concurrent{\isacharunderscore}add{\isacharunderscore}remove{\isacharunderscore}independent{\isacharcolon}\isanewline
-\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}{\isasymnot}\ hb\ {\isacharparenleft}Add\ i\ e{\isadigit{1}}{\isacharparenright}\ {\isacharparenleft}Rem\ is\ e{\isadigit{2}}{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}{\isasymnot}\ hb\ {\isacharparenleft}Rem\ is\ e{\isadigit{2}}{\isacharparenright}\ {\isacharparenleft}Add\ i\ e{\isadigit{1}}{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}xs\ prefix\ of\ j{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}Add\ i\ e{\isadigit{1}}\ {\isasymin}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}Rem\ is\ e{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}i\ {\isasymnotin}\ is{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{corollary}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ concurrent{\isacharunderscore}add{\isacharunderscore}remove{\isacharunderscore}independent{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}{\isasymnot}\ hb\ {\isacharparenleft}Add\ i\ e{\isadigit{1}}{\isacharparenright}\ {\isacharparenleft}Rem\ is\ e{\isadigit{2}}{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}{\isasymnot}\ hb\ {\isacharparenleft}Rem\ is\ e{\isadigit{2}}{\isacharparenright}\ {\isacharparenleft}Add\ i\ e{\isadigit{1}}{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}xs\ prefix\ of\ j{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}Add\ i\ e{\isadigit{1}}\ {\isasymin}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}Rem\ is\ e{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}i\ {\isasymnotin}\ is{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{0.375em}
 
 Using this technical lemma, we may show that 
+\vspace{0.375em}
 \begin{isabellebody}
-\isacommand{lemma}\isamarkupfalse%
-\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ rem{\isacharunderscore}rem{\isacharunderscore}commute{\isacharcolon}\isanewline
-\ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isasymlangle}Rem\ i{\isadigit{1}}\ e{\isadigit{1}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Rem\ i{\isadigit{2}}\ e{\isadigit{2}}{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}Rem\ i{\isadigit{2}}\ e{\isadigit{2}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Rem\ i{\isadigit{1}}\ e{\isadigit{1}}{\isasymrangle}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ rem{\isacharunderscore}rem{\isacharunderscore}commute{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isasymlangle}Rem\ i{\isadigit{1}}\ e{\isadigit{1}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Rem\ i{\isadigit{2}}\ e{\isadigit{2}}{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}Rem\ i{\isadigit{2}}\ e{\isadigit{2}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Rem\ i{\isadigit{1}}\ e{\isadigit{1}}{\isasymrangle}{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{0.375em}
 We now obtain the final convergence theorem for the ORSet.
 First, we show a familiar lemma: all the concurrent delivered messages of a prefix of any node's local history commute within the ORSet network:
 \vspace{0.375em}
