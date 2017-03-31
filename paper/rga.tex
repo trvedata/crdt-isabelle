@@ -1,53 +1,38 @@
 \section{Replicated Growable Array}
 \label{sect.rga}
 
-The RGA is a replicated sequential data type supporting \emph{insert} and \emph{delete} operations.
-We mention three aspects of the RGA's design, which ensure convergence, and that must be understood to follow this section:
-\begin{enumerate}
-\item
-All elements stored in the list have associated identifiers, which are totally ordered, with the insertion operation using this ordering to find a suitable index to place an element into the list,
-\item
-The RGA's delete operation does not \emph{remove} elements from the list, but merely flips a `tombstone' flag associated with the element to indicate that the element is marked as having been deleted,
-Properly working with the RGA---for example in an application which wishes to print out the elements stored in the array---therefore requires that the application layer be made aware of these tombstones.
-\item
-The RGA comes with preconditions on its operations that are guaranteed by a `protocol', or restriction on message event histories within the network which describe when inserting or deleting an element into the array is well-defined.
-These restrictions are reflected as hypotheses in our convergence theorems, presented below, and are reified as a new locale specialising the network local theories presented in previous sections to capture those network behaviours that respect the RGA protocol.
-\end{enumerate}
+The RGA, introduced by \citet{Roh:2011dw}, is a replicated ordered list (sequence) datatype that supports \emph{insert} and \emph{delete} operations.
+For example, it can be used for collaborative text editing, in which case the text document is represented as an ordered list of characters.
 
-Accordingly, we fix a type of `elements' which packages up a value, with metadata.
-These elements will be the items stored in our array:
+RGA satisfies the specification of stong eventual consistency as defined in Section~\ref{sect.abstract.convergence}; this fact has previously been checked in handwritten proofs (see Section~\ref{sect.related.verification}), but to our knowledge this is the first mechanised proof of correctness of RGA.
+We perform this proof within the causal broadcast model defined in Section~\ref{sect.network}, and without making any assumptions beyond the six aforementioned network axioms.
+Since the axioms of our network model are easily justified, we have confidence in the correctness of our formalisation.
+Our proof makes extensive use of the general-purpose framework that we have established in the last two sections.
+
+\subsection{Specifying insertion and deletion}\label{sect.rga.spec}
+
+In an ordered list, each insertion and deletion operation must identify the position at which the modification should take place.
+In a non-replicated setting, the position is commonly expressed as an index into the list.
+However, the index of a list element may change if other elements are concurrently inserted or deleted earlier in the list; this is the problem at the heart of Operational Transformation (see Section~\ref{sect.related.ot}).
+Instead of using indexes, the RGA algorithm assigns a unique, immutable identifier to each list element.
+
+Insertion operations place the new element \emph{after} an existing list element with a given ID, or at the head of the list if no ID is given.
+Deletion operations refer to the ID of the list element that is to be deleted.
+However, it is not safe for a deletion operation to completely remove a list element, because then a concurrent insertion after the deleted element would not be able to locate the insertion position.
+Instead, the list retains so-called \emph{tombstones}: a deletion operation merely sets a flag on a list element to mark it as deleted, but the element actually remains in the list.
+A separate garbage collection process can be used to eventually purge tombstones \cite{Roh:2011dw}, but we leave it out of the scope of this paper.
+
+The RGA state at each node is a list of elements.
+Each element is a triple consisting of the unique ID of the list element (of some type $\isacharprime\isa{id}$), the value inserted by the application (of some type $\isacharprime\isa{v}$), and a flag that indicates whether the element has been marked as deleted (of type $\isa{bool}$):
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{type{\isacharunderscore}synonym} {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ {\isacharequal}\ {\isachardoublequoteopen}{\isacharprime}id\ {\isasymtimes}\ {\isacharprime}v\ {\isasymtimes}\ bool{\isachardoublequoteclose}%
 \end{isabellebody}
 \vspace{0.375em}
-Here, we instruct Isabelle/HOL to treat the type ${\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt$ as an alias for the product type ${\isacharprime}id\ {\isasymtimes}\ {\isacharprime}v\ {\isasymtimes}\ bool$.
-Note that the type alias is parameterised by two type variables---${\isacharprime}id$ and ${\isacharprime}v$---the former of which is some arbitrary type of identifiers\footnote{When working in a context where the type variable ${\isacharprime}id$ is assumed to have an associated total (linear) order, we will indicate this syntactically using the syntax ${\isacharprime}\isa{id}{\isacharcolon}{\isacharcolon}{\isacharbraceleft}\isa{linorder}{\isacharbraceright}$ in types, which asserts that ${\isacharprime}\isa{id}$ should be substitutable only for types with an associated total order. Here $\isa{linorder}$ is the name of a type class supplied by the Isabelle/HOL library.}, whilst the latter stands for the type of data we will be storing in the RGA.
-The last component of the product is the tombstone, indicating deletion.
-We take $\isa{True}$ to indicate an element has been deleted.
 
-We now define the insertion operation, which operates in two modes reflecting the data type's use as a means of facilitating collaborative editing.
-In one mode, an element may be inserted at the head of the array, whilst in another mode, the user may specifically request that an element is placed \emph{after} another, comparing identifiers.
-In our mechanisation we therefore found it convenient to factor the definition of insertion into two functions: $\isa{insert-body}$ which never fails, and $\isa{insert}$ which may fail, and calls $\isa{insert-body}$ as a subroutine.
-
-The function $\isa{insert\ xs\ e\ i}$ performs a case analysis on its third argument, $\isa{i}$, which is an identifier wrapped inside an option type.
-If $\isa{i}$ is $\isa{None}$, then the user wishes the element to be placed at the head of the list, and $\isa{insert-body}$ is therefore immediately called which accomplishes this.
-Note here, though, that `at the head of the list' does not necessarily mean that the element will be placed as the first element.
-Rather, identifiers of elements will recursively be compared, and the new element will be placed at the first point where its identifier is strictly larger than those of existing elements in the list.
-If $\isa{i}$ is $\isa{Some}\ \isa{i}{\isacharprime}$ for some identifier $\isa{i}{\isacharprime}$, the user wishes the new element to appear after the element with identifier $\isa{i}{\isacharprime}$ in the list.
-This is done recursively by $\isa{insert}$ itself, and if an element with identifier $\isa{i}$ is not found in the list $\isa{xs}$, the function returns $\isa{None}$ indicating failure.
-
-The definition of the $\isa{insert-body}$ function is straightforward, with the function being defined by recursion over the list of elements and using Isabelle's pattern matching to destructure the list:
-\vspace{0.375em}
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{fun} insert{\isacharunderscore}body\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}linorder{\isacharbraceright}{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert{\isacharunderscore}body\ {\isacharbrackleft}{\isacharbrackright}\ \ \ \ \ e\ {\isacharequal}\ {\isacharbrackleft}e{\isacharbrackright}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert{\isacharunderscore}body\ {\isacharparenleft}x{\isacharhash}xs{\isacharparenright}\ e\ {\isacharequal}\ {\isacharparenleft}if\ fst\ x\ {\isacharless}\ fst\ e\ then\ e{\isacharhash}x{\isacharhash}xs\ else\ x{\isacharhash}insert{\isacharunderscore}body\ xs\ e{\isacharparenright}{\isachardoublequoteclose}
-\end{isabellebody}
-\vspace{0.375em}
-Note here that $\isa{fst}$ is an Isabelle library function that returns the first component of a tuple.
-Recalling the definition of the $\isa{elt}$ type alias, we see that $\isa{fst}\ x < \isa{fst}\ e$ in the conditional above is comparing the identifiers of the two elements.
-The definition of $\isa{insert}$ also follows a recursive scheme, pattern matching on both the input list, and the third argument---i.e. the position where to place the new element in the list:
+The $\isa{insert}$ function takes three parameters: the previous state of the list, the new element to insert, and optionally the ID of an existing element after which the new element should be inserted.
+It returns the list with the new element inserted at the appropriate position, or $\isa{None}$ on failure, which occurs if there was no existing element with the given ID.
+The function iterates over the list, and for each list element $\isa{x}$, it compares the ID (the first component of the $\isacharprime\isa{id} \mathbin{\isasymtimes} \isacharprime\isa{v} \mathbin{\isasymtimes} \isa{bool}$ triple, written $\isa{fst x}$) to the requested insertion position:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{fun} insert\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}linorder{\isacharbraceright}{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ {\isasymRightarrow}\ {\isacharprime}id\ option\ {\isasymrightharpoonup}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
@@ -56,9 +41,27 @@ The definition of $\isa{insert}$ also follows a recursive scheme, pattern matchi
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert\ {\isacharparenleft}x{\isacharhash}xs{\isacharparenright}\ e\ {\isacharparenleft}Some\ i{\isacharparenright}\ {\isacharequal}\ {\isacharparenleft}if\ fst\ x\ {\isacharequal}\ i\ then\ Some\ {\isacharparenleft}x{\isacharhash}insert{\isacharunderscore}body\ xs\ e{\isacharparenright}\ else\ do\ {\isacharbraceleft}\ t\ {\isasymleftarrow}\ insert\ xs\ e\ {\isacharparenleft}Some\ i{\isacharparenright}\ {\isacharsemicolon}\ Some\ {\isacharparenleft}x{\isacharhash}t{\isacharparenright}\ {\isacharbraceright}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-Here, $do {\isacharbraceleft} \ldots {\isacharbraceright}$ is a \emph{monadic sequencing block}, similar to Haskell's \emph{do}-notation, which will collapse with a failure (i.e. $\isa{None}$) return value if any intermediate computation (separated by semicolons) in the block fails.
+The notation $\isa{do}\ {\isacharbraceleft} \ldots {\isacharbraceright}$ is a \emph{monadic sequencing block}, similar to Haskell's \emph{do}-notation, which collapses to a return value of $\isa{None}$ if any of the block's semicolon-separated steps fails.
+When the insertion position is found (or, in the case of insertion at the head of the list, immediately), the function $\isa{insert-body}$ is invoked to perform the actual insertion:
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{fun} insert{\isacharunderscore}body\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}linorder{\isacharbraceright}{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert{\isacharunderscore}body\ {\isacharbrackleft}{\isacharbrackright}\ \ \ \ \ e\ {\isacharequal}\ {\isacharbrackleft}e{\isacharbrackright}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert{\isacharunderscore}body\ {\isacharparenleft}x{\isacharhash}xs{\isacharparenright}\ e\ {\isacharequal}\ {\isacharparenleft}if\ fst\ x\ {\isacharless}\ fst\ e\ then\ e{\isacharhash}x{\isacharhash}xs\ else\ x{\isacharhash}insert{\isacharunderscore}body\ xs\ e{\isacharparenright}{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
 
-The delete operation for the RGA is straightforward---it searches recursively for the element with a given identifier and change its flag to $\isa{True}$, which we take to mean that an element has been deleted:
+In a non-replicated datatype it would be sufficient to insert the new element directly at the position found by the $\isa{insert}$ function.
+However, a replicated setting is more difficult, because several nodes may concurrently insert new elements at the same position, and those insertion operations may be processed in a different order by different nodes.
+In order to ensure that all nodes converge towards the same state (that is, the same order of list elements), we sort any concurrent insertions at the same position in descending order of the inserted elements' IDs.
+This sorting is implemented in $\isa{insert-body}$ by skipping over any elements with an ID that is greater than that of the newly inserted element (the $\isa{fst x} > \isa{fst e}$ case), and then placing the new element before the first existing element with a lesser ID (the $\isa{fst x} < \isa{fst e}$ case).
+
+Note that the type of IDs is specified as $\isacharprime\isa{id}\isacharcolon\isacharcolon\isacharbraceleft\isa{linorder}\isacharbraceright$, which means that we require the type $\isacharprime\isa{id}$ to have an associated total (linear) order.
+$\isa{linorder}$ is the name of a type class supplied by the Isabelle/HOL library.
+This annotation is required in order to be able to perform the comparison $\isa{fst x} < \isa{fst e}$ on IDs.
+To be precise, RGA requires the total order of IDs to be consistent with causality, which can easily be achieved using the logical timestamps defined by \citet{Lamport:1978jq}.
+
+The delete operation is straightforward---it searches recursively for the element with a given identifier, and marks it as deleted by setting its flag to $\isa{True}$:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{fun} delete\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}linorder{\isacharbraceright}{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymRightarrow}\ {\isacharprime}id\ {\isasymrightharpoonup}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
@@ -68,6 +71,8 @@ The delete operation for the RGA is straightforward---it searches recursively fo
 \vspace{0.375em}
 Note that the operations presented here are deliberately inefficient, in order to make them easier to reason with.
 One can see our implementations of $\isa{insert-body}$, $\isa{insert}$, and $\isa{delete}$ as functional specifications for RGAs, which could be refined into more efficient algorithms using data refinement, if desired.
+
+\subsection{Convergence of RGA}
 
 We mention here, briefly, two useful lemmas that will be used later, and which characterise the conditions under which the $\isa{insert}$ and the $\isa{delete}$ functions can fail, i.e. return $\isa{None}$.
 For $\isa{delete\ xs\ i}$, the function will never fail if there exists an element in $\isa{xs}$ with identifier $\isa{i}$.
