@@ -1,23 +1,18 @@
 \section{An axiomatic network model}
 \label{sect.network}
 
-In this section, we incrementally work towards a definition of an asynchronous causal network, considering a number of intermediary abstractions.
-We conclude the section by demonstrating that our convergence theorem---$\isa{convergence}$, discussed in the previous section---has an analogue within our network model.
+In this section, we incrementally work towards a definition of an asynchronous causal network.
+This network model is useful because it gives us a realistic setting in which we can embed various replication algorithms, and prove that they guarantee strong eventual consistency in all possible executions of the network.
+Our network model is defined using only six axioms, all of which are standard assumptions in the modelling of distributed systems, and which are satisfied by many systems in practice.
+All theorems in this paper are derived from those axioms; in particular, we show that the causal delivery abstraction satisfies the strict partial ordering assumption of $\isa{hb-consistent}$ (Section~\ref{sect.happens.before}), allowing us to use the $\isa{convergence}$ theorem (Section~\ref{sect.ops.commute}) in locales that extend the network.
 
-We first consider a setting characterised by an arbitrary (unbounded) number of `nodes', `replicas', or `processes'.
-Precisely what these nodes are, and what their pattern of communication is, if any, is again left abstract at this point.
-Aside from being unbounded in number, nodes in this setting have two key properties:
-\begin{enumerate}
-\item
-They are uniquely named, and we can always refer to a node with some known unique identifier.
-We will use natural numbers to identify nodes.
-\item
-Each node has an ordered finite history of abstract `events' associated with it.
-All that can be said about this history is that it is a `local' history, in that it details a series of network events as the particular node in question perceives them, not a `global' history of all network events seen by some external monitor.
-A node's history therefore has a strict total order structure imposed on it, with every event in a node's history is assumed to be unique.
-Uniqueness is a reasonable assumption, as we may use timestamps or some other disambiguation device attached to messages to ensure that this property holds.
-\end{enumerate}
-We model the configuration of nodes described above with a local theory in Isabelle, which we call $\isa{node{\isacharunderscore}histories}$:
+\subsection{Modelling a distributed system}
+
+We begin by modelling a distributed system as an arbitrary, unbounded number of nodes.
+At the most abstract level, we do not assume anything about their communication pattern---we assume only that each node is uniquely identified by a natural number, and that the flow of execution at each node consists of a finite, totally ordered sequence of execution steps (events).
+We call that sequence of events at node $i$ the \emph{history} of that node.
+For convenience, we assume that every event or execution step is unique within a node's history; this assumption is standard in the modelling of distributed systems \cite{Cachin:2011wt} and can easily be implemented by attaching a sequence number, timestamp, or other unique identifier to each event.
+This system model can be expressed in Isabelle as follows:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{locale} node{\isacharunderscore}histories\ {\isacharequal}\ \isanewline
@@ -25,136 +20,172 @@ We model the configuration of nodes described above with a local theory in Isabe
 \end{isabellebody}
 \vspace{0.375em}
 Here, the history of a node $\isa{i}$ is obtained by using a function fixed by the local theory, $\isa{history}$.
-Concretely, we capture the fact that a node's local history is totally ordered by implementing histories as a list of events.
-Events are simply modelled as a type variable---here we use $\isa{{\isacharprime}a}$---to ensure that they are completely abstract.
-The $\isa{distinct}$ predicate is an Isabelle/HOL library function which asserts that a list has no repeated elements, upto equality.
-
-Note that the $\isa{node{\isacharunderscore}histories}$ local theory is quite general: it can handle both a bounded and unbounded number of nodes.
-In the former case, we simply assume that $\isa{history}$ is \emph{finitely supported}, in the sense that all but a bounded number of node histories are `empty', i.e. returns the empty list of events at those nodes.
+The history is simply a list of events, and each event is modelled as an abstract type variable---here we use $\isa{{\isacharprime}a}$.
+The $\isa{distinct}$ predicate is an Isabelle/HOL library function that asserts that a list contains no duplicate elements, up to equality.
+Note that we make no assumption about the number of nodes in the system, which allows us to model systems in which nodes join and leave the network over time.
+A node that does not exist is simply modelled by an empty list of events.
 
 Isabelle lists are finite, and therefore so is a node's history.
-At the end of a node's history, we assume that a node has either \emph{failed} or successfully terminated.
-In our model, a node can fail only once, which is modeled by the absence of any further events in the history, and after that it is deemed to have permanently dropped from the network.
+At the end of a node's history, we assume that a node has either failed or successfully terminated.
+In this model, a node failure is permanent, and is modelled by the absence of any further events in its history (there is no explicit failure event).
 This \emph{crash-stop} abstraction is commonly used by distributed algorithms \cite{Cachin:2011wt}.
-Crashes of one node cannot be detected by other nodes: a lack of messages at any given moment might indicate the crash of the sender, message loss, or network delay, and recipients of messages cannot distinguish between these causes.
 
-In the general setting of the $\isa{node{\isacharunderscore}histories}$ local theory, we may define when one event comes before another, at a fixed node.
-Writing $\isa{x} \sqsubset^\isa{i} \isa{y}$ for the \emph{comes before} relation at node $\isa{i}$, we assert that this relation holds whenever lists $\isa{xs}$, $\isa{ys}$ and $\isa{zs}$ exist such that $\isa{xs}@[\isa{x}]@\isa{ys}@[\isa{y}]@\isa{zs} = \isa{history\ i}$.
-Here $xs@ys$ denotes list append of $\isa{xs}$ and $\isa{ys}$.
+Within the $\isa{node{\isacharunderscore}histories}$ locale we may define when one event \emph{comes before} another at one particular node.
+We write $\isa{x} \sqsubset^\isa{i} \isa{y}$ whenever event $\isa{x}$ comes before event $\isa{y}$ in the history of node $\isa{i}$.
+More formally, $\isa{x} \sqsubset^\isa{i} \isa{y}$ whenever there exist lists $\isa{xs}$, $\isa{ys}$, and $\isa{zs}$ such that $\isa{xs}\mathbin{@}[\isa{x}]\mathbin{@}\isa{ys}\mathbin{@}[\isa{y}]\mathbin{@}\isa{zs} = \isa{history\ i}$.
 
-We now move to a slightly less abstract setting.
-In particular, the networks that we are modelling consider two different type of events: \emph{broadcast} and \emph{deliver}.
-A node can either broadcast a message to every other node on the network, in which case a broadcast event is registered, or can receive a message that has been broadcast by some other node, in which case a deliver event is registered.
-In this setting, though broadcast and deliver events have been made concrete, precisely what is being broadcast and delivered is still left unspecified: a message is still an abstract object that will be modelled with a type variable, as by remaining abstract as long as possible, we make our definitions more general.
-For operation-based CRDTs messages can be further specified to be an operation (as in this work, and where this specification will be made later in this section), or can be the data structure itself, as in state-based CRDTs.
-We define a type of events as a tagged union type, like so:
+\subsection{An asynchronous broadcast network}
+
+We now extend the $\isa{node-histories}$ locale by defining how nodes can communicate.
+We specialise $\isacharprime\isa{a}$ to be one of two kinds of event: either \emph{broadcast} or \emph{deliver}.
+(They could equivalently be called \emph{send} and \emph{receive}, but we stick to the conventional distributed systems terminology.)
+Each event contains a message of some abstract type $\isacharprime\isa{msg}$:
 \vspace{0.375em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{datatype} {\isacharprime}a\ event\ {\isacharequal}\ Broadcast\ {\isacharprime}a\ {\isacharbar}\ Deliver\ {\isacharprime}a
+\ \ \ \ \ \ \ \ \isacommand{datatype} {\isacharprime}msg\ event\ {\isacharequal}\ Broadcast\ {\isacharprime}msg\ {\isacharbar}\ Deliver\ {\isacharprime}msg
 \end{isabellebody}
 \vspace{0.375em}
-Here, the type variable $\isacharprime\isa{a}$ parameterising the type declaration is taken to be a type of messages.
 Intuitively, a node can be regarded as a deterministic state machine where each state transition corresponds to a broadcast or deliver event.
-We assume that users may query the state of any node at any time, and such queries do not constitute state transitions, since they neither modify the node state nor send or receive any messages.
+We assume that users may query the state of any node at any time, and such queries need not be reflected as events, since they neither modify the node state nor send or receive any messages.
 
-Our asynchronous networks possess several properties, or `laws', that relate broadcast and deliver messages appearing in the history of various nodes with each other.
-In particular, every message received by a node---in a deliver event---must have been broadcast by some node previously.
-Using this law, we can assert that no messages are created `out of thin air' by the network itself, and the only source of messages are the nodes of the network.
-
-Our network is not guaranteed to be reliable.
-Messages in our network, broadcast by a node, may be delayed, reordered, or even lost entirely, and when a node broadcasts some message, our network does not guarantee that every other node will receive this message in a corresponding deliver event.
-The only guarantee that our networks are able to make is that every node will receive its own broadcast messages in delivery events.
-When a node recieves its own broadcast messages is not specified.
-In particular, we make no guarantee that a node will receive its own messages immediately after broadcast, and there may in fact be a significant delay in delivery.
-
-Finally, our network's laws assert that all messages are unique.
-If some node has broadcast a message $\isa{m}$, it cannot be the case that some other node has also broadcast that same message.
-This is a reasonable assumption to make, as we may always assume that nodes on a real network implementation stamp messages with their own identifiers, when broadcasting, which are already unique by assumption, coupled with a timestamp, or other disambiguating device.
-We bundle all of these laws up, defining the notion of a law-abiding asynchronous network, with the $\isa{network}$ local theory, in Isabelle:
+We then define a new locale $\isa{network}$ containing three axioms that define how broadcast and deliver events may interact, and these axioms define the properties of our network model.
+Since $\isa{network}$ is an extension of $\isa{node-histories}$, the aforementioned definitions of $\isa{history}$ and $\sqsubset^\isa{i}$ are available for use in the $\isa{network}$ axioms:
 \vspace{0.375em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{locale} network\ {\isacharequal}\ node{\isacharunderscore}histories\ history\ \isakeyword{for}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharprime}a\ event\ list{\isachardoublequoteclose}\ {\isacharplus}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ broadcast{\isacharunderscore}before{\isacharunderscore}delivery{\isacharcolon}\ {\isachardoublequoteopen}Deliver\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ {\isasymexists}j{\isachardot}\ Broadcast\ m\ {\isasymsqsubset}\isactrlsup j\ Deliver\ m{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{locale}\ network\ {\isacharequal}\ node{\isacharunderscore}histories\ history\ \isakeyword{for}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharprime}msg\ event\ list{\isachardoublequoteclose}\ {\isacharplus}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ msg{\isacharunderscore}id\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}msg\ {\isasymRightarrow}\ {\isacharprime}msgid{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ delivery{\isacharunderscore}has{\isacharunderscore}a{\isacharunderscore}cause{\isacharcolon}\ {\isachardoublequoteopen}Deliver\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ {\isasymexists}j{\isachardot}\ Broadcast\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ deliver{\isacharunderscore}locally{\isacharcolon}\ {\isachardoublequoteopen}Broadcast\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ Broadcast\ m\ {\isasymsqsubset}\isactrlsup i\ Deliver\ m{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ broadcasts{\isacharunderscore}unique{\isacharcolon}\ {\isachardoublequoteopen}i\ {\isasymnoteq}\ j\ {\isasymLongrightarrow}\ Broadcast\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ Broadcast\ m\ {\isasymnotin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ msg{\isacharunderscore}id{\isacharunderscore}unique{\isacharcolon}\ {\isachardoublequoteopen}Broadcast\ m{\isadigit{1}}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ Broadcast\ m{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}\ {\isasymLongrightarrow}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ msg{\isacharunderscore}id\ m{\isadigit{1}}\ {\isacharequal}\ msg{\isacharunderscore}id\ m{\isadigit{2}}\ {\isasymLongrightarrow}\ i\ {\isacharequal}\ j\ {\isasymand}\ m{\isadigit{1}}\ {\isacharequal}\ m{\isadigit{2}}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-Here $\isa{broadcast{\isacharunderscore}before{\isacharunderscore}delivery}$ captures the idea that messages are not created out of thin air, $deliver{\isacharunderscore}locally$ captures the idea that all nodes receive their own broadcast messages, and $broadcasts{\isacharunderscore}unique$ captures the idea that no message can be broadcast by more than one node.
+The axioms can be understood as follows:
+\begin{description}
+    \item[delivery-has-a-cause:] If some message $\isa{m}$ was delivered at some node, then there exists some node on which $\isa{m}$ was broadcast.
+        With this axiom, we assert that messages are not created ``out of thin air'' by the network itself, and that the only source of messages are the nodes.
+    \item[deliver-locally:] If a node broadcasts some message $\isa{m}$, then the same node must subsequently also deliver $\isa{m}$ to itself.
+        Since $\isa{m}$ does not actually travel over the network, this local delivery is always possible, even if the network is interrupted.
+        Local delivery may seem redundant, since the effect of the delivery could also be implemented by the broadcast event itself; however, it is standard practice in the description of broadcast protocols that the sender of a message also sends it to itself, since this property simplifies the definition of algorithms built on top of the broadcast abstraction \cite{Cachin:2011wt}.
+    \item[msg-id-unique:] We do not assume that the message type $\isacharprime\isa{msg}$ has any particular structure; we only assume the existence of a function $\isa{msg-id} \mathbin{\isacharcolon\isacharcolon} \isacharprime\isa{msg} \mathbin{\isasymRightarrow} \isacharprime\isa{msgid}$ that maps every message to some globally unique identifier of type $\isacharprime\isa{msgid}$.
+        We assert this uniqueness by stating that if $\isa{m1}$ and $\isa{m2}$ are any two messages broadcast by any two nodes, and their $\isa{msg-id}$s are the same, then they were in fact broadcast by the same node and the two messages are identical. 
+        In practice, these globally unique IDs can by implemented using unique node identifiers, sequence numbers, timestamps, or random numbers.
+\end{description}
 
-Note also that the first line of the $\isa{network}$ local theory declaration is doing two important things.
-First, the $\isa{network}$ local theory is being defined as an \emph{extension} of the $node{\isacharunderscore}histories$ local theory, meaning all functions and axioms fixed or defined within the context of the latter become available in the former.
-This is why, for example, the axiom $\isa{broadcast{\isacharunderscore}before{\isacharunderscore}delivery}$---which mentions both the $\isa{history}$ function and the history order relation, defined within the scope of the $node{\isacharunderscore}histories$ local theory---is a well-formed formula.
-Second, $\isa{network}$ is not just extending the $node{\isacharunderscore}histories$ local theory, but also \emph{specialising} it at the same time.
-The fixed $\isa{history}$ function is now being constrained to return a list of elements of type ${\isacharprime}a\ \isa{event}$, declared above, rather than some abstract type variable, using the $\isacommand{for}$ construct.
+In addition, the $\isa{network}$ locale inherits the $\isa{histories-distinct}$ axiom from the parent locale $\isa{node-histories}$.
+Many other properties that we require can be deduced as lemmas from these axioms.
+For example, we can prove that for every message message that is delivered by some node, there is exactly one broadcast event (on the same or some other node) that created the message.
+Also, due to the $\isa{histories-distinct}$ axiom we know that the same message is not delivered more than once, an aspect that can easily be implemented in practical systems by deduplicating messages based on their unique ID.
 
-Now that we have some knowledge of broadcast and deliver events, we may define an important concept: the \emph{happens before} relation, which captures the notion of causality between events within the network.
-A message (or operation) $\isa{m1}$ is said to \emph{happen before} a message \isa{m2}, whenever:
+Note, however, that we are not making any assumptions about the reliability or the ordering of messages.
+If one node broadcasts a message, it \emph{may} be delivered by other nodes, but we do not state if or when that will happen.
+Messages may be arbitrarily delayed, reordered, or even lost entirely.
+It is even acceptable for a node to never deliver any messages besides those it broadcasts itself, modelling a node that is permanently disconnected from the network.
+
+\subsection{Causally ordered delivery}
+
+As discussed in Section~\ref{sect.happens.before}, some replication algorithms require that some operations be applied in a particular order because the later operation has a causal dependency on the earlier one.
+We previously characterised these dependencies using the \emph{happens-before} relation $\prec$, which we required to be a strict partial order, but otherwise kept abstract.
+In Section~\ref{sect.abstract.convergence} we reasoned about the order of \emph{operations}, but in a network we work with \emph{messages}.
+We will connect operations and messages in Section~\ref{sect.network.ops}; for now we will define a particular instance of the ordering relation $\prec$ on messages, and prove that it satisfies the requirements of a strict partial order.
+
+We do not use physical time (such as UTC) to define the order of messages, since reliance on physical time is often problematic in distributed systems \cite{Sheehy:2015jm}.
+Instead, we say that a message $\isa{m1}$ happens before another message $\isa{m2}$ if the node that generated $\isa{m2}$ ``knew about'' $\isa{m1}$ at the time $\isa{m2}$ was generated.
+More precisely, based on the well-known definition by \citet{Lamport:1978jq}, we say that $\isa{m1}\prec\isa{m2}$ if any of the following is true:
 \begin{enumerate}
-\item
-Both messages have been broadcast by the same node, and the broadcast event for message $\isa{m1}$ \emph{comes before} the broadcast event for message $\isa{m2}$,
-\item
-At some node, the delivery event for message $\isa{m1}$ \emph{comes before} the broadcast event for message $\isa{m2}$,
-\item
-There is another event for some message that interpolates the two other events, happening after the event for message $\isa{m1}$, but before the event for message $\isa{m2}$.
+\item $\isa{m1}$ and $\isa{m2}$ were broadcast by the same node, and $\isa{m1}$ was broadcast before $\isa{m2}$.
+\item The node that broadcast $\isa{m2}$ had delivered $\isa{m1}$ before it broadcast $\isa{m2}$.
+\item There exists some operation $\isa{m3}$ such that $\isa{m1} \prec \isa{m3}$ and $\isa{m3} \prec \isa{m2}$.
 \end{enumerate}
-The fact that the \emph{happens before} relation is a preorder is easily established, and a proof is omitted here.
-We may capture the definition of \emph{happens before} in Isabelle/HOL using an inductive relation, which we call $\isa{hb}$, or alternatively using the syntax $\isa{m1} \prec \isa{m2}$, to assert that $\isa{m1}$ \emph{happens before} $\isa{m2}$ per rules (1)--(3), above:
+
+\ifextended
+\begin{figure}
+\centering
+\input{happens-before}
+\caption{Illustrating the three conditions under which we consider one message to ``happen before'' another.}\label{fig.happens-before}
+\end{figure}
+The three cases are illustrated in Figure~\ref{fig.happens-before}.
+\fi
+This verbal definition translates directly into Isabelle syntax:
 \vspace{0.375em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{inductive} {\isacharparenleft}\isakeyword{in}\ network{\isacharparenright}\ hb\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{inductive} {\isacharparenleft}\isakeyword{in}\ network{\isacharparenright}\ hb\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}msg\ {\isasymRightarrow}\ {\isacharprime}msg\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}{\isasymlbrakk}\ Broadcast\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup i\ Broadcast\ m{\isadigit{2}}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{2}}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}{\isasymlbrakk}\ Deliver\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup i\ Broadcast\ m{\isadigit{2}}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{2}}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}{\isasymlbrakk}\ m{\isadigit{1}}\ $\prec$\  m{\isadigit{2}}{\isacharsemicolon}\ m{\isadigit{2}}\ $\prec$\ m{\isadigit{3}}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{3}}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-Our convergence proof requires that our networks abide by an additional law: \emph{causality}.
-We say that an asynchronous network is \emph{causal} if delivery events at a node respect the happens before relationship between those two events.
-In our proof, we only require that the happens before relation's ordering is respected at nodes which have the delivery of the second message in their local histories.
-Since causal asynchronous networks are a special form of asynchronous network, we describe these networks with a new local theory.
-This increases modularity and makes our definitions adaptable for other formalisations that do not depend on causality:
+Given this definition, we define a restricted variant of our broadcast network model by extending the $\isa{network}$ locale.
+In addition to the existing $\isa{network}$ axioms, we require that if there are any happens-before dependencies between messages, they must be delivered in that order.
+Concurrent messages may be delivered in any order.
+We express this requirement as follows:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{locale} causal{\isacharunderscore}network\ {\isacharequal}\ network\ {\isacharplus}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ causal{\isacharunderscore}delivery{\isacharcolon}\ {\isachardoublequoteopen}Deliver\ m{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{2}}\ {\isasymLongrightarrow}\ Deliver\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup j\ Deliver\ m{\isadigit{2}}{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ causal{\isacharunderscore}delivery{\isacharcolon}\ {\isachardoublequoteopen}Deliver\ m{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{2}}\ {\isasymLongrightarrow}\ Deliver\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup i\ Deliver\ m{\isadigit{2}}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-Here, $causal{\isacharunderscore}delivery$ captures the causality constraint, described above, that asynchronous causal networks must satisfy.
-Note also that the local theory $causal{\isacharunderscore}network$ is declared to be an extension of $network$.
+The $\isa{causal-delivery}$ axiom does not strengthen the reliability assumptions of the network: only in the case where some message $\isa{m2}$ is delivered, it requires that any causally preceding messages are delivered first.
+It is still possible for some message never to be delivered.
+The abstraction defined by this locale is known as \emph{causal broadcast}, and it is typically implemented in network protocols using vector timestamps \cite{Schwarz:1994gl,Fidge:1988tv,Raynal:1996jl}.
+As these protocols are widely known and well understood, we leave them out of scope for this paper.
 
-At this point, we now have sufficient machinery to interpret the \isa{happens-before} local theory that was defined in Section~\ref{sect.abstract.convergence}.
-Doing this requires that we provide a concrete implementation for the happens before relation fixed by that local theory and thereafter proving that it forms a preorder.
-Here, we will use the $\isa{hb}$ relation, defined earlier in this section, as that implementation, and we have already noted that this relation does indeed satisfies the laws of a preorder so the accompanying proof obligation is easily discharged.
-Once interpreted, all functions, definitions, and theorems made within the \isa{happens-before} locale become available to use in the locale \isa{network}, prefixed by \isa{hb}--- a `composing' of the definitions made within the $\isa{happens-before}$ local theory with our $\isa{hb}$ inductive relation.
-In particular, the definitions of \isa{hb.concurrent}, \isa{hb.concurrent-ops-commute} and \isa{hb.hb-consistent}; and the convergence theorem \isa{hb.convergence}.
+\subsection{Using operations in the network}\label{sect.network.ops}
 
-We end this section by describing an analogue of the convergence theorem in Section~\ref{sect.abstract.convergence} in the general setting of causal asynchronous networks.
-We first make a general observation: deliver events for messages are the only type of network event that can and will modify the state of a CRDT, and we therefore only need to consider these messages in our convergence theorem, as broadcast events for messages may be safely discarded, due to them having no effect on a replicated data type's state.
-Therefore, we define a function, $node{\isacharunderscore}deliver{\isacharunderscore}messages$ which filters a list of events to obtain a list of delivered messages.
-Next, we observe that a node's local history satisfies two important properties in causal asynchronous networks.
-First, the delivered messages of a prefix of a node's history are necessarily distinct:
+We can now include the convergence theorem into our network model by further extending the $\isa{causal-network}$ locale.
+In the new locale $\isa{network-with-ops}$ we do not assume any additional axioms---we only assume the existence of an interpretation function (see Section~\ref{sect.ops.interpretation}) and some fixed initial state:
 \vspace{0.375em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{lemma} {\isacharparenleft}\isakeyword{in}\ causal{\isacharunderscore}network{\isacharparenright}\ node{\isacharunderscore}deliver{\isacharunderscore}messages{\isacharunderscore}distinct{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}distinct\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \isacommand{locale}\ network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharequal}\ causal{\isacharunderscore}network\ history\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{for}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharprime}msg\ event\ list{\isachardoublequoteclose}\ {\isacharplus}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ interp\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}msg\ {\isasymRightarrow}\ {\isacharprime}state\ {\isasymrightharpoonup}\ {\isacharprime}state{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ initial{\isacharunderscore}state\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}state{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
+We have proved that the happens-before relation $\prec$ defined in the network is a strict partial order, so it meets the requirements of the $\isa{happens-before}$ locale.
+Moreover, we can prove that the sequence of message deliveries at any node is consistent with $\prec$, that is, it satisfies the definition of $\isa{hb-consistent}$ given in Section~\ref{sect.happens.before}:
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{theorem}\ {\isacharparenleft}\isakeyword{in}\ network{\isacharunderscore}with{\isacharunderscore}ops{\isacharparenright}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ i{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
 \noindent
-Further, the delivered messages of a prefix of a node's local history are also necessarily compatible with the happens before relation, the $hb$ relation defined above:
+where $\isa{node-deliver-messages}$ is a function that filters the history of events at some node to return only messages that were delivered, in the order they were delivered.
+We can now treat every message as an operation, and whenever a message is delivered at some node, we use its interpretation to change the state at that node.
+Broadcast events do not change the state, but since every message must be delivered locally at the node where it was broadcast, the state change nevertheless takes effect locally.
+We can then define the state of some node after executing some history by using our definition of $\isa{apply-operations}$ from Section~\ref{sect.ops.interpretation} (here renamed to $\isa{hb.apply-operations}$):
 \vspace{0.375em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{lemma} {\isacharparenleft}\isakeyword{in}\ causal{\isacharunderscore}network{\isacharparenright}\ hb{\isacharunderscore}consistent{\isacharunderscore}prefix{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isachardot}hb{\isacharunderscore}consistent\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \isacommand{definition}\ {\isacharparenleft}\isakeyword{in}\ network{\isacharunderscore}with{\isacharunderscore}ops{\isacharparenright}\ apply{\isacharunderscore}operations\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}msg\ event\ list\ {\isasymrightharpoonup}\ {\isacharprime}state{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ es\ {\isasymequiv}\ hb{\isachardot}apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ es{\isacharparenright}\ initial{\isacharunderscore}state{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-Taken together, these two properties imply that at any point in time, the messages received by a node are distinct and satisfy the consistency requirement defined in Section~\ref{sect.abstract.convergence}.
-With this, the abstract convergence theorem of Section~\ref{sect.abstract.convergence} can be refined to consider the prefixes of two different nodes with the same set of delivered messages.
-We then obtain a theorem that states that if concurrent messages commute, then both nodes converge to the same state, or rather the interpretation of the delivered messages of both nodes are the same:
+
+So far we have no restriction of what messages (operations) may be broadcast, except that they must be of some type $\isacharprime\isa{msg}$.
+Many replication algorithms have additional requirements regarding the contents of messages that cannot be expressed in Isabelle's type system.
+As a general-purpose mechanism for describing such requirements, the locale $\isa{network-with-constrained-ops}$ allows a replication algorithm to define a predicate $\isa{valid-op}$ that specifies whether a node is allowed to broadcast some message when in a particular state:
 \vspace{0.375em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{corollary} {\isacharparenleft}\isakeyword{in}\ causal{\isacharunderscore}network{\isacharparenright}\ network{\isacharunderscore}convergence{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose} \isakeyword{and}\ {\isachardoublequoteopen}ys\ prefix\ of\ j{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose} \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb.apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ hb.apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \isacommand{locale}\ network{\isacharunderscore}with{\isacharunderscore}constrained{\isacharunderscore}ops\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharplus}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ valid{\isacharunderscore}op\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}state\ {\isasymRightarrow}\ {\isacharprime}msg\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ broadcast{\isacharunderscore}only{\isacharunderscore}valid{\isacharunderscore}ops{\isacharcolon}\ {\isachardoublequoteopen}{\isasymexists}suf{\isachardot}\ pre\ {\isacharat}\ {\isacharbrackleft}Broadcast\ m{\isacharbrackright}\ {\isacharat}\ suf\ {\isacharequal}\ history\ i \ {\isasymLongrightarrow}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isasymexists}state{\isachardot}\ apply{\isacharunderscore}operations\ pre\ {\isacharequal}\ Some\ state\ {\isasymand}\ valid{\isacharunderscore}op\ state\ m{\isachardoublequoteclose}
 \end{isabellebody}
+\vspace{0.375em}
+
+$\isa{broadcast-only-valid-ops}$ is our final axiom, and it simply requires that if a node broadcasts some message, it must be a valid operation according to the $\isa{valid-op}$ predicate.
+Since the choice of messages to broadcast is under the control of the replication algorithm, and the replication algorithm defines this predicate, this assumption is reasonable.
+To summarise, the six axioms that define our network model are as follows:
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ histories{\isacharunderscore}distinct{\isacharcolon}\ {\isachardoublequoteopen}distinct\ {\isacharparenleft}history\ i{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ delivery{\isacharunderscore}has{\isacharunderscore}a{\isacharunderscore}cause{\isacharcolon}\ {\isachardoublequoteopen}Deliver\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ {\isasymexists}j{\isachardot}\ Broadcast\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ deliver{\isacharunderscore}locally{\isacharcolon}\ {\isachardoublequoteopen}Broadcast\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ Broadcast\ m\ {\isasymsqsubset}\isactrlsup i\ Deliver\ m{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ msg{\isacharunderscore}id{\isacharunderscore}unique{\isacharcolon}\ {\isachardoublequoteopen}Broadcast\ m{\isadigit{1}}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ Broadcast\ m{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}\ {\isasymLongrightarrow}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ msg{\isacharunderscore}id\ m{\isadigit{1}}\ {\isacharequal}\ msg{\isacharunderscore}id\ m{\isadigit{2}}\ {\isasymLongrightarrow}\ i\ {\isacharequal}\ j\ {\isasymand}\ m{\isadigit{1}}\ {\isacharequal}\ m{\isadigit{2}}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ causal{\isacharunderscore}delivery{\isacharcolon}\ {\isachardoublequoteopen}Deliver\ m{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{2}}\ {\isasymLongrightarrow}\ Deliver\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup i\ Deliver\ m{\isadigit{2}}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ broadcast{\isacharunderscore}only{\isacharunderscore}valid{\isacharunderscore}ops{\isacharcolon}\ {\isachardoublequoteopen}{\isasymexists}suf{\isachardot}\ pre\ {\isacharat}\ {\isacharbrackleft}Broadcast\ m{\isacharbrackright}\ {\isacharat}\ suf\ {\isacharequal}\ history\ i \ {\isasymLongrightarrow}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isasymexists}state{\isachardot}\ apply{\isacharunderscore}operations\ pre\ {\isacharequal}\ Some\ state\ {\isasymand}\ valid{\isacharunderscore}op\ state\ m{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}

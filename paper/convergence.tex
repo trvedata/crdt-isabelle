@@ -10,7 +10,7 @@ Rather, it uses an abstract model of operations that may be reordered, and reaso
 The convergence property given in Section~\ref{sect.eventual.consistency} implies that whenever two replicas have received the same set of operations, in \emph{any} order, their states must be equivalent---in other words, all operations must be commutative.
 This definition is too strong to be useful for many datatypes.
 For example, in a list or set data structure, an element may first be added and then subsequently removed again.
-Although such additions and removals can be made unconditionally commutative, doing so leads to semantics that are surprising to application developers \cite{Bieniusa:2012wu,Bieniusa:2012gt}.
+Although it is possible to make such additions and removals unconditionally commutative, doing so yields semantics that application developers find surprising \cite{Bieniusa:2012wu,Bieniusa:2012gt}.
 
 Instead, a better approach is to require only \emph{concurrent} operations to commute with each other.
 Two operations are concurrent if neither ``knew about'' the other at the time when they were generated.

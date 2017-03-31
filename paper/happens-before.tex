@@ -13,17 +13,17 @@
 \node [event] (op1recv) at (1,1.5) {};
 \node [event] (op2send) at (0,1.0) {};
 \node [event] (op2recv) at (1,0.5) {};
-\node [leftlabel]  at (0,2.0) {$\mathit{op}_1$};
-\node [rightlabel] at (1,1.5) {$\mathit{op}_1$};
-\node [leftlabel]  at (0,1.0) {$\mathit{op}_2$};
-\node [rightlabel] at (1,0.5) {$\mathit{op}_2$};
+\node [leftlabel]  at (0,2.0) {$\isa{m1}$};
+\node [rightlabel] at (1,1.5) {$\isa{m1}$};
+\node [leftlabel]  at (0,1.0) {$\isa{m2}$};
+\node [rightlabel] at (1,0.5) {$\isa{m2}$};
 \draw (i1name) -- (0,0) node [left=5pt,at end] {\footnotesize time};
 \draw (j1name) -- (1,0);
 \draw (op1send) -- (op1recv);
 \draw (op2send) -- (op2recv);
 \node [caption] at (0.5,0) {
-    $\mathit{op}_1 \prec \mathit{op}_2$
-    because node $i$ broadcast $\mathit{op}_1$ before $\mathit{op}_2$
+    $\isa{m1} \prec \isa{m2}$
+    because node $i$ broadcast $\isa{m1}$ before $\isa{m2}$
 };
 
 \node [label] (i2name) at (3,2.5) {Node $i$:};
@@ -34,10 +34,10 @@
 \node [event] (op3reck) at (5,1.5) {};
 \node [event] (op4send) at (4,1.0) {};
 \node [event] (op4reck) at (5,0.5) {};
-\node [leftlabel]  at (3,2.0) {$\mathit{op}_1$};
-\node [rightlabel] at (5,1.5) {$\mathit{op}_1$};
-\node [leftlabel]  at (4,1.0) {$\mathit{op}_2$};
-\node [rightlabel] at (5,0.5) {$\mathit{op}_2$};
+\node [leftlabel]  at (3,2.0) {$\isa{m1}$};
+\node [rightlabel] at (5,1.5) {$\isa{m1}$};
+\node [leftlabel]  at (4,1.0) {$\isa{m2}$};
+\node [rightlabel] at (5,0.5) {$\isa{m2}$};
 \draw (i2name) -- (3,0);
 \draw (j2name) -- (4,0);
 \draw (k2name) -- (5,0);
@@ -45,8 +45,8 @@
 \draw (op3send) -- (op3reck);
 \draw (op4send) -- (op4reck);
 \node [caption] at (4.0,0) {
-    $\mathit{op}_1 \prec \mathit{op}_2$
-    because node $j$ delivered $\mathit{op}_1$ before broadcasting $\mathit{op}_2$
+    $\isa{m1} \prec \isa{m2}$
+    because node $j$ delivered $\isa{m1}$ before broadcasting $\isa{m2}$
 };
 
 \node [label] (i3name) at  (7,2.5) {Node $i$:};
@@ -61,12 +61,12 @@
 \node [event] (op6recm) at (10,1.1) {};
 \node [event] (op7send) at  (9,0.8) {};
 \node [event] (op7recm) at (10,0.5) {};
-\node [leftlabel]  at  (7,2.0) {$\mathit{op}_1$};
-\node [rightlabel] at (10,1.7) {$\mathit{op}_1$};
-\node [leftlabel]  at  (8,1.4) {$\mathit{op}_2$};
-\node [rightlabel] at (10,1.1) {$\mathit{op}_2$};
-\node [leftlabel]  at  (9,0.8) {$\mathit{op}_3$};
-\node [rightlabel] at (10,0.5) {$\mathit{op}_3$};
+\node [leftlabel]  at  (7,2.0) {$\isa{m1}$};
+\node [rightlabel] at (10,1.7) {$\isa{m1}$};
+\node [leftlabel]  at  (8,1.4) {$\isa{m2}$};
+\node [rightlabel] at (10,1.1) {$\isa{m2}$};
+\node [leftlabel]  at  (9,0.8) {$\isa{m3}$};
+\node [rightlabel] at (10,0.5) {$\isa{m3}$};
 \draw (i3name) -- (7,0);
 \draw (j3name) -- (8,0);
 \draw (k3name) -- (9,0);
@@ -77,9 +77,9 @@
 \draw (op6send) -- (op6recm);
 \draw (op7send) -- (op7recm);
 \node [caption] at (8.5,0) {
-    $\mathit{op}_1 \prec \mathit{op}_3$ because
-    $\mathit{op}_1 \prec \mathit{op}_2$ and
-    $\mathit{op}_2 \prec \mathit{op}_3$
+    $\isa{m1} \prec \isa{m3}$ because
+    $\isa{m1} \prec \isa{m2}$ and
+    $\isa{m2} \prec \isa{m3}$
 };
 
 \end{tikzpicture}
