@@ -210,7 +210,7 @@ corollary (in orset) concurrent_add_remove_independent:
     and "Add i e1 \<in> set (node_deliver_messages xs)" and "Rem is e2 \<in> set (node_deliver_messages xs)"
   shows "i \<notin> is"
   using assms ids_imply_messages_same concurrent_add_remove_independent_technical by fastforce
-
+                                        
 lemma (in orset) rem_rem_commute:
   shows "\<langle>Rem i1 e1\<rangle> \<rhd> \<langle>Rem i2 e2\<rangle> = \<langle>Rem i2 e2\<rangle> \<rhd> \<langle>Rem i1 e1\<rangle>"
   by(unfold interpret_op_def op_elem_def kleisli_def, fastforce)
