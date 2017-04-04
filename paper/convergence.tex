@@ -2,7 +2,7 @@
 \label{sect.abstract.convergence}
 
 We now use Isabelle to formalise the notion of strong eventual concistency, as informally defined in Section~\ref{sect.eventual.consistency}.
-To maximise the generality of our framework, it does not make any assumptions about networks, data structures, or conflict resolution algorithms.
+To maximise the generality of our framework, our approach does not make any assumptions about networks, data structures, or conflict resolution algorithms.
 Rather, it uses an abstract model of operations that may be reordered, and reasons about the properties that those operations must satisfy.
 
 \subsection{The happens-before relation and causality}\label{sect.happens.before}
@@ -20,8 +20,8 @@ The \emph{happens-before} relation, as introduced by \citet{Lamport:1978jq}, cap
 It can be defined in terms of sending and receiving messages on a network, and we give such a definition in Section~\ref{sect.network}.
 However, for now, we keep it abstract and general.
 We write $\isa{x} \prec \isa{y}$ to indicate that operation $\isa{x}$ happened before $\isa{y}$, where $\prec$ is a predicate of type $\isacharprime\isa{oper} \mathbin{\isasymRightarrow} \isacharprime\isa{oper} \mathbin{\isasymRightarrow} \isa{bool}$.
-In words, $\prec$ can be applied to two operations of some abstract type $\isacharprime\isa{oper}$, returning either $\isa{True}$ or $\isa{False}$
-\footnote{Note that in the distributed systems literature it is conventional to write the happens-before relation as $\isa{x} \rightarrow \isa{y}$, but we reserve the arrow operator to denote logical implication.}.
+In words, $\prec$ can be applied to two operations of some abstract type $\isacharprime\isa{oper}$, returning either $\isa{True}$ or $\isa{False}$.%
+\footnote{Note that in the distributed systems literature it is conventional to write the happens-before relation as $\isa{x} \rightarrow \isa{y}$, but we reserve the arrow operator to denote logical implication.}
 
 Our only restriction on the happens-before relation $\prec$ is that it must be a \emph{strict partial order}, that is, it must be irreflexive and transitive, which implies that it is also antisymmetric.
 We say that two operations $x$ and $y$ are \emph{concurrent}, written $x \mathbin{\isasymparallel} y$, whenever one does not happen before the other:
