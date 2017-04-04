@@ -14,7 +14,7 @@ fun interpret_opers :: "('id::linorder, 'v) operation \<Rightarrow> ('id, 'v) el
   "interpret_opers (Delete n)   xs  = delete xs n"
 
 definition element_ids :: "('id, 'v) elt list \<Rightarrow> 'id set" where
- "element_ids list = fst ` set list"
+ "element_ids list \<equiv> set (map fst list)"
 
 definition valid_list_op :: "(('id::linorder, 'v) operation \<Rightarrow> 'id) \<Rightarrow> ('id, 'v) elt list \<Rightarrow> ('id::linorder, 'v) operation \<Rightarrow> bool" where
  "valid_list_op msg_id list oper \<equiv> case oper of
@@ -118,7 +118,7 @@ using assms unfolding element_ids_def
   apply(meson bind_eq_Some_conv)
   apply(erule exE)
   apply(metis (no_types, lifting) someone_inserted_id apply_operations_Deliver element_ids_def
-    image_eqI prefix_of_appendD prod.sel(1))
+    image_eqI prefix_of_appendD prod.sel(1) set_map)
 done
 
 lemma (in rga) insert_in_apply_set:
@@ -231,7 +231,8 @@ lemma (in rga) Insert_no_failure:
   assumes "es @ [Deliver (Insert e n)] prefix of i" 
       and "apply_operations es = Some s"
     shows "\<exists>ys. insert s e n = Some ys"
-by(metis element_ids_def allowed_insert_deliver_in_set assms fst_conv insert_in_apply_set insert_no_failure)
+by(metis (no_types, lifting) element_ids_def allowed_insert_deliver_in_set assms fst_conv
+    insert_in_apply_set insert_no_failure set_map)
 
 lemma (in rga) delete_no_failure:
   assumes "es @ [Deliver (Delete n)] prefix of i"
@@ -243,7 +244,7 @@ using assms
   apply clarsimp
   apply(rule delete_no_failure)
   apply(drule idx_in_elem_inserted)
-  apply(metis apply_opers_idx_elems element_ids_def prefix_of_appendD prod.sel(1))
+  apply(metis apply_opers_idx_elems element_ids_def prefix_of_appendD prod.sel(1) set_map)
 done
 
 lemma (in rga) Insert_equal:
