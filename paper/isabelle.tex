@@ -18,7 +18,7 @@ Dashed arrows indicate a sublocale that satisfies the assumptions of the superlo
 }\label{fig.proof.structure}
 \end{figure}
 
-Since our formalisation of distributed algorithms goes into more depth than most prior work, it is important to have a structure that keeps the proofs manageable.
+Since our formalisation of distributed algorithms goes into more depth than prior work on strong eventual consistency, it is important to have a structure that keeps the proofs manageable.
 Our approach breaks the proof into simple modules with cleanly defined properties---called \emph{locales}---and composes them in order to describe more complex objects.
 This locale structure is illustrated in Figure~\ref{fig.proof.structure} and explained below.
 See Section~\ref{sect.isabelle.locales} for more detail on locales.
@@ -31,7 +31,7 @@ Our definition of correctness in this work is that the algorithms achieve strong
 We describe our formalisation of this definition in Section~\ref{sect.abstract.convergence}.
 In particular, we define what we mean with convergence, and prove an \emph{abstract convergence theorem}, which states that replicas converge if concurrent operations commute.
 We are able to prove this fact without mentioning networks nor any particular CRDT, but merely by reasoning about the ordering and properties of operations.
-This definition constitutes an abstract specification of what we mean with strong eventual consistency.
+This definition constitutes an abstract specification of what we mean by strong eventual consistency.
 
 In Section~\ref{sect.network} we describe an axiomatic model of asynchronous networks, built around a broadcast-deliver event model.
 The definition of the network is important because it allows us to prove that certain properties hold in all possible executions of the network, and that we are not making any dangerous assumptions that might be violated---an aspect that has dogged previous verification efforts (see Section~\ref{sect.related.verification}).
@@ -48,7 +48,7 @@ Insertion and deletion only commute under various conditions, so we prove that t
 Next, in Section~\ref{sect.simple.crdts}, we demonstrate the generality of our proof framework with definitions of two simple CRDTs: a counter and an observed-remove set (ORSet).
 We show that with the previously established tooling in place, it is very easy to prove that these algorithms implement the abstract specification of SEC.
 
-As illustrated in Figure~\ref{fig.proof.structure}, the $\isa{counter}$, $\isa{orset}$, and $\isa{rga}$ locales are defined to extend the network model (so they are able to use all of their definitions and lemmas), and we prove that each of them satisfies the abstract specification $\isa{strong-eventual-consistency}$ (which encapsulates the properties that we want).
+As illustrated in Figure~\ref{fig.proof.structure}, the $\isa{counter}$, $\isa{orset}$, and $\isa{rga}$ locales can use the definitions and lemmas of the network model because they extend the network model. We then prove that all three locales satisfies the abstract specification $\isa{strong-eventual-consistency}$, and therefore formally prove these algorithms do indeed provide strong eventual consistency.
 
 \subsection{An overview of Isabelle}
 \label{subsect.an.overview.of.isabelle}

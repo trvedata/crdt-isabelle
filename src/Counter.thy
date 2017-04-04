@@ -14,13 +14,16 @@ lemma increment_decrement_commute:
   shows "increment (decrement x) = decrement (increment x)"
   by(simp add: decrement_def increment_def)
     
-datatype operation = Increment | Decrement
+datatype 'id operation = Increment "'id" | Decrement "'id"
     
-fun interpret_operation :: "operation \<Rightarrow> int \<rightharpoonup> int" where
-  "interpret_operation Increment = Some o increment" |
-  "interpret_operation Decrement = Some o decrement"
+fun interpret_operation :: "'id operation \<Rightarrow> int \<rightharpoonup> int" where
+  "interpret_operation (Increment _) = Some o increment" |
+  "interpret_operation (Decrement _) = Some o decrement"
+  
+definition msg_id :: "'id operation \<Rightarrow> 'id" where
+  "msg_id oper \<equiv> case oper of Increment i \<Rightarrow> i | Decrement i \<Rightarrow> i"
     
-locale counter = network_with_ops _ _ interpret_operation 0
+locale counter = network_with_ops msg_id _ interpret_operation 0
   
 lemma (in counter) concurrent_operations_commute:
   assumes "xs prefix of i"
