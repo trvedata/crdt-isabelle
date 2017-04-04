@@ -379,6 +379,10 @@ using assms
   using same_insert apply force
 done
 
+corollary (in rga) concurrent_operations_commute':
+  shows "hb.concurrent_ops_commute (node_deliver_messages (history i))"
+by (meson concurrent_operations_commute append.right_neutral prefix_of_node_history_def)
+
 lemma (in rga) apply_operations_never_fails:
   assumes "xs prefix of i"
   shows "apply_operations xs \<noteq> None"
@@ -391,7 +395,11 @@ lemma (in rga) apply_operations_never_fails:
    apply (metis bind.bind_lunit interpret_opers.simps(1) prefix_of_appendD rga.Insert_no_failure rga_axioms)
   apply(metis bind.bind_lunit interpret_opers.simps(2) local.delete_no_failure prefix_of_appendD)
   done
-  
+
+lemma (in rga) apply_operations_never_fails':
+  shows "apply_operations (history i) \<noteq> None"
+by (meson apply_operations_never_fails append.right_neutral prefix_of_node_history_def)
+
 corollary (in rga) rga_convergence:
   assumes "set (node_deliver_messages xs) = set (node_deliver_messages ys)"
       and "xs prefix of i"
