@@ -73,9 +73,8 @@ From this, and our abstract convergence theorems, we can show convergence for th
 \subsection{Observed-removed set}
 \label{subsect.observed-removed.set}
 
-The ORSet is a classic CRDT for implementing replicated sets.  As expected, the
-data structure supports two operations: \emph{insertion} and \emph{deletion} of
-an arbitrary element in the shared set. As usual, this is model as:
+The ORSet is a well-known CRDT for implementing replicated sets, supporting two operations: the \emph{insertion} and \emph{deletion} of an arbitrary element in the shared set.
+We start by providing a concrete type of network messages, representing the two possible operations:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{datatype}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isacharequal}\ Add\ {\isachardoublequoteopen}{\isacharprime}id{\isachardoublequoteclose}\ {\isachardoublequoteopen}{\isacharprime}a{\isachardoublequoteclose}\ {\isacharbar}\ Rem\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id\ set{\isacharparenright}{\isachardoublequoteclose}\ {\isachardoublequoteopen}{\isacharprime}a{\isachardoublequoteclose}
@@ -83,23 +82,16 @@ an arbitrary element in the shared set. As usual, this is model as:
 \vspace{0.375em}
 
 \noindent Here, ${\isacharprime}id$ is an abstract type of message identifiers.
-An insertion message is tagged with an identifier in order to distinguish
-between different invocations of the operation, whereas a deletion message is
-tagged with a set of identifiers (a tombstone set), tagging all insertion
-operation to be considered when establishing element membership.  An element
-can always be added again, since the identifier is always fresh, different from
-old ones. When the same element $e$ is both added and removed concurrently, the
-identifier of the element added will not be in the tombstone set of the remove
-operation, the state observed after considering these two operations therefore
-contains the element $e$.  A
-\isa{{\isacharparenleft}{\isacharprime}id{\isacharcomma}\
-{\isacharprime}a{\isacharparenright}\ state} in this setting is simply a
-function mapping an element to a set of `observed' identifiers, \emph{i.e.}
-\isa{{\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\
-{\isacharprime}id\ set{\isachardoublequoteclose}}. If this set is empty, the
-element is not in the data structure.  The interpretation of each operation is
-therefore straightforward: insertions add a fresh element identifier to the
-associated observed identifiers set and deletions remove a subset of them.
+Insertion messages are tagged with an identifier in order to distinguish between different invocations of the operation.
+Deletion messages are tagged with a set of identifiers (a `tombstone set'), which identifies all insertion operations that should be considered deleted when establishing element membership.
+An element may always be added again, since identifiers are always fresh, and therefore distinct from old identifiers used in previous messages.
+
+When an element $e$ is concurrently inserted and deleted, the identifier of the insertion message will not be in the tombstone set of the deletion message.
+As a result, the state observed after considering these two operations will contain the element $e$.
+Here, an \isa{{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ state} in this setting is simply a function mapping an element to a set of `observed' identifiers, i.e. \isa{{\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}id\ set{\isachardoublequoteclose}}.
+If this set is empty, the element is not in the data structure.
+
+The interpretation of each operation is straightforward: insertions add a fresh element identifier to the associated observed identifiers set and deletions remove a subset of them:
 
 \vspace{0.375em}
 \begin{isabellebody}
@@ -111,10 +103,9 @@ associated observed identifiers set and deletions remove a subset of them.
 \end{isabellebody}
 \vspace{0.375em}
 
-When removing an element, a node must use the entire observed set of
-identifiers for the particular element. Since messages identifiers in the
-network are also always fresh, we use them when adding new elements. The
-\isa{valid-behaviours} predicate for ORSet becomes then:
+When removing an element $e$, a node must use the entire observed set of identifiers for $e$.
+Since message identifiers in the network are always fresh, we use them when adding new elements.
+The \isa{valid-behaviours} predicate for ORSet is then:
 
 \vspace{0.375em}
 \begin{isabellebody}
