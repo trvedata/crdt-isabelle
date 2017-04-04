@@ -72,32 +72,9 @@ The delete operation is straightforward---it searches recursively for the elemen
 Note that the operations presented here are deliberately inefficient, in order to make them easier to reason with.
 One can see our implementations of $\isa{insert-body}$, $\isa{insert}$, and $\isa{delete}$ as functional specifications for RGAs, which could be refined into more efficient algorithms using data refinement, if desired.
 
-\subsection{Convergence of RGA}
+\subsection{Commutativity of insertion and deletion}
 
-We mention here, briefly, two useful lemmas that will be used later, and which characterise the conditions under which the $\isa{insert}$ and the $\isa{delete}$ functions can fail, i.e. return $\isa{None}$.
-For $\isa{delete\ xs\ i}$, the function will never fail if there exists an element in $\isa{xs}$ with identifier $\isa{i}$.
-This is captured by the lemma $\isa{delete}{\isacharunderscore}\isa{no}{\isacharunderscore}\isa{failure}$:
-\vspace{0.375em}
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{lemma} delete{\isacharunderscore}no{\isacharunderscore}failure{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i\ {\isasymin}\ fst\ {\isacharbackquote}\ set\ xs{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}{\isasymexists}xs{\isacharprime}{\isachardot}\ delete\ xs\ i\ {\isacharequal}\ Some\ xs{\isacharprime}{\isachardoublequoteclose}\isanewline
-\end{isabellebody}
-\vspace{0.375em}
-\noindent
-For $\isa{insert\ xs\ e\ i}$, the function will never fail if $\isa{i}$ is $\isa{None}$ or there exists an element in $\isa{xs}$ with identifier $\isa{i}$:
-\vspace{0.375em}
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{lemma} insert{\isacharunderscore}no{\isacharunderscore}failure{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i\ {\isacharequal}\ None\ {\isasymor}\ {\isacharparenleft}{\isasymexists}i{\isacharprime}{\isachardot}\ i\ {\isacharequal}\ Some\ i{\isacharprime}\ {\isasymand}\ i{\isacharprime}\ {\isasymin}\ fst\ {\isacharbackquote} set\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}{\isasymexists}xs{\isacharprime}{\isachardot}\ insert\ xs\ e\ i\ {\isacharequal}\ Some\ xs{\isacharprime}{\isachardoublequoteclose}
-\end{isabellebody}
-\vspace{0.375em}
-Intuitively, the $\isa{insert}{\isacharunderscore}\isa{no}{\isacharunderscore}\isa{failure}$ lemma above states that we may always insert an element at the head of the list, or insert an element after an existing element, with no risk of failure of the insertion operation.
-Here, the notation $\isa{f}\ \isacharbackquote\ \isa{ss}$ is the pointwise action of the function $\isa{f}$ over elements in the set $\isa{ss}$.
-
-We now change tack, and prove that $\isa{insert}$ and $\isa{delete}$ commute.
-Technical lemmas relating to the commutation of $\isa{insert-body}$ will be elided.
+Recall from Section~\ref{sect.ops.commute} that in order to prove the convergence theorem we need to show that for the datatype in question, all concurrent operations commute.
 It is straightforward to demonstrate that $\isa{delete}$ will always commute with itself, on concurrent and non-concurrent operations alike:
 \vspace{0.375em}
 \begin{isabellebody}
@@ -105,9 +82,11 @@ It is straightforward to demonstrate that $\isa{delete}$ will always commute wit
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ delete\ xs\ i{\isadigit{1}}{\isacharsemicolon}\ delete\ ys\ i{\isadigit{2}}\ {\isacharbraceright}\ {\isacharequal}\ do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ delete\ xs\ i{\isadigit{2}}{\isacharsemicolon}\ delete\ ys\ i{\isadigit{1}}\ {\isacharbraceright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-Demonstrating commutativity for $\isa{insert}$ is a little more complex, however.
-Call $\isa{insert}\ \isa{xs}\ \isa{e1}\ \isa{i1}$ and $\isa{insert}\ \isa{xs}\ \isa{e2}\ \isa{i2}$ operations \emph{concurrent} whenever $\isa{i1}$ is not the identifier of $\isa{e2}$ and $\isa{i2}$ is not the identifier of $\isa{e1}$.
-Assuming that every element already present in the list $\isa{xs}$ has a unique identifier---and therefore the identifiers of $\isa{e1}$ and $\isa{e2}$ are distinct---we can show that $\isa{insert}$ commutes with itself on concurrent insertion operations:
+
+Is a little more complex to demonstrate that two $\isa{insert}$ operations commute.
+Let $\isa{e1}$ and $\isa{e2}$ be the two new list elements being inserted, each of which is a $\isacharprime\isa{id} \mathbin{\isasymtimes} \isacharprime\isa{v} \mathbin{\isasymtimes} \isa{bool}$ triple.
+Further, let $\isa{i1} \mathbin{\isacharcolon\isacharcolon} \isacharprime\isa{id option}$ be the position after which $\isa{e1}$ should be inserted (either $\isa{None}$ for the head of the list, or $\isa{Some i}$ where $\isa{i}$ is the ID of an existing list element), and similarly $\isa{i2}$ is the position after which $\isa{e2}$ should be inserted.
+Then the two insertions commute only under certain assumptions:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{lemma} insert{\isacharunderscore}commutes{\isacharcolon}\isanewline
@@ -115,7 +94,10 @@ Assuming that every element already present in the list $\isa{xs}$ has a unique 
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ insert\ xs\ e{\isadigit{1}}\ i{\isadigit{1}}{\isacharsemicolon}\ insert\ ys\ e{\isadigit{2}}\ i{\isadigit{2}}\ {\isacharbraceright}\ {\isacharequal}\ do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ insert\ xs\ e{\isadigit{2}}\ i{\isadigit{2}}{\isacharsemicolon}\ insert\ ys\ e{\isadigit{1}}\ i{\isadigit{1}}\ {\isacharbraceright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-Finally, $\isa{delete}$ commutes with $\isa{insert}$ whenever the element to be deleted is not the same as the element to be inserted---in other words, when the two operations are concurrent:
+\noindent
+That is, $\isa{i1}$ cannot refer to the ID of $\isa{e2}$ and vice versa, and the IDs of the two insertions must be distinct.
+We prove later that these assumptions are indeed satisfied for all concurrent operations.
+Finally, $\isa{delete}$ commutes with $\isa{insert}$ whenever the element to be deleted is not the same as the element to be inserted:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{lemma} insert{\isacharunderscore}delete{\isacharunderscore}commute{\isacharcolon}\isanewline
@@ -123,87 +105,74 @@ Finally, $\isa{delete}$ commutes with $\isa{insert}$ whenever the element to be 
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ insert\ xs\ e\ i{\isadigit{1}}{\isacharsemicolon}\ delete\ ys\ i{\isadigit{2}}\ {\isacharbraceright}\ {\isacharequal}\ do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ delete\ xs\ i{\isadigit{2}}{\isacharsemicolon}\ insert\ ys\ e\ i{\isadigit{1}}\ {\isacharbraceright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-We now begin to work towards a proof that the RGA CRDT converges.
-The RGA's two operations are only commutative when preconditions are met.
-This in turn is reflected in the fact that the RGA only converges when its insert and delete operations are used in a certain mode, which one may think of an associated `protocol' which guarantees that the RGA will converge providing that users only call insert and delete operations in a certain order.
-We therefore now refine our model of the network, considering only those network executions which follow this RGA `protocol', which is made manifest as three new laws that networks must possess.
-In this new setting, we also refine the type of messages being passed around the network, working with a concrete type of messages, which corresponds to the $\isa{insert}$ and $\isa{delete}$ operations supported by the RGA:
+
+\subsection{Embedding RGA in the network model}
+
+In order to obtain a proof of the strong eventual consistency of RGA, we embed the insertion and deletion operations in the network model of Section~\ref{sect.network}.
+We first define a datatype for operations (which are sent across the network as messages), and an interpretation function as introduced in Section~\ref{sect.ops.interpretation}:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{datatype} {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ operation\ {\isacharequal} Insert\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt{\isachardoublequoteclose}\ {\isachardoublequoteopen}{\isacharprime}id\ option{\isachardoublequoteclose}\ {\isacharbar} Delete\ {\isachardoublequoteopen}{\isacharprime}id{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-The connection between the $\isa{operation}$ data type, and the RGA's supported operations, is made apparent using the $\isa{interpret-opers}$ function, which decodes a message (of type $\isa{operation}$) and lifts it into a partial function from lists of elements to lists of elements, by calling either $\isa{insert}$ or $\isa{delete}$ as appropriate:
-\vspace{0.375em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{fun} interpret{\isacharunderscore}opers\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}linorder{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ operation\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymrightharpoonup}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list{\isachardoublequoteclose}\ {\isacharparenleft}{\isachardoublequoteopen}{\isasymlangle}{\isacharunderscore}{\isasymrangle}{\isachardoublequoteclose}\ {\isacharbrackleft}{\isadigit{0}}{\isacharbrackright}\ {\isadigit{1}}{\isadigit{0}}{\isadigit{0}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{fun} interpret{\isacharunderscore}opers\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}linorder{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ operation\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymrightharpoonup}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}interpret{\isacharunderscore}opers\ {\isacharparenleft}Insert\ e\ n{\isacharparenright}\ xs\ \ {\isacharequal}\ insert\ xs\ e\ n{\isachardoublequoteclose}\ {\isacharbar}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}interpret{\isacharunderscore}opers\ {\isacharparenleft}Delete\ n{\isacharparenright}\ \ \ xs\ \ {\isacharequal}\ delete\ xs\ n{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-We now begin to develop the RGA `protocol'.
-First, we introduce a small extension of the $\isa{causal-network}$ locale, which we call a $\isa{network-with-ops}$:
+
+As discussed above, the validity of operations depends on some assumptions: IDs of insertion operations must be unique, and whenever an insertion or deletion operation refers to an existing list element, that element must exist.
+We can describe these requirement by using a predicate that specifies whether a node is allowed to broadcast some operation when in a particular state, as introduced in Section~\ref{sect.network.ops}:
 \vspace{0.375em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{locale} network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharequal}\ causal{\isacharunderscore}network\ history\ \isakeyword{for}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharprime}a\ event\ list{\isachardoublequoteclose}\ {\isacharplus}\ \isakeyword{fixes}\ interp\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}b\ {\isasymrightharpoonup}\ {\isacharprime}b{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \isacommand{definition}\ element{\isacharunderscore}ids\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymRightarrow}\ {\isacharprime}id\ set{\isachardoublequoteclose}\ \isakeyword{where}\ {\isachardoublequoteopen}element{\isacharunderscore}ids\ list\ {\isasymequiv}\ set\ {\isacharparenleft}map\ fst\ list{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-Intuitively, this locale does not do much more than $\isa{causal-network}$ does, other than provide a fixed function called $\isa{interp}$ which interprets an abstract message and produces a partial function that transforms abstract states, modelled as a type variable, ${\isacharprime}b$.
-The main reason to introduce $\isa{network-with-ops}$ is to serve as the `exit point' of RGA-agnostic code in our development, and the `entry point' of code tied to a specific RGA.
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{definition}\ valid{\isacharunderscore}list{\isacharunderscore}op\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ operation\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}valid{\isacharunderscore}list{\isacharunderscore}op\ list\ oper\ {\isasymequiv}\ case\ oper\ of\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ Insert\ e\ \ None\ \ \ \ \ \ {\isasymRightarrow}\ fst\ e\ {\isacharequal}\ msg{\isacharunderscore}id\ oper\ {\isacharbar}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ Insert\ e\ {\isacharparenleft}Some\ pos{\isacharparenright}\ {\isasymRightarrow}\ fst\ e\ {\isacharequal}\ msg{\isacharunderscore}id\ oper\ {\isasymand}\ pos\ {\isasymin}\ element{\isacharunderscore}ids\ list\ {\isacharbar}\isanewline
+\ \ \ \ \ \ \ \ \ \ \ \ Delete\ \ \ \ \ \ \ \ \ pos\ \ {\isasymRightarrow}\ pos\ {\isasymin}\ element{\isacharunderscore}ids\ list{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
+With these definitions set up, we can define RGA as a sublocale of $\isa{network-with-constrained-ops}$. The interpretation function is instantiated with $\isa{interpret-opers}$, the initial state with the empty list literal $\isacharbrackleft\isacharbrackright$, and the operation validity predicate with $\isa{valid-list-op}$:
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{locale}\ rga\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}constrained{\isacharunderscore}ops\ msg{\isacharunderscore}id\ {\isacharunderscore}\ interpret{\isacharunderscore}opers\ {\isachardoublequoteopen}{\isacharbrackleft}{\isacharbrackright}{\isachardoublequoteclose}\ {\isachardoublequoteopen}valid{\isacharunderscore}list{\isacharunderscore}op{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{for}\ msg{\isacharunderscore}id\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}linorder{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ operation\ {\isasymRightarrow}\ {\isacharprime}id{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
 
-Immediately, we extend $\isa{network-with-ops}$ further, instantiating the interpretation function with the $\isa{interpret-opers}$ function above, which decodes RGA messages and maps lists to lists.
-Further, we add three new laws to the network, describing the RGA `protocol' which constrains network behaviours:
-\begin{enumerate}
-\item
-A node may only broadcast an insert message when trying to insert into the head of the list, or alternatively when trying to insert an element after some existing element already in the list.
-In this second case, the node must have previously received an insertion message for an element with the identifier of the element to insert after.
-\item
-If two nodes try to broadcast insert messages of elements with the same identifier then the messages are the same.
-In other words, every broadcast message is unique.
-\item
-A node may only broadcast a delete message for some element if it has previously received an insert message for an element with the same identifier, i.e. only existing elements may be deleted from the list.
-\end{enumerate}
-We define a new locale, $\isa{rga}$, which captures these three laws.
-The new locale extends $\isa{network-with-ops}$, but also specialises it: messages are now of type $\isa{operation}$ detailing RGA insert and delete operations, and states are ordered lists of elements to match the type of $\isa{interpret-opers}$:
+Within this locale, we prove that whenever an insertion or deletion operation $\isa{op2}$ references an existing list element, there is always another insertion operation $\isa{op1}$ that created the element being referenced:
 \vspace{0.375em}
-\begin{isabellebody} % TODO: fix me --- layout has gone wrong
-\ \ \ \ \ \ \ \ \isacommand{locale} rga\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharunderscore}\ interpret{\isacharunderscore}opers\ {\isacharplus}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ allowed{\isacharunderscore}insert{\isacharcolon}\ {\isachardoublequoteopen}Broadcast\ {\isacharparenleft}Insert\ e\ n{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ \isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ n\ {\isacharequal}\ None\ {\isasymor}\ {\isacharparenleft}{\isasymexists}e{\isacharprime}\ n{\isacharprime}{\isachardot}\ n\ {\isacharequal}\ Some\ {\isacharparenleft}fst\ e{\isacharprime}{\isacharparenright}\ {\isasymand}\ Deliver\ {\isacharparenleft}Insert\ e{\isacharprime}\ n{\isacharprime}{\isacharparenright}\ {\isasymsqsubset}\isactrlsup i\ Broadcast\ {\isacharparenleft}Insert\ e\ n{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ insert{\isacharunderscore}id{\isacharunderscore}unique{\isacharcolon}\ {\isachardoublequoteopen}fst\ e{\isadigit{1}}\ {\isacharequal}\ fst\ e{\isadigit{2}}\ {\isasymLongrightarrow} Broadcast\ {\isacharparenleft}Insert\ e{\isadigit{1}}\ n{\isadigit{1}}{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow} \isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ Broadcast\ {\isacharparenleft}Insert\ e{\isadigit{2}}\ n{\isadigit{2}}{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}\ {\isasymLongrightarrow}\ Insert\ e{\isadigit{1}}\ n{\isadigit{1}}\ {\isacharequal}\ Insert\ e{\isadigit{2}}\ n{\isadigit{2}}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ allowed{\isacharunderscore}delete{\isacharcolon}\ {\isachardoublequoteopen}Broadcast\ {\isacharparenleft}Delete\ x{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow} \isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharparenleft}{\isasymexists}n{\isacharprime}\ v\ b{\isachardot}\ Deliver\ {\isacharparenleft}Insert\ {\isacharparenleft}x{\isacharcomma}\ v{\isacharcomma}\ b{\isacharparenright}\ n{\isacharprime}{\isacharparenright}\ {\isasymsqsubset}\isactrlsup i\ Broadcast\ {\isacharparenleft}Delete\ x{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ rga{\isacharparenright}\ allowed{\isacharunderscore}insert{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}Broadcast\ {\isacharparenleft}Insert\ e\ n{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}n\ {\isacharequal}\ None\ {\isasymor}\ {\isacharparenleft}{\isasymexists}e{\isacharprime}\ n{\isacharprime}{\isachardot}\ n\ {\isacharequal}\ Some\ {\isacharparenleft}fst\ e{\isacharprime}{\isacharparenright}\ {\isasymand}\ Deliver\ {\isacharparenleft}Insert\ e{\isacharprime}\ n{\isacharprime}{\isacharparenright}\ {\isasymsqsubset}\isactrlsup i\ Broadcast\ {\isacharparenleft}Insert\ e\ n{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-\noindent
-Here, $\isa{allowed-insert}$, $\isa{insert-id-unique}$, and $\isa{allowed-delete}$ capture points (1)--(3) above, respectively.
-In this new setting, it is straightforward to prove that the function \isa{apply-operations} applied to any prefix for any node in the network cannot fail---that is, at any point in time, a state is in a consistent state different than $\isa{None}$.
-Indeed, this is the \emph{entire point} of the $\isa{rga}$ locale: it provides the network invariants necessary for the RGA to `behave'.
-This non-failure property is captured by the following lemma, which uses the lemmas $\isa{delete{\isacharunderscore}no{\isacharunderscore}failure}$ and $\isa{insert{\isacharunderscore}no{\isacharunderscore}failure}$ in its proof:
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ rga{\isacharparenright}\ allowed{\isacharunderscore}delete{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}Broadcast\ {\isacharparenleft}Delete\ x{\isacharparenright}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isasymexists}n{\isacharprime}\ v\ b{\isachardot}\ Deliver\ {\isacharparenleft}Insert\ {\isacharparenleft}x{\isacharcomma}\ v{\isacharcomma}\ b{\isacharparenright}\ n{\isacharprime}{\isacharparenright}\ {\isasymsqsubset}\isactrlsup i\ Broadcast\ {\isacharparenleft}Delete\ x{\isacharparenright}{\isachardoublequoteclose}
+\end{isabellebody}
 \vspace{0.375em}
+Since the network ensures causally ordered delivery, we know that all nodes will deliver the prior insertion $\isa{op1}$ before delivering the dependent operation $\isa{op2}$.
+Hence we can show that the only cases in which operations do not commute are cases where one operation happens before another.
+In all cases when operations are concurrent, we show that they commute:
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{theorem} {\isacharparenleft}\isakeyword{in}\ rga{\isacharparenright}\ concurrent{\isacharunderscore}operations{\isacharunderscore}commute{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ i{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
+Furthermore, although the type signature of the interpretation function allows an operation to fail by returning $\isa{None}$, we can prove that this failure case is never reached in any execution of the network:
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{theorem} {\isacharparenleft}\isakeyword{in}\ rga{\isacharparenright}\ apply{\isacharunderscore}operations{\isacharunderscore}never{\isacharunderscore}fails{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb.apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isasymnoteq}\ None{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb.apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ i{\isacharparenright}{\isacharparenright}\ {\isasymnoteq}\ None{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-Further, since delivered messages correspond to operations that are known to commute with each other---insert and delete---we can show that $\isa{concurrent-ops-commute}$ holds for any prefix of delivered events of any node in the network.
-Note here, that we make use of $\isa{delete-commutes}$, $\isa{insert-commutes}$, and $\isa{insert-delete-commute}$ in the proof of this lemma, and we make use of the additional constraints on network behaviour provided by the $\isa{rga}$ locale to discharge the preconditions on $\isa{insert-commutes}$ and $\isa{insert-delete-commute}$ during the proof:
-\vspace{0.375em}
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{lemma} {\isacharparenleft}\isakeyword{in}\ rga{\isacharparenright}\ concurrent{\isacharunderscore}operations{\isacharunderscore}commute{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}
-\end{isabellebody}
-\vspace{0.375em}
-In a final step, we show convergence for the RGA.
-In particular, if the prefixes of events of two nodes in the network have received the same set of messages, then they must be in the same state:
-\isanewline
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{corollary} {\isacharparenleft}\isakeyword{in}\ rga{\isacharparenright}\ rga{\isacharunderscore}convergence{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose} \isakeyword{and}\ {\isachardoublequoteopen}ys\ prefix\ of\ j{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb.apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ hb.apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}
-\end{isabellebody}
-\vspace{0.375em}
-This theorem follows from our abstract convergence theorem and the lemma $\isa{concurrent{\isacharunderscore}operations{\isacharunderscore}commute}$, and has a one line proof in Isabelle.
+Having proved these properties, it is now easy to show that the $\isa{rga}$ locale satisfies all of the requirements of the abstract $\isa{strong-eventual-consistency}$ specification (Section~\ref{sect.abstract.sec.spec}) by proving that $\isa{rga}$ is a sublocale of $\isa{strong-eventual-consistency}$.
+The sublocale then contains concrete convergence and progress theorems for RGA, proving that the algorithm indeed guarantees strong eventual consistency.
