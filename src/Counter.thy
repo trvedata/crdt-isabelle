@@ -4,22 +4,12 @@ imports
   Network
 begin
 
-definition increment :: "int \<Rightarrow> int" where
-  "increment x \<equiv> 1 + x"
-  
-definition decrement :: "int \<Rightarrow> int" where
-  "decrement x \<equiv> x - 1"
-  
-lemma increment_decrement_commute:
-  shows "increment (decrement x) = decrement (increment x)"
-  by(simp add: decrement_def increment_def)
-    
 datatype 'id operation = Increment "'id" | Decrement "'id"
-    
+
 fun interpret_operation :: "'id operation \<Rightarrow> int \<rightharpoonup> int" where
-  "interpret_operation (Increment _) = Some o increment" |
-  "interpret_operation (Decrement _) = Some o decrement"
-  
+  "interpret_operation (Increment _) x = Some (x + 1)" |
+  "interpret_operation (Decrement _) x = Some (x - 1)"
+
 definition msg_id :: "'id operation \<Rightarrow> 'id" where
   "msg_id oper \<equiv> case oper of Increment i \<Rightarrow> i | Decrement i \<Rightarrow> i"
     
@@ -31,7 +21,7 @@ lemma (in counter) concurrent_operations_commute:
   using assms
   apply(clarsimp simp: hb.concurrent_ops_commute_def)
   apply(case_tac "x"; case_tac "y")
-   apply(auto simp add: kleisli_def increment_decrement_commute)
+   apply(auto simp add: kleisli_def)
 done
   
 corollary (in counter) counter_convergence:
@@ -48,7 +38,7 @@ sublocale sec: strong_eventual_consistency weak_hb hb interpret_operation
   "\<lambda>ops. \<exists>xs i. xs prefix of i \<and> node_deliver_messages xs = ops" 0
   apply(standard; clarsimp)
       apply(auto simp add: hb_consistent_prefix drop_last_message node_deliver_messages_distinct concurrent_operations_commute)
-    apply(metis (mono_tags, lifting) interpret_operation.elims o_apply)
+    apply(metis (mono_tags, lifting) interpret_operation.elims)
   using drop_last_message apply blast
 done
 
