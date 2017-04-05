@@ -169,6 +169,7 @@ In all cases when operations are concurrent, we show that they commute:
 \end{isabellebody}
 \vspace{0.375em}
 Furthermore, although the type signature of the interpretation function allows an operation to fail by returning $\isa{None}$, we can prove that this failure case is never reached in any execution of the network:
+\vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{theorem} {\isacharparenleft}\isakeyword{in}\ rga{\isacharparenright}\ apply{\isacharunderscore}operations{\isacharunderscore}never{\isacharunderscore}fails{\isacharcolon}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb.apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ i{\isacharparenright}{\isacharparenright}\ {\isasymnoteq}\ None{\isachardoublequoteclose}
