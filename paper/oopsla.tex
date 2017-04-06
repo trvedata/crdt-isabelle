@@ -89,26 +89,17 @@
 \email{arb33@cam.ac.uk}
 
 \begin{abstract}
-Data replication is used in distributed systems to maintain an up-to-date copy of a data structure across multiple computers in a network, with a variety of algorithms in existence which explore the trade-off between varying levels of data consistency versus operational constraints and system performance.
+Data replication is used in distributed systems to maintain an up-to-date copy of some data across multiple computers in a network.
 However, despite decades of research, algorithms for achieving replication in distributed systems are still poorly understood.
 Indeed, many published algorithms have later been shown to be incorrect, even those accompanied by supposed mechanised proofs of correctness.
-
-In this work, we focus on the correctness of Conflict-free Replicated Data Types (CRDTs), a class of algorithm that provides Strong Eventual Consistency guarantees for replicated data.
-We provide a modular and reusable framework in the Isabelle/HOL interactive theorem prover for verifying the correctness of CRDT implementations.
-We sidestep correctness issues that have dogged previous mechanised proofs in this area by axiomatically modelling a large class of networks---the asynchronous causal networks---using five uncontroversial axioms and incrementally building up in composable layers, obtaining a machine-checked assurance that our theorems hold in all possible network behaviours.
-We identify an abstract convergence theorem, a property of order relations, with which we obtain correctness theorems for three concrete implementations---the Replicated Growable Array, the Observed-Removed Set, and a increment-decrement counter---as corollaries with a thin-layer of CRDT-specific code, validating our claim to have created a framework for CRDT verification.
+In this work, we focus on the correctness of Conflict-free Replicated Data Types (CRDTs), a class of algorithm that provides strong eventual consistency guarantees for replicated data.
+We develop a modular and reusable framework in the Isabelle/HOL interactive theorem prover for verifying the correctness of CRDT implementations.
+We avoid correctness issues that have dogged previous mechanised proofs in this area by taking a new approach: axiomatically modelling real-world computer networks using six uncontroversial axioms.
+Our framework builds on the network model to obtain a machine-checked assurance that our theorems hold in all possible network behaviours.
+We identify an abstract convergence theorem, a property of order relations, which provides a formal definition of strong eventual consistency.
+We then obtain the first machine-checked correctness theorems for three concrete CRDTs: the replicated growable array, the observed-removed set, and a increment-decrement counter.
+We find that our framework is highly reusable, developing proofs of the latter two CRDTs in a few hours and under 100 lines of additional code.
 \end{abstract}
-
-%\begin{abstract}
-%Data replication is used in distributed systems to maintain an up-to-date copy of a data structure across multiple computers, with a variety of data replication algorithms in existence which explore the trade-off between varying levels of data consistency across computers versus operational constraints and system performance.
-%In this paper we focus on Conflict-free Replicated Data Types (CRDTs), a class of algorithm which provide Strong Eventual Consistency (SEC).
-%These algorithms are worthy of study not only because they are widely used today, but also because previous peer-reviewed SEC algorithms have later turned out to be incorrect, including those which claimed to possess a mechanised proof of correctness.
-%Such past failures occurred because the axioms used in proofs were subsequently shown to contain subtle errors.
-%The core difficulty in designing SEC algorithms arises from the fact that computer networks may delay, drop and reorder messages sent between computers.
-%We therefore construct a realistic, formal model of how a computer network enables communication between machines in a distributed system using just five uncontroversial axioms.
-%We implement our framework using the interactive theorem prover Isabelle/HOL, and use it to prove the correctness of SEC algorithms across all possible combinations of message delays, re-orderings and deletions.
-%In particular, we provide the first mechanised proofs of convergence for counter, set and ordered-list CRDTs.
-%\end{abstract}
 
 \begin{CCSXML}
 <ccs2012>
@@ -164,7 +155,7 @@ We identify an abstract convergence theorem, a property of order relations, with
 \section{Introduction}
 \label{sect.introduction}
 
-Data \emph{replication} is an important and challenging task in a distributed system: given some data or shared state, a replication algorithm executed by a set of computers or \emph{nodes} ensures all such nodes end up with an identical copy of the data.
+Data replication is an important and challenging task in a distributed system: given some data or shared state, a replication algorithm executed by a set of computers, or \emph{nodes}, ensures all such nodes end up with an identical copy of the data.
 Such algorithms achieve this despite computer networks which delay, drop and reorder messages; networks which may be temporarily partitioned into two or more groups such that nodes in one group cannot communicate with nodes in another; and a subset of nodes executing the algorithm that may permanently fail.
 
 A variety of replication algorithms exist which explore the trade-off between varying levels of data consistency across nodes versus operational constraints and system performance.
@@ -185,21 +176,23 @@ In contrast replication algorithms which support strong eventual consistency wor
 Nevertheless, eventual consistency is how many popular collaborative and data synchronisation apps work today: allow
 conflicts to arise and provide the user with mechanisms for resolving them.
 The other common solution is to use a strong eventual consistency algorithm with a central server, for example, as popularised by Google Docs.
-This approach does not support offline editing: it requires the user's computer to be connected to the server in order to ensure updates are handled in a conflict-free manner.
+This approach does not support offline editing: it requires the user's computer is connected to the server in order to ensure updates are handled in a conflict-free manner.
 Furthermore, it requires users trust that the central server is not compromised by attackers or subverted by a malicious insider who could tamper with the data or grant access to unauthorised parties.
 Finally, a central server is a single point of failure that is susceptible to denial-of-service attacks, blocking and censorship.
 
 Decentralised, or peer-to-peer systems are attractive in scenarios where reliance on a central server is impractical or undesirable.
 This includes both the mobile app scenarios described above, as well as data centre settings in which a central server is a bottleneck, limiting scalability.
-Unfortunately, we currently have a poor understanding of algorithms that enable strong eventual consistency in this setting.
+Unfortunately, we currently have a poor understanding of algorithms that enable strong eventual consistency in this setting, and this is limiting their use and deployment.
 In Section~\ref{sect.relatedwork} we highlight several decentralised strong eventual consistency algorithms, published in peer-reviewed venues, that claimed to work correctly but were subsequently shown to violate their supposed guarantees. 
 Informal reasoning has resulted in the development of algorithms later shown incorrect; even formal, mechanised proofs of algorithms have later been shown incorrect.
 These proofs failed because the proofs were shallow: axioms which were thought to be correct were later found to be wrong.
 
 Given the failure of previous mechanised proofs we take a different approach: rather than writing axioms which talk about any given strong eventual consistency algorithm we write down the axioms of a realistic class of computer network, the \emph{asynchronous causal network}.
-This network model describes the behviour of large-scale computer networks today, which may reorder and delay message delivery, simulating temporary network partitions, as well as drop messages entirely, simulating permanent network and computer failure.
+This network model describes the behviour of large-scale computer networks today, which may reorder and delay message delivery (simulating temporary network partitions), as well as drop messages entirely (simulating permanent network and computer failure).
 We use Isabelle/HOL, a generic proof assistant tool~\cite{DBLP:conf/tphol/WenzelPN08}, to create formal specifications of the network and distributed algorithms executing in such a system. 
-We then use this framework to produce machine-checked proofs of correctness of a class of strong eventual consistency algorithms called Conflict-Free Replicated Data Types (CRDT) as introduced by~\citet{Shapiro:2011wy,Shapiro:2011un}. Our ultimate goal is to formally verify the correctness of a suite of distributed data types which can be composed and encapsulated in a library for use by application developers, thus providing an easy way to produce apps which work in a distributed setting and providing end users with a new generation of conflict-free collaborative and data synchronising apps.
+We then use this framework to produce machine-checked proofs of correctness of a class of strong eventual consistency algorithms called Conflict-Free Replicated Data Types (CRDT) as introduced by~\citet{Shapiro:2011wy,Shapiro:2011un}. 
+
+Our ultimate goal is to formally verify the correctness of a suite of distributed data types which can be composed and encapsulated in a library for use by application developers, thus providing an easy way to produce apps which work in a distributed setting and providing end users with a new generation of conflict-free collaborative and data synchronising apps.
 
 Our contributions in this paper are as follows:
 \begin{itemize}
