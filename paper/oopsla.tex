@@ -163,24 +163,29 @@ Accordingly, replication algorithms can be divided into classes---\emph{strong c
 Strong consistency can be understood as \emph{linearisability}, in that the system behaves as if there were only a single copy of the data, even when it is replicated.
 Traditional relational databases, such as PostgreSQL, use this model for example, wherein global locks are used to ensure that all users connected to the database have an identical view of its content at all times, with the database never entering an observably inconsistent state.
 
-However, the strong consistency model may be unwarranted depending on the application domain, impose an unacceptable performance degradation on the system, or simply be infeasible to implement, especially in large distributed systems.
-These observations motivate \emph{relaxed} consistency models, with weaker guarantees than those provided by the strong consistency model, but perhaps better suited to certain application domains where changes to shared state need not be propagated eagerly, and with better performance characteristics.
+However, this strong consistency model may be unwarranted or unneccessary depending on the application, or it may impose an unacceptable performance degradation on the system or simply be infeasible to implement, especially in large distributed systems.
+These observations motivate \emph{relaxed} consistency models, with weaker guarantees than those provided by the strong consistency model.
+Relaxed consistency models are potentially better suited to application domains where changes to the shared state need not (or cannot) be propagated eagerly, and they can also provide potentially better performance characteristics than those offered by the strong consistency model.
 
-One popular relaxed consistency model is eventual consistency, which guarantees than when no new updates are made to the shared state all nodes will eventually agree on its contents.
+One widely-implemented relaxed model is eventual consistency, which guarantees than when no new updates are made to the shared state all nodes will eventually agree on its contents.
 Distributed version control systems, such as Git or Mercurial, use this model for example, as do many distributed database systems.
-Whilst eventual consistency may suit certain domains, the guarantees it offers are weak---neither system behaviour in the case where updates to shared state never cease, nor the values of intermediate reads from shared state prior to convergence, are constrained for instance.
-In certain domains, eventual consistency is therefore \emph{too} relaxed, and intermediate models lying between strong and eventual consistency are sought.
-One such model is strong eventual consistency, which guarantees that whenever two nodes have received the same set of messages---possibly in a different order---their view of the shared state is always identical.
+Whilst eventual consistency may suit certain domains, the guarantees it offers clients are weak---neither system behaviour in the case where updates to shared state never cease, nor the values of intermediate reads from shared state prior to convergence, are constrained under this model, for instance.
+Eventual consistency may therefore be \emph{too} relaxed, and intermediate models, lying between strong and eventual consistency, are required.
+One such intermediate model is strong eventual consistency, which guarantees that whenever two nodes have received the same set of messages---possibly in a different order---their view of the shared state is always identical.
 Data centre applications built with Riak, and collaborative editing systems such as Google Docs, use this model for example.
+
+Unfortunately, we currently have a poor understanding of algorithms that enable strong eventual consistency in the decentralised, or peer-to-peer, setting.
+This limits the use and deployment of these algorithms as peer-to-peer systems are especially attractive and widely-deployed in contexts where reliance on a central server is impractical or undesirable.
+These contexts can include data centres where a central server is a bottleneck that limits scalability, but also can include laptop and mobile phone applications which have intermittent network connections, or have a local connection to a subset of network nodes, e.g. in calendar or collaborative editing applications.
+This poor understanding is especially unfortunate, as it seems that peer-to-peer systems are best designed with replication algorithms which provide strong eventual consistency guarantees.
+In particular, both strong and eventual consistency algorithms are inappropriate in this context as they cannot support local updates on nodes in the presence of arbitrary network partitions, and require the user to manually resolve merge conflicts, respectively.
+
+To bolster our claim that these algorithms are poorly understood, we point out that several decentralised strong eventual consistency algorithms, published in peer-reviewed venues, that claimed to work correctly but were subsequently shown to violate their supposed guarantees.
+Informal reasoning has resulted in the development of algorithms later shown incorrect, and even formal, mechanised proofs of the correctness of algorithms have later been shown to be incorrect.
 
 In this paper we focus on replication algorithms which support decentralised operation and allow modifications to shared state in the presence of arbitrary network partitions.
 Such algorithms support applications running on mobile devices such as laptops and smartphones which are not always connected to the Internet, but are instead completely disconnected or only have a local connection (e.g. via Bluetooth) to a subset of the nodes containing the shared state.
 Example applications built using such algorithms could include collaborative editing systems such as text documents or spreadsheets where several users need to work on the same document, or data synchronisation tasks such as shared calendars, address books or note-taking tools.
-
-We argue that such systems are best designed with replication algorithms which provide strong eventual consistency. Strong consistency algorithms are inappropriate in this context as they cannot support local updates on nodes in the presence of arbitrary network partitions.
-In other words, editing of a spreadsheet by a node would not be allowed without network connectivity to a majority of nodes.
-Eventual consistency is inappropriate, as it requires the user to manually resolve merge conflicts.
-In contrast replication algorithms which support strong eventual consistency work in a distributed setting and are, by definition, conflict free.
 
 Nevertheless, eventual consistency is how many popular collaborative and data synchronisation applications work today: allow
 conflicts to arise and provide the user with mechanisms for resolving them.
@@ -188,13 +193,6 @@ The other common solution is to use a strong eventual consistency algorithm with
 This approach does not support offline editing: it requires the user's computer is connected to the server in order to ensure updates are handled in a conflict-free manner.
 Furthermore, it requires users trust that the central server is not compromised by attackers or subverted by a malicious insider who could tamper with the data or grant access to unauthorised parties.
 Finally, a central server is a single point of failure that is susceptible to denial-of-service attacks, blocking and censorship.
-
-Decentralised, or peer-to-peer systems are attractive in scenarios where reliance on a central server is impractical or undesirable.
-This includes both the mobile application scenarios described above, as well as data centre settings in which a central server is a bottleneck, limiting scalability.
-Unfortunately, we currently have a poor understanding of algorithms that enable strong eventual consistency in this setting, and this is limiting their use and deployment.
-In Section~\ref{sect.relatedwork} we highlight several decentralised strong eventual consistency algorithms, published in peer-reviewed venues, that claimed to work correctly but were subsequently shown to violate their supposed guarantees. 
-Informal reasoning has resulted in the development of algorithms later shown incorrect; even formal, mechanised proofs of algorithms have later been shown incorrect.
-These proofs failed because the proofs were shallow: axioms which were thought to be correct were later found to be wrong.
 
 Given the failure of previous mechanised proofs we take a different approach: rather than writing axioms which talk about any given strong eventual consistency algorithm we write down the axioms of a realistic class of computer network, the \emph{asynchronous causal network}.
 This network model describes the behviour of large-scale computer networks today, which may reorder and delay message delivery (simulating temporary network partitions), as well as drop messages entirely (simulating permanent network and computer failure).
