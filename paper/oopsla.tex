@@ -89,15 +89,15 @@
 \email{arb33@cam.ac.uk}
 
 \begin{abstract}
-Data replication is used in distributed systems to maintain an up-to-date copy of some data across multiple computers in a network.
-However, despite decades of research, algorithms for achieving replication in distributed systems are still poorly understood.
+Data replication is used in distributed systems to maintain up-to-date copies of some data across multiple computers in a network.
+However, despite decades of research, algorithms for achieving consistency in replicated systems are still poorly understood.
 Indeed, many published algorithms have later been shown to be incorrect, even those accompanied by supposed mechanised proofs of correctness.
 In this work, we focus on the correctness of Conflict-free Replicated Data Types (CRDTs), a class of algorithm that provides strong eventual consistency guarantees for replicated data.
 We develop a modular and reusable framework in the Isabelle/HOL interactive theorem prover for verifying the correctness of CRDT implementations.
 We avoid correctness issues that have dogged previous mechanised proofs in this area by taking a new approach: axiomatically modelling real-world computer networks using six uncontroversial axioms.
 Our framework builds on the network model to obtain a machine-checked assurance that our theorems hold in all possible network behaviours.
 We identify an abstract convergence theorem, a property of order relations, which provides a formal definition of strong eventual consistency.
-We then obtain the first machine-checked correctness theorems for three concrete CRDTs: the replicated growable array, the observed-removed set, and a increment-decrement counter.
+We then obtain the first machine-checked correctness theorems for three concrete CRDTs: the replicated growable array, the observed-removed set, and an increment-decrement counter.
 We find that our framework is highly reusable, developing proofs of the latter two CRDTs in a few hours and with relatively little CRDT-specific code.
 \end{abstract}
 
@@ -156,50 +156,48 @@ We find that our framework is highly reusable, developing proofs of the latter t
 \label{sect.introduction}
 
 A data replication algorithm is executed by a set of computers---or \emph{nodes}---in a distributed system and ensures that all nodes eventually obtain an identical copy of some shared state.
-Whilst vital for overall systems correctness, implementing a replication algorithm is a challenging task, as any such algorithm must operate above computer networks that may arbitrarily delay, drop, or reorder messages, suffer from a temporary partition of the nodes, or even observe outright node failure.
-Reflecting the importance of this task, a number of replication algorithms exist, with different algorithms exploring an inherent trade-off between the strength of data consistency guarantees provided across nodes and performance or operational constraints.
+Whilst vital for overall systems correctness, implementing a replication algorithm is a challenging task, as any such algorithm must operate across computer networks that may arbitrarily delay, drop, or reorder messages, experience temporary partitions of the nodes, or even suffer outright node failure.
+Reflecting the importance of this task, a number of replication algorithms exist, with different algorithms exploring the inherent trade-off between the strength of data consistency guarantees, and operational characteristics such as scalability and performance.
 Accordingly, replication algorithms can be divided into classes---\emph{strong consistency}, \emph{eventual consistency}, and \emph{strong eventual consistency}---based on the consistency guarantees provided.
 
-Strong consistency can be understood as \emph{linearisability}, in that the system behaves as if there were only a single copy of the data, even when it is replicated.
-Traditional relational databases, such as PostgreSQL, use this model for example, wherein global locks are used to ensure that all users connected to the database have an identical view of its content at all times, with the database never entering an observably inconsistent state.
+Strong consistency can be understood as \emph{linearisability}, \emph{serializability}, or a combination of the two (one-copy serializability).
+Intuitively, the goal of strong consistency is to make a system behave like a single sequentially executing node, even when it is replicated and concurrent.
+Most systems implement strong consistency by designating a single node as the \emph{leader} that decides on a total order of operations, and that prevents any conflicts due to concurrent access.
+For example, this model is used in many relational databases such as PostgreSQL.
 
-However, this strong consistency model may be unwarranted or unneccessary depending on the application, or it may impose an unacceptable performance degradation on the system or simply be infeasible to implement, especially in large distributed systems.
-These observations motivate \emph{relaxed} consistency models, with weaker guarantees than those provided by the strong consistency model.
-Relaxed consistency models are potentially better suited to application domains where changes to the shared state need not (or cannot) be propagated eagerly, and they can also provide potentially better performance characteristics than those offered by the strong consistency model.
+However, strong consistency may be unwarranted or unneccessary depending on the application---it may impose an unacceptable performance degradation on the system, or it may simply be infeasible to implement, especially in large distributed systems.
+In particular, leader-based systems must constantly communicate with the leader in order to perform operations; if a node cannot reach the leader due to a network fault, execution is stalled.
+These observations motivate \emph{relaxed} consistency models, which provide weaker guarantees than strong models, but instead can provide better performance, fault-tolerance, and scalability characteristics.
 
-One widely-implemented relaxed model is eventual consistency, which guarantees than when no new updates are made to the shared state all nodes will eventually agree on its contents.
-Distributed version control systems, such as Git or Mercurial, use this model for example, as do many distributed database systems.
-Whilst eventual consistency may suit certain domains, the guarantees it offers clients are weak---neither system behaviour in the case where updates to shared state never cease, nor the values of intermediate reads from shared state prior to convergence, are constrained under this model, for instance.
-Eventual consistency may therefore be \emph{too} relaxed, and intermediate models, lying between strong and eventual consistency, are required.
-One such intermediate model is strong eventual consistency, which guarantees that whenever two nodes have received the same set of messages---possibly in a different order---their view of the shared state is always identical.
-Data centre applications built with Riak, and collaborative editing systems such as Google Docs, use this model for example.
+One widely-implemented relaxed model is \emph{eventual consistency}, which guarantees than when no new updates are made to the shared state, all nodes will eventually have the same data \cite{Bailis:2013jc,Burckhardt:2014hy,Terry:1994fp,Vogels:2009ca}.
+Since this model allows conflicting updates to be made concurrently, it requires a mechanism for resolving such conflicts.
+For example, distributed version control systems such as Git or Mercurial require the user to resolve merge conflicts manually; and some ``NoSQL'' distributed database systems adopt a \emph{last-writer-wins} policy, under which one update is chosen as the winner, and other concurrent updates are discarded.
+The properties of eventual consistency are weak---for instance, it constrains neither the system behaviour when updates never cease, nor the values of intermediate reads from shared state prior to convergence.
 
-Unfortunately, we currently have a poor understanding of algorithms that enable strong eventual consistency in the decentralised, or peer-to-peer, setting.
-This limits the use and deployment of these algorithms as peer-to-peer systems are especially attractive and widely-deployed in contexts where reliance on a central server is impractical or undesirable.
-These contexts can include data centres where a central server is a bottleneck that limits scalability, but also can include laptop and mobile phone applications which have intermittent network connections, or have a local connection to a subset of network nodes, e.g. in calendar or collaborative editing applications.
-This poor understanding is especially unfortunate, as it seems that peer-to-peer systems are best designed with replication algorithms which provide strong eventual consistency guarantees.
-In particular, both strong and eventual consistency algorithms are inappropriate in this context as they cannot support local updates on nodes in the presence of arbitrary network partitions, and require the user to manually resolve merge conflicts, respectively.
+\emph{Strong eventual consistency} is a model that strikes a compromise between strong and eventual consistency \cite{Shapiro:2011un}.
+Informally, it guarantees that whenever two nodes have received the same set of messages---possibly in a different order---their view of the shared state is always identical.
+In particular, it requires that any conflicts due to concurrent updates are merged automatically.
+This model is used in datacenter-based applications based on the Riak distributed database, and collaborative editing applications such as Google Docs, for example.
 
-To bolster our claim that these algorithms are poorly understood, we point out that several decentralised strong eventual consistency algorithms, published in peer-reviewed venues, that claimed to work correctly but were subsequently shown to violate their supposed guarantees.
-Informal reasoning has resulted in the development of algorithms later shown incorrect, and even formal, mechanised proofs of the correctness of algorithms have later been shown to be incorrect.
+Many replication algorithms---including that in Google Docs---require that all updates pass through a central server, which limits the use and deployment of these systems: the server may become a bottleneck that limits scalability, and it makes the system vulnerable to network outages, denial-of-service attacks, censorship, and server failures.
+Requiring communication through a central server also limits offline use on mobile devices with intermittent connectivity (e.g. in calendar applications), and precludes replication over local networks.
+By contrast, decentralised or peer-to-peer architectures are especially attractive and widely-deployed in contexts where reliance on a central server is impractical or undesirable.
 
-In this paper we focus on replication algorithms which support decentralised operation and allow modifications to shared state in the presence of arbitrary network partitions.
-Such algorithms support applications running on mobile devices such as laptops and smartphones which are not always connected to the Internet, but are instead completely disconnected or only have a local connection (e.g. via Bluetooth) to a subset of the nodes containing the shared state.
-Example applications built using such algorithms could include collaborative editing systems such as text documents or spreadsheets where several users need to work on the same document, or data synchronisation tasks such as shared calendars, address books or note-taking tools.
+Unfortunately, we currently have a poor understanding of algorithms that enable strong eventual consistency in such a decentralised setting.
+Several decentralised replication algorithms, published in peer-reviewed venues, claimed to provide strong eventual consistency, but were subsequently shown to violate their supposed guarantees.
+Informal reasoning has resulted in the development of algorithms later shown incorrect, and even mechanised formal proofs of the correctness of algorithms have later been shown to be incorrect.
 
-Nevertheless, eventual consistency is how many popular collaborative and data synchronisation applications work today: allow
-conflicts to arise and provide the user with mechanisms for resolving them.
-The other common solution is to use a strong eventual consistency algorithm with a central server, for example, as popularised by Google Docs.
-This approach does not support offline editing: it requires the user's computer is connected to the server in order to ensure updates are handled in a conflict-free manner.
-Furthermore, it requires users trust that the central server is not compromised by attackers or subverted by a malicious insider who could tamper with the data or grant access to unauthorised parties.
-Finally, a central server is a single point of failure that is susceptible to denial-of-service attacks, blocking and censorship.
+In this paper we focus on replication algorithms that support decentralised operation, and that allow modification of shared state to continue despite arbitrary network partitions.
+Such algorithms support applications running on mobile devices (such as laptops and smartphones), which are not always connected to the Internet, but which may have a local connection (e.g. via Bluetooth) to other nodes carrying copies of the shared state.
+Example applications built using such algorithms could include collaborative editing systems such as text documents or spreadsheets where several users need to work on the same document, or data synchronisation tasks such as shared calendars, address books, or note-taking tools.
 
-Given the failure of previous mechanised proofs we take a different approach: rather than writing axioms which talk about any given strong eventual consistency algorithm we write down the axioms of a realistic class of computer network, the \emph{asynchronous causal network}.
-This network model describes the behviour of large-scale computer networks today, which may reorder and delay message delivery (simulating temporary network partitions), as well as drop messages entirely (simulating permanent network and computer failure).
-We use Isabelle/HOL, a generic proof assistant tool~\cite{DBLP:conf/tphol/WenzelPN08}, to create formal specifications of the network and distributed algorithms executing in such a system. 
+Previous mechanised proofs failed because, in formalising the algorithm, they made false assumptions about the execution environment.
+We seek to avoid this trap by formalising not only the replication algorithms, but also the network in which they execute, allowing us to prove that the algorithm's assumptions hold in all possible executions of the network.
+We model the network using the axioms of \emph{asynchronous unreliable causal broadcast}, a well-understood abstraction that is commonly implemented by network protocols, and which can run on almost any computer network, including large-scale networks that delay, reorder, or drop messages, and in which nodes may fail.
+We use Isabelle/HOL, a generic proof assistant tool \cite{DBLP:conf/tphol/WenzelPN08}, to create formal specifications of the network and distributed algorithms executing in such a system. 
 We then use this framework to produce machine-checked proofs of correctness of a class of strong eventual consistency algorithms called Conflict-Free Replicated Data Types (CRDT) as introduced by~\citet{Shapiro:2011wy,Shapiro:2011un}. 
 
-Our ultimate goal is to formally verify the correctness of a suite of distributed data types which can be composed and encapsulated in a library for use by application developers, thus providing an easy way to produce applications which work in a distributed setting and providing end users with a new generation of conflict-free collaborative and data synchronising applications.
+Our ultimate goal is to formally verify the correctness of a suite of distributed data types that can be composed and encapsulated in a library, thus providing application developers with a simple way of creating applications that work in a distributed setting, and providing end users with a new generation of conflict-free collaborative and data synchronisation applications.
 
 Our contributions in this paper are as follows:
 \begin{itemize}
