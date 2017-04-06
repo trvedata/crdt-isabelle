@@ -98,7 +98,7 @@ We avoid correctness issues that have dogged previous mechanised proofs in this 
 Our framework builds on the network model to obtain a machine-checked assurance that our theorems hold in all possible network behaviours.
 We identify an abstract convergence theorem, a property of order relations, which provides a formal definition of strong eventual consistency.
 We then obtain the first machine-checked correctness theorems for three concrete CRDTs: the replicated growable array, the observed-removed set, and a increment-decrement counter.
-We find that our framework is highly reusable, developing proofs of the latter two CRDTs in a few hours and under 100 lines of additional code.
+We find that our framework is highly reusable, developing proofs of the latter two CRDTs in a few hours and with relatively little CRDT-specific code.
 \end{abstract}
 
 \begin{CCSXML}
@@ -155,25 +155,25 @@ We find that our framework is highly reusable, developing proofs of the latter t
 \section{Introduction}
 \label{sect.introduction}
 
-Data replication is an important and challenging task in a distributed system: given some data or shared state, a replication algorithm executed by a set of computers, or \emph{nodes}, ensures all such nodes end up with an identical copy of the data.
-Such algorithms achieve this despite computer networks which delay, drop and reorder messages; networks which may be temporarily partitioned into two or more groups such that nodes in one group cannot communicate with nodes in another; and a subset of nodes executing the algorithm that may permanently fail.
+A data replication algorithm is executed by a set of computers---or \emph{nodes}---in a distributed system and ensures that all nodes eventually obtain an identical copy of some shared state.
+Whilst important, correctly implementing a replication algorithm is a challenging task, as any such algorithm must operate above computer networks which may arbitrarily delay, drop, or reorder messages, suffer from a temporary partition of the nodes, or even suffer outright node failure.
 
-A variety of replication algorithms exist which explore the trade-off between varying levels of data consistency across nodes versus operational constraints and system performance.
-Such algorithms can be divided into three classes: strong consistency, eventual consistency and strong eventual consistency.
+Reflecting the importance of the task, a variety of replication algorithms exist, with different algorithms exploring a trade-off between varying levels of data consistency across nodes versus operational constraints and system performance.
+Such algorithms can be divided into three classes, based on the guarantees that they provide: strong consistency, eventual consistency and strong eventual consistency.
 Strong consistency can be understood as linearizability: the system behaves as if there were only a single copy of the data, even when it is replicated; examples include traditional relational databases such as PostgreSQL.
 Eventual consistency guarantees that, when no new updates are made to the shared state, all nodes eventually agree on the contents of the shared state; examples include distributed version control systems such as Git.
 Strong eventual consistency provides better guarantees than eventual consistency as follows: whenever two nodes have received the same set of messages (possibly in a different order), then the shared state on the two nodes will be identical; examples include collaborative editing systems such as Google Docs, or data centre applications built with Riak.
 
 In this paper we focus on replication algorithms which support decentralised operation and allow modifications to shared state in the presence of arbitrary network partitions.
-Such algorithms support apps running on mobile devices such as laptops and smartphones which are not always connected to the Internet, but are instead completely disconnected or only have a local connection (e.g. via Bluetooth) to a subset of the nodes containing the shared state.
-Example apps built using such algorithms could include collaborative editing systems such as text documents or spreadsheets where several users need to work on the same document, or data synchronisation tasks such as shared calendars, address books or note-taking tools.
+Such algorithms support applications running on mobile devices such as laptops and smartphones which are not always connected to the Internet, but are instead completely disconnected or only have a local connection (e.g. via Bluetooth) to a subset of the nodes containing the shared state.
+Example applications built using such algorithms could include collaborative editing systems such as text documents or spreadsheets where several users need to work on the same document, or data synchronisation tasks such as shared calendars, address books or note-taking tools.
 
 We argue that such systems are best designed with replication algorithms which provide strong eventual consistency. Strong consistency algorithms are no good because they cannot support local updates on nodes in the presence of arbitrary network partitions.
 In other words, editing of a spreadsheet by a node would not be allowed without network connectivity to a majority of nodes.
 Eventual consistency is not ideal because it requires the user to manually resolve merge conflicts.
 In contrast replication algorithms which support strong eventual consistency work in a distributed setting and are, by definition, conflict free.
 
-Nevertheless, eventual consistency is how many popular collaborative and data synchronisation apps work today: allow
+Nevertheless, eventual consistency is how many popular collaborative and data synchronisation applications work today: allow
 conflicts to arise and provide the user with mechanisms for resolving them.
 The other common solution is to use a strong eventual consistency algorithm with a central server, for example, as popularised by Google Docs.
 This approach does not support offline editing: it requires the user's computer is connected to the server in order to ensure updates are handled in a conflict-free manner.
@@ -181,7 +181,7 @@ Furthermore, it requires users trust that the central server is not compromised 
 Finally, a central server is a single point of failure that is susceptible to denial-of-service attacks, blocking and censorship.
 
 Decentralised, or peer-to-peer systems are attractive in scenarios where reliance on a central server is impractical or undesirable.
-This includes both the mobile app scenarios described above, as well as data centre settings in which a central server is a bottleneck, limiting scalability.
+This includes both the mobile application scenarios described above, as well as data centre settings in which a central server is a bottleneck, limiting scalability.
 Unfortunately, we currently have a poor understanding of algorithms that enable strong eventual consistency in this setting, and this is limiting their use and deployment.
 In Section~\ref{sect.relatedwork} we highlight several decentralised strong eventual consistency algorithms, published in peer-reviewed venues, that claimed to work correctly but were subsequently shown to violate their supposed guarantees. 
 Informal reasoning has resulted in the development of algorithms later shown incorrect; even formal, mechanised proofs of algorithms have later been shown incorrect.
@@ -192,19 +192,19 @@ This network model describes the behviour of large-scale computer networks today
 We use Isabelle/HOL, a generic proof assistant tool~\cite{DBLP:conf/tphol/WenzelPN08}, to create formal specifications of the network and distributed algorithms executing in such a system. 
 We then use this framework to produce machine-checked proofs of correctness of a class of strong eventual consistency algorithms called Conflict-Free Replicated Data Types (CRDT) as introduced by~\citet{Shapiro:2011wy,Shapiro:2011un}. 
 
-Our ultimate goal is to formally verify the correctness of a suite of distributed data types which can be composed and encapsulated in a library for use by application developers, thus providing an easy way to produce apps which work in a distributed setting and providing end users with a new generation of conflict-free collaborative and data synchronising apps.
+Our ultimate goal is to formally verify the correctness of a suite of distributed data types which can be composed and encapsulated in a library for use by application developers, thus providing an easy way to produce applications which work in a distributed setting and providing end users with a new generation of conflict-free collaborative and data synchronising applications.
 
 Our contributions in this paper are as follows:
 \begin{itemize}
-\item We outline a novel approach for proving the correctness of strong eventual consistency algorithms, namely by building a model of asynchronous causal networks, a communication paradigm supported by virtually all computer network technologies today.
+\item We outline an approach for proving the correctness of strong eventual consistency algorithms, namely by building a model of asynchronous causal networks, a communication paradigm supported by virtually all computer network technologies today.
 %
-\item Develop the first, modular and reusable framework for verifying the correctness of strong eventual consistency algorithms, obtaining a machine-checked assurance that our theorems hold in all possible network behaviours.
+\item We develop the first, modular and reusable framework for verifying the correctness of strong eventual consistency algorithms, obtaining a machine-checked assurance that our theorems hold in all possible network behaviours.
 %
-\item Identify an abstract convergence theorem, a property of order relations, with which we can obtain correctness theorems for concrete strong eventual consistency algorithms.
+\item We identify an abstract convergence theorem, a property of order relations, with which we can obtain correctness theorems for concrete strong eventual consistency algorithms.
 %
 \item We provide the first mechanised proofs of the Replicated Growable Array, the Observed-Removed Set and increment-decrement counter CRDTs. 
 %
-\item We demonstrate our framework is highly reusable: we developed proofs of the Observed-Removed Set and a increment-decrement counter CRDTs in a few hours and under 100 lines of additional code each.
+\item We demonstrate our framework is highly reusable: we developed proofs of the Observed-Removed Set and a increment-decrement counter CRDTs in a few hours and with little CRDT-specific code.
 \end{itemize}
 
 \input{background}
