@@ -156,21 +156,32 @@ We find that our framework is highly reusable, developing proofs of the latter t
 \label{sect.introduction}
 
 A data replication algorithm is executed by a set of computers---or \emph{nodes}---in a distributed system and ensures that all nodes eventually obtain an identical copy of some shared state.
-Whilst important, correctly implementing a replication algorithm is a challenging task, as any such algorithm must operate above computer networks which may arbitrarily delay, drop, or reorder messages, suffer from a temporary partition of the nodes, or even suffer outright node failure.
+Whilst vital for overall systems correctness, correctly implementing a replication algorithm is a challenging task, as any such algorithm must operate above computer networks which may arbitrarily delay, drop, or reorder messages, suffer from a temporary partition of the nodes, or even observe outright node failure.
 
-Reflecting the importance of the task, a variety of replication algorithms exist, with different algorithms exploring a trade-off between varying levels of data consistency across nodes versus operational constraints and system performance.
-Such algorithms can be divided into three classes, based on the guarantees that they provide: strong consistency, eventual consistency and strong eventual consistency.
-Strong consistency can be understood as linearizability: the system behaves as if there were only a single copy of the data, even when it is replicated; examples include traditional relational databases such as PostgreSQL.
-Eventual consistency guarantees that, when no new updates are made to the shared state, all nodes eventually agree on the contents of the shared state; examples include distributed version control systems such as Git.
-Strong eventual consistency provides better guarantees than eventual consistency as follows: whenever two nodes have received the same set of messages (possibly in a different order), then the shared state on the two nodes will be identical; examples include collaborative editing systems such as Google Docs, or data centre applications built with Riak.
+Reflecting the importance of the task, a number of replication algorithms exist, with different algorithms exploring an inherent trade-off between the strength of data consistency guarantees provided across nodes versus operational constraints and performance.
+Accordingly, replication algorithms can be divided into three classes---\emph{strong consistency}, \emph{eventual consistency}, and \emph{strong eventual consistency}---based on the data consistency guarantees provided.
+
+Strong consistency can be understood as linearizability, in that the system behaves as if there were only a single copy of the data, even when it is replicated.
+Traditional relational databases, such as PostgreSQL, use this model: locks are used to ensure that all users connected to the database have an identical view of its content at all times.
+
+Depending on the domain, a strong consistency model may be unwarranted, cause unacceptable performance degradation, or simply be infeasible to implement in large distributed systems.
+This motivates models with relaxed consistency guarantees compared to those provided by strong consistency, but perhaps better suited to certain application domains where changes to shared state need not be propagated eagerly, and with better performance characteristics.
+One popular relaxed consistency model is eventual consistency.
+Eventual consistency guarantees that, when no new updates are made to the shared state, all nodes will eventually agree on the contents of the shared state.
+Distributed version control systems, such as Git or Mercurial, use this model for example, as do many distributed database systems.
+
+The guarantees offered by the eventual consistency model are weak---the model does not constrain system behaviour in the case where updates to shared state never cease, nor does it constrain the values of intermediate reads from shared state prior to convergence.
+Certain applications therefore require models that provide weaker guarantees than those provided by strong consistency, but stronger guarantees than those provided by eventual consistency.
+One such model is strong eventual consistency, which guarantees that whenever two nodes have received the same set of messages (possibly in a different order), then the shared state on the two nodes will be identical.
+Data centre applications built with Riak, and collaborative editing systems such as Google Docs, use this model for example.
 
 In this paper we focus on replication algorithms which support decentralised operation and allow modifications to shared state in the presence of arbitrary network partitions.
 Such algorithms support applications running on mobile devices such as laptops and smartphones which are not always connected to the Internet, but are instead completely disconnected or only have a local connection (e.g. via Bluetooth) to a subset of the nodes containing the shared state.
 Example applications built using such algorithms could include collaborative editing systems such as text documents or spreadsheets where several users need to work on the same document, or data synchronisation tasks such as shared calendars, address books or note-taking tools.
 
-We argue that such systems are best designed with replication algorithms which provide strong eventual consistency. Strong consistency algorithms are no good because they cannot support local updates on nodes in the presence of arbitrary network partitions.
+We argue that such systems are best designed with replication algorithms which provide strong eventual consistency. Strong consistency algorithms are inappropriate in this context as they cannot support local updates on nodes in the presence of arbitrary network partitions.
 In other words, editing of a spreadsheet by a node would not be allowed without network connectivity to a majority of nodes.
-Eventual consistency is not ideal because it requires the user to manually resolve merge conflicts.
+Eventual consistency is inappropriate, as it requires the user to manually resolve merge conflicts.
 In contrast replication algorithms which support strong eventual consistency work in a distributed setting and are, by definition, conflict free.
 
 Nevertheless, eventual consistency is how many popular collaborative and data synchronisation applications work today: allow
