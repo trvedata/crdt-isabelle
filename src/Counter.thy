@@ -4,23 +4,21 @@ imports
   Network
 begin
 
-datatype 'id operation = Increment "'id" | Decrement "'id"
+datatype operation = Increment | Decrement
 
-fun interpret_operation :: "'id operation \<Rightarrow> int \<rightharpoonup> int" where
-  "interpret_operation (Increment _) x = Some (x + 1)" |
-  "interpret_operation (Decrement _) x = Some (x - 1)"
+fun interpret_operation :: "operation \<Rightarrow> int \<rightharpoonup> int" where
+  "interpret_operation Increment x = Some (x + 1)" |
+  "interpret_operation Decrement x = Some (x - 1)"
 
-definition msg_id :: "'id operation \<Rightarrow> 'id" where
-  "msg_id oper \<equiv> case oper of Increment i \<Rightarrow> i | Decrement i \<Rightarrow> i"
-    
-locale counter = network_with_ops msg_id _ interpret_operation 0
+locale counter = network_with_ops _ interpret_operation 0
   
 lemma (in counter) concurrent_operations_commute:
   assumes "xs prefix of i"
   shows "hb.concurrent_ops_commute (node_deliver_messages xs)"
   using assms
   apply(clarsimp simp: hb.concurrent_ops_commute_def)
-  apply(case_tac "x"; case_tac "y")
+  apply(unfold interp_msg_def, simp)
+  apply(case_tac "b"; case_tac "ba")
    apply(auto simp add: kleisli_def)
 done
   
@@ -34,11 +32,11 @@ using assms by(auto simp add: apply_operations_def intro: hb.convergence_ext con
 
 context counter begin
 
-sublocale sec: strong_eventual_consistency weak_hb hb interpret_operation
+sublocale sec: strong_eventual_consistency weak_hb hb interp_msg
   "\<lambda>ops. \<exists>xs i. xs prefix of i \<and> node_deliver_messages xs = ops" 0
   apply(standard; clarsimp)
       apply(auto simp add: hb_consistent_prefix drop_last_message node_deliver_messages_distinct concurrent_operations_commute)
-    apply(metis (mono_tags, lifting) interpret_operation.elims)
+   apply(metis (full_types) interp_msg_def interpret_operation.elims)
   using drop_last_message apply blast
 done
 
