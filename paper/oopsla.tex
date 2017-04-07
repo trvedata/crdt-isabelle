@@ -169,7 +169,7 @@ However, strong consistency may be unwarranted or unneccessary depending on the 
 In particular, leader-based systems must constantly communicate with the leader in order to perform operations; if a node cannot reach the leader due to a network fault, execution is stalled.
 These observations motivate \emph{relaxed} consistency models, which provide weaker guarantees than strong models, but instead can provide better performance, fault-tolerance, and scalability characteristics.
 
-One widely-implemented relaxed model is \emph{eventual consistency}, which guarantees than when no new updates are made to the shared state, all nodes will eventually have the same data \cite{Bailis:2013jc,Burckhardt:2014hy,Terry:1994fp,Vogels:2009ca}.
+One widely-implemented relaxed model is \emph{eventual consistency}, which guarantees that when no new updates are made to the shared state, all nodes will eventually have the same data \cite{Bailis:2013jc,Burckhardt:2014hy,Terry:1994fp,Vogels:2009ca}.
 Since this model allows conflicting updates to be made concurrently, it requires a mechanism for resolving such conflicts.
 For example, distributed version control systems such as Git or Mercurial require the user to resolve merge conflicts manually; and some ``NoSQL'' distributed database systems adopt a \emph{last-writer-wins} policy, under which one update is chosen as the winner, and other concurrent updates are discarded.
 The properties of eventual consistency are weak---for instance, it constrains neither the system behaviour when updates never cease, nor the values of intermediate reads from shared state prior to convergence.
@@ -197,19 +197,19 @@ We model the network using the axioms of \emph{asynchronous unreliable causal br
 We use Isabelle/HOL, a generic proof assistant tool \cite{DBLP:conf/tphol/WenzelPN08}, to create formal specifications of the network and distributed algorithms executing in such a system. 
 We then use this framework to produce machine-checked proofs of correctness of a class of strong eventual consistency algorithms called Conflict-Free Replicated Data Types (CRDT) as introduced by~\citet{Shapiro:2011wy,Shapiro:2011un}. 
 
-Our ultimate goal is to formally verify the correctness of a suite of distributed data types that can be composed and encapsulated in a library, thus providing application developers with a simple way of creating applications that work in a distributed setting, and providing end users with a new generation of conflict-free collaborative and data synchronisation applications.
+Our ultimate goal is to formally verify the correctness of a suite of distributed data types that can be composed and encapsulated in a library, thus providing application developers with a simple way of creating applications that work in a distributed setting, and providing end users with a new generation of conflict-free collaborative and data synchronisation applications. %TODO perhaps harp on about this a little more to talk about strong potential future impact
 
 Our contributions in this paper are as follows:
 \begin{itemize}
-\item We outline an approach for proving the correctness of strong eventual consistency algorithms, namely by building a model of asynchronous causal networks, a communication paradigm supported by virtually all computer network technologies today.
+\item We outline an approach for proving the correctness of strong eventual consistency algorithms, namely by building a model of asynchronous unreliable causal broadcast, a communication paradigm commonly implemented by network protocols.
 %
 \item We develop the first, modular and reusable framework for verifying the correctness of strong eventual consistency algorithms, obtaining a machine-checked assurance that our theorems hold in all possible network behaviours.
 %
 \item We identify an abstract convergence theorem, a property of order relations, with which we can obtain correctness theorems for concrete strong eventual consistency algorithms.
 %
-\item We provide the first mechanised proofs of the Replicated Growable Array, the Observed-Removed Set and increment-decrement counter CRDTs. 
+\item We provide the first mechanised proofs of the Replicated Growable Array, the Observed-Removed Set and Increment-Decrement Counter CRDTs. 
 %
-\item We demonstrate our framework is highly reusable: we developed proofs of the Observed-Removed Set and a increment-decrement counter CRDTs in a few hours and with little CRDT-specific code.
+\item We demonstrate our framework is highly reusable: we developed proofs of the Observed-Removed Set and a Increment-Decrement Counter CRDTs in a few hours and with little CRDT-specific code. %TODO quantify "little" here.
 \end{itemize}
 
 \input{background}
