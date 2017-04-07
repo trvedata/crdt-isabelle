@@ -169,7 +169,7 @@ However, strong consistency may be unwarranted or unneccessary depending on the 
 In particular, leader-based systems must constantly communicate with the leader in order to perform operations; if a node cannot reach the leader due to a network fault, execution is stalled.
 These observations motivate \emph{relaxed} consistency models, which provide weaker guarantees than strong models, but instead can provide better performance, fault-tolerance, and scalability characteristics.
 
-One widely-implemented relaxed model is \emph{eventual consistency}, which guarantees than when no new updates are made to the shared state, all nodes will eventually have the same data \cite{Bailis:2013jc,Burckhardt:2014hy,Terry:1994fp,Vogels:2009ca}.
+One widely-implemented relaxed model is \emph{eventual consistency}, which guarantees that when no new updates are made to the shared state, all nodes will eventually have the same data \cite{Bailis:2013jc,Burckhardt:2014hy,Terry:1994fp,Vogels:2009ca}.
 Since this model allows conflicting updates to be made concurrently, it requires a mechanism for resolving such conflicts.
 For example, distributed version control systems such as Git or Mercurial require the user to resolve merge conflicts manually; and some ``NoSQL'' distributed database systems adopt a \emph{last-writer-wins} policy, under which one update is chosen as the winner, and other concurrent updates are discarded.
 The properties of eventual consistency are weak---for instance, it constrains neither the system behaviour when updates never cease, nor the values of intermediate reads from shared state prior to convergence.
@@ -191,6 +191,7 @@ These mechanised proofs failed because, in formalising the algorithm, they made 
 In this work we provide a framework in Isabelle/HOL, a generic proof assistant tool \cite{DBLP:conf/tphol/WenzelPN08}, for reasoning about the correctness of a particular class of decentralised replication algorithms in a reliable way.
 We do this by formalising not only the replication algorithms, but also the network in which they execute, allowing us to prove that the algorithm's assumptions hold in all possible behaviours of the network.
 We model the network using the axioms of \emph{asynchronous unreliable causal broadcast}, a well-understood abstraction that is commonly implemented by network protocols, and which can run on almost any computer network, including large-scale networks that delay, reorder, or drop messages, and in which nodes may fail.
+
 We then use this framework to produce machine-checked proofs of correctness for three Conflict-Free Replicated Data Types (CRDT)~\citet{Shapiro:2011wy,Shapiro:2011un}, a class of strong eventual consistency replicated algorithms.
 These algorithms support applications running on mobile devices (such as laptops and smartphones), which are not always connected to the Internet, but which may have a local connection (e.g. via Bluetooth) to other nodes carrying copies of the shared state.
 Example applications built using such algorithms could include collaborative editing systems such as text documents or spreadsheets where several users need to work on the same document, or data synchronisation tasks such as shared calendars, address books, or note-taking tools.
@@ -211,14 +212,13 @@ Intuitively, this theorem can be viewed as the ``essence'' of why strong eventua
 Accordingly, all convergence theorems for our three concrete CRDT implementations above are obtained as direct corollaries of this theorem.
 \end{itemize}
 
-\input{background}
-\input{relwork}
+\input{proof-strategy}
 \input{isabelle}
 \input{convergence}
 \input{network}
 \input{rga}
 \input{simple-crdts}
-
+\input{relwork}
 \section{Conclusion}
 \label{sect.conclusion}
 

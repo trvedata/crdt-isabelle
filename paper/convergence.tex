@@ -1,13 +1,19 @@
 \section{Abstract convergence}
 \label{sect.abstract.convergence}
 
-We now use Isabelle to formalise the notion of strong eventual concistency, as informally defined in Section~\ref{sect.eventual.consistency}.
+Strong eventual consistency requires \emph{convergence} of all copies of shared state stored on nodes in the distributed system.
+It guarantees that whenever two nodes have received the same set of updates to shared state---possibly in a different order---their view of the shared state is always identical.
+A node that has a copy of the data is called a \emph{replica}, and replicas can perform reads and writes using only its local state, without waiting for network communication.
+Replicas exchange updates with other replicas asynchronously when a network connection is available.  
+This definition constrains the values that reads may return at any time, making it a stronger property than eventual consistency.
+
+We now use Isabelle to formalise the notion of strong eventual consistency.
 To maximise the generality of our framework, our approach does not make any assumptions about networks, data structures, or conflict resolution algorithms.
 Rather, it uses an abstract model of operations that may be reordered, and reasons about the properties that those operations must satisfy.
 
 \subsection{The happens-before relation and causality}\label{sect.happens.before}
 
-The convergence property given in Section~\ref{sect.eventual.consistency} implies that whenever two replicas have received the same set of operations, in \emph{any} order, their states must be equivalent---in other words, all operations must be commutative.
+Convergence implies that whenever two replicas have received the same set of operations, in \emph{any} order, their states must be equivalent---in other words, all operations must be commutative.
 This definition is too strong to be useful for many datatypes.
 For example, in a list or set data structure, an element may first be added and then subsequently removed again.
 Although it is possible to make such additions and removals unconditionally commutative, doing so yields semantics that application developers find surprising \cite{Bieniusa:2012wu,Bieniusa:2012gt}.
