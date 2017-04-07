@@ -1,9 +1,7 @@
 \section{Related work}\label{sect.relatedwork}
 
-In a system where different replicas may concurrently perform updates without coordinating with each
-other, strong eventual consistency (SEC, see Section~\ref{sect.eventual.consistency}) requires a
-conflict resolution algorithm to reconcile concurrent updates. In some cases, a trivial algorithm is
-used, for example:
+In a system where different replicas may concurrently perform updates without coordinating with each other, strong eventual consistency requires a conflict resolution algorithm to reconcile concurrent updates. 
+In some cases, a trivial algorithm is used, for example:
 
 \begin{description}
 \item[User-defined conflict resolution:] Some systems store all conflicting versions of the data,

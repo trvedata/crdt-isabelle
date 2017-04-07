@@ -1,10 +1,40 @@
 \section{An axiomatic network model}
 \label{sect.network}
 
-In this section, we incrementally work towards a definition of an asynchronous causal network.
+In this section, we incrementally work towards a formal definition of an asynchronous unreliable causal broadcast network.
 This network model is useful because it gives us a realistic setting in which we can embed various replication algorithms, and prove that they guarantee strong eventual consistency in all possible executions of the network.
 Our network model is defined using only six axioms, all of which are standard assumptions in the modelling of distributed systems, and which are satisfied by many systems in practice.
 All theorems in this paper are derived from those axioms; in particular, we show that the causal delivery abstraction satisfies the strict partial ordering assumption of $\isa{hb-consistent}$ (Section~\ref{sect.happens.before}), allowing us to use the $\isa{convergence}$ theorem (Section~\ref{sect.ops.commute}) in locales that extend the network.
+
+%TODO Martin to check that he is happy with the rest of this intro. Have we stated informally why we want to model an asynchronous unreliable causal broadcast network and what this means?
+We start by assuming that all communication between nodes are sent as messages via the network and that these messages may be delayed, reordered, or lost entirely---an assumption that matches the behaviour of many networks in practice~\cite{Bailis:2014jx}.
+Moreover, nodes or network links may fail at any time, and the non-faulty parts of the system need
+to continue working in spite of such partial failures.
+
+As motivated in the introduction, we do not wish to rely on a central server.
+Rather, we aim to support scenarios in which subsets of
+nodes can communicate with each other, but some are disconnected (\emph{partitioned}) from others.
+It is possible to provide totally ordered delivery without a central server and thus obtain strong consistency; this abstraction is known as \emph{total order broadcast} or \emph{atomic broadcast} \cite{Cachin:2011wt,Defago:2004ji}. 
+Unfortunately, it is expensive: it requires a quorum of nodes (typically a majority) to be reachable in order to make progress \cite{Chandra:1996cp}.
+This is not an assumption we wish to make since, when nodes represent laptops or smartphones, it is likely that less than a majority of devices are online at any one time, and so any algorithm for total order broadcast would be stalled.
+
+For example, consider some data shared between two users, each of whom has two devices. 
+Each user may want to synchronise the data between their two devices using a local wireless link, even if they are temporarily disconnected from the internet, and re-synchronise with the other user when they are next online. 
+In this scenario, strong consistency across both users could only be achieved by preventing users from making any offline updates; if updates are allowed, weaker consistency is inevitable \cite{Attiya:2015dm,Davidson:1985hv}.
+
+We therefore use an \emph{asynchronous} network model, which means that we make no timing assumptions: messages sent over the network may suffer unbounded delays before they are delivered, or they may never arrive at all. 
+Nodes may pause their execution for unbounded periods of time, or fail permanently \cite{Cachin:2011wt}. 
+If a user makes updates while offline, and the device re-synchronises when it is next online, we can simply model that interaction as very large network delay.
+
+%Although most practical systems have fairly low network delay and fairly brief execution pauses most of the time, the asynchronous model is a useful lower bound for the assumptions that a distributed algorithm may make. 
+%Any algorithm that is proved correct under the assumptions of the asynchronous model is also guaranteed to be correct in a system that provides stronger guarantees, for example around timing and reliability.
+
+If network interruptions between nodes last only for a finite time, every update can be eventually delivered to every non-failed node by re-sending messages until they arrive.
+%Thus, all non-failed nodes will eventually deliver the same set of updates (although perhaps in a different order), and
+%so strong eventual consistency will ensure that they all converge to an equivalent state. 
+We can therefore assume that the network is \emph{unreliable}.
+If nodes are partitioned from each other forever, they will not converge, but that is the case for any replication algorithm, since the network is assumed to be the only communication channel.
+In such cases we assume that the node has failed.
 
 \subsection{Modelling a distributed system}
 
