@@ -98,7 +98,7 @@ We avoid correctness issues that have dogged previous mechanised proofs in this 
 Our framework builds on the network model to obtain a machine-checked assurance that our theorems hold in all possible network behaviours.
 We identify an abstract convergence theorem, a property of order relations, which provides a formal definition of strong eventual consistency.
 We then obtain the first machine-checked correctness theorems for three concrete CRDTs: the Replicated Growable Array, the Observed-Removed set, and an increment-decrement counter.
-We find that our framework is highly reusable, developing proofs of the latter two CRDTs in a few hours and with relatively little CRDT-specific code.
+We find that our framework is highly reusable, developing proofs of correctness for the latter two CRDTs in a few hours and with relatively little CRDT-specific code.
 \end{abstract}
 
 \begin{CCSXML}
@@ -158,9 +158,9 @@ We find that our framework is highly reusable, developing proofs of the latter t
 A data replication algorithm is executed by a set of computers---or \emph{nodes}---in a distributed system and ensures that all nodes eventually obtain an identical copy of some shared state.
 Whilst vital for overall systems correctness, implementing a replication algorithm is a challenging task, as any such algorithm must operate across computer networks that may arbitrarily delay, drop, or reorder messages, experience temporary partitions of the nodes, or even suffer outright node failure.
 Reflecting the importance of this task, a number of replication algorithms exist, with different algorithms exploring the inherent trade-off between the strength of data consistency guarantees, and operational characteristics such as scalability and performance.
-Accordingly, replication algorithms can be divided into classes---\emph{strong consistency}, \emph{eventual consistency}, and \emph{strong eventual consistency}---based on the consistency guarantees provided.
+Accordingly, replication algorithms can be divided into classes---\emph{strong consistency}, \emph{eventual consistency}, and \emph{strong eventual consistency}---based on the consistency guarantees that they provide.
 
-Strong consistency can be understood as \emph{linearisability}, \emph{serializability}, or a combination of the two (one-copy serializability).
+Strong consistency can be understood as \emph{linearisability}, \emph{serialisability}, or a combination of the two (one-copy serialisability).
 Intuitively, the goal of strong consistency is to make a system behave like a single sequentially executing node, even when it is replicated and concurrent.
 Most systems implement strong consistency by designating a single node as the \emph{leader} that decides on a total order of operations, and that prevents any conflicts due to concurrent access.
 For example, this model is used in many relational databases such as PostgreSQL.
@@ -177,9 +177,9 @@ The properties of eventual consistency are weak---for instance, it constrains ne
 \emph{Strong eventual consistency} is a model that strikes a compromise between strong and eventual consistency \cite{Shapiro:2011un}.
 Informally, it guarantees that whenever two nodes have received the same set of messages---possibly in a different order---their view of the shared state is always identical.
 In particular, it requires that any conflicts due to concurrent updates are merged automatically.
-This model is used in datacenter-based applications based on the Riak distributed database, and collaborative editing applications such as Google Docs, for example.
+This model is used in datacentre-based applications based on the Riak distributed database, and collaborative editing applications such as Google Docs, for example.
 
-Many replication algorithms---including that in Google Docs---require that all updates pass through a central server, which limits the use and deployment of these systems: the server may become a bottleneck that limits scalability, and it makes the system vulnerable to network outages, denial-of-service attacks, censorship, and server failures.
+Many replication algorithms---including that used in Google Docs---require that all updates pass through a central server, which limits the use and deployment of these systems: the server may become a bottleneck that limits scalability, and it makes the system vulnerable to network outages, denial-of-service attacks, censorship, and server failures.
 Requiring communication through a central server also limits offline use on mobile devices with intermittent connectivity (e.g. in calendar applications), and precludes replication over local networks.
 By contrast, decentralised or peer-to-peer architectures are especially attractive and widely-deployed in contexts where reliance on a central server is impractical or undesirable.
 
