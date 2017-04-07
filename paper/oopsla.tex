@@ -204,7 +204,7 @@ Correctness of any particular algorithm is obtained via a thin-layer of algorith
 To our knowledge, this is the first, modular and reusable framework for verifying the correctness of strong eventual consistency algorithms, obtaining a machine-checked assurance that our theorems hold in all possible network behaviours.
 \item
 We provide the first mechanised proofs of the Replicated Growable Array, the Observed-Removed Set and increment-decrement counter CRDTs.
-In particular, these mechanised proofs demonstrate demonstrate that our framework is highly reusable: we developed proofs of the Observed-Removed Set and a increment-decrement counter CRDTs in a few hours and with little CRDT-specific code.
+In particular, these mechanised proofs demonstrate that our framework is highly reusable: we developed proofs of the Observed-Removed Set and a increment-decrement counter CRDTs in a few hours and with little CRDT-specific code using a fixed proof pattern that applies to all of our CRDT proofs.
 \item
 As part of our proof framework, we identify an abstract convergence theorem, a property of order relations, with which we can obtain correctness theorems for concrete strong eventual consistency algorithms.
 Intuitively, this theorem can be viewed as the ``essence'' of why strong eventual consistency algorithms converge.
