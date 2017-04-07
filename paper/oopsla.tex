@@ -89,7 +89,7 @@
 \email{arb33@cam.ac.uk}
 
 \begin{abstract}
-Data replication is used in distributed systems to maintain up-to-date copies of some data across multiple computers in a network.
+Data replication is used in distributed systems to maintain up-to-date copies of shared data across multiple computers in a network.
 However, despite decades of research, algorithms for achieving consistency in replicated systems are still poorly understood.
 Indeed, many published algorithms have later been shown to be incorrect, even those accompanied by supposed mechanised proofs of correctness.
 In this work, we focus on the correctness of Conflict-free Replicated Data Types (CRDTs), a class of algorithm that provides strong eventual consistency guarantees for replicated data.
@@ -97,7 +97,7 @@ We develop a modular and reusable framework in the Isabelle/HOL interactive theo
 We avoid correctness issues that have dogged previous mechanised proofs in this area by taking a new approach: axiomatically modelling real-world computer networks using six uncontroversial axioms.
 Our framework builds on the network model to obtain a machine-checked assurance that our theorems hold in all possible network behaviours.
 We identify an abstract convergence theorem, a property of order relations, which provides a formal definition of strong eventual consistency.
-We then obtain the first machine-checked correctness theorems for three concrete CRDTs: the replicated growable array, the observed-removed set, and an increment-decrement counter.
+We then obtain the first machine-checked correctness theorems for three concrete CRDTs: the Replicated Growable Array, the Observed-Removed set, and an increment-decrement counter.
 We find that our framework is highly reusable, developing proofs of the latter two CRDTs in a few hours and with relatively little CRDT-specific code.
 \end{abstract}
 
@@ -186,30 +186,30 @@ By contrast, decentralised or peer-to-peer architectures are especially attracti
 Unfortunately, we currently have a poor understanding of algorithms that enable strong eventual consistency in such a decentralised setting.
 Several decentralised replication algorithms, published in peer-reviewed venues, claimed to provide strong eventual consistency, but were subsequently shown to violate their supposed guarantees.
 Informal reasoning has resulted in the development of algorithms later shown incorrect, and even mechanised formal proofs of the correctness of algorithms have later been shown to be incorrect.
+These mechanised proofs failed because, in formalising the algorithm, they made false assumptions about the execution environment.
 
-In this paper we focus on replication algorithms that support decentralised operation, and that allow modification of shared state to continue despite arbitrary network partitions.
-Such algorithms support applications running on mobile devices (such as laptops and smartphones), which are not always connected to the Internet, but which may have a local connection (e.g. via Bluetooth) to other nodes carrying copies of the shared state.
-Example applications built using such algorithms could include collaborative editing systems such as text documents or spreadsheets where several users need to work on the same document, or data synchronisation tasks such as shared calendars, address books, or note-taking tools.
-
-Previous mechanised proofs failed because, in formalising the algorithm, they made false assumptions about the execution environment.
-We seek to avoid this trap by formalising not only the replication algorithms, but also the network in which they execute, allowing us to prove that the algorithm's assumptions hold in all possible executions of the network.
+In this work we provide a framework in Isabelle/HOL, a generic proof assistant tool \cite{DBLP:conf/tphol/WenzelPN08}, for reasoning about the correctness of a particular class of decentralised replication algorithms in a reliable way.
+We do this by formalising not only the replication algorithms, but also the network in which they execute, allowing us to prove that the algorithm's assumptions hold in all possible behaviours of the network.
 We model the network using the axioms of \emph{asynchronous unreliable causal broadcast}, a well-understood abstraction that is commonly implemented by network protocols, and which can run on almost any computer network, including large-scale networks that delay, reorder, or drop messages, and in which nodes may fail.
-We use Isabelle/HOL, a generic proof assistant tool \cite{DBLP:conf/tphol/WenzelPN08}, to create formal specifications of the network and distributed algorithms executing in such a system. 
-We then use this framework to produce machine-checked proofs of correctness of a class of strong eventual consistency algorithms called Conflict-Free Replicated Data Types (CRDT) as introduced by~\citet{Shapiro:2011wy,Shapiro:2011un}. 
 
-Our ultimate goal is to formally verify the correctness of a suite of distributed data types that can be composed and encapsulated in a library, thus providing application developers with a simple way of creating applications that work in a distributed setting, and providing end users with a new generation of conflict-free collaborative and data synchronisation applications. %TODO perhaps harp on about this a little more to talk about strong potential future impact
+We then use this framework to produce machine-checked proofs of correctness for three Conflict-Free Replicated Data Types (CRDT)~\citet{Shapiro:2011wy,Shapiro:2011un}, a class of strong eventual consistency replicated algorithms.
+These algorithms support applications running on mobile devices (such as laptops and smartphones), which are not always connected to the Internet, but which may have a local connection (e.g. via Bluetooth) to other nodes carrying copies of the shared state.
+Example applications built using such algorithms could include collaborative editing systems such as text documents or spreadsheets where several users need to work on the same document, or data synchronisation tasks such as shared calendars, address books, or note-taking tools.
 
 Our contributions in this paper are as follows:
 \begin{itemize}
-\item We outline an approach for proving the correctness of strong eventual consistency algorithms, namely by building a model of asynchronous unreliable causal broadcast, a communication paradigm commonly implemented by network protocols.
-%
-\item We develop the first, modular and reusable framework for verifying the correctness of strong eventual consistency algorithms, obtaining a machine-checked assurance that our theorems hold in all possible network behaviours.
-%
-\item We identify an abstract convergence theorem, a property of order relations, with which we can obtain correctness theorems for concrete strong eventual consistency algorithms.
-%
-\item We provide the first mechanised proofs of the Replicated Growable Array, the Observed-Removed Set and Increment-Decrement Counter CRDTs. 
-%
-\item We demonstrate our framework is highly reusable: we developed proofs of the Observed-Removed Set and a Increment-Decrement Counter CRDTs in a few hours and with little CRDT-specific code. %TODO quantify "little" here.
+\item
+We outline a proof framework for establishing the correctness of strong eventual consistency algorithms.
+This approach is `deep' in that we model asynchronous causal networks, a communication paradigm supported by virtually all computer network technologies today, and `build up' in composable layers towards a full proof of correctness for a particular algorithm.
+Correctness of any particular algorithm is obtained via a thin-layer of algorithm-specific code.
+To our knowledge, this is the first, modular and reusable framework for verifying the correctness of strong eventual consistency algorithms, obtaining a machine-checked assurance that our theorems hold in all possible network behaviours.
+\item
+We provide the first mechanised proofs of the Replicated Growable Array, the Observed-Removed Set and increment-decrement counter CRDTs.
+In particular, these mechanised proofs demonstrate that our framework is highly reusable: we developed proofs of the Observed-Removed Set and a increment-decrement counter CRDTs in a few hours and with little CRDT-specific code using a fixed proof pattern that applies to all of our CRDT proofs.
+\item
+As part of our proof framework, we identify an abstract convergence theorem, a property of order relations, with which we can obtain correctness theorems for concrete strong eventual consistency algorithms.
+Intuitively, this theorem can be viewed as the ``essence'' of why strong eventual consistency algorithms converge.
+Accordingly, all convergence theorems for our three concrete CRDT implementations above are obtained as direct corollaries of this theorem.
 \end{itemize}
 
 \input{proof-strategy}
