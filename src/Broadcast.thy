@@ -2,6 +2,7 @@ theory
   Broadcast
 imports
   Network
+  Util
 begin
 
 section\<open>Implementation of Causal Broadcast Protocol\<close>
@@ -24,7 +25,7 @@ definition (in executions) user_step :: "('nodeid \<Rightarrow> 'state \<times> 
 definition (in executions) network_step :: "('nodeid \<Rightarrow> 'state \<times> 'msg set) \<Rightarrow> ('nodeid \<Rightarrow> 'state \<times> 'msg set)" where
   "network_step conf \<equiv>
      let sender = SOME node::'nodeid. True in
-     let recipt = SOME node::'nodeid. True in
+     let recipt = SOME node::'nodeid. node \<noteq> sender in
      let msg = SOME msg. msg \<in> snd (conf sender) in
      let (state, msgs) = conf recipt in
      conf(recipt := (recv_msg msg state, msgs))"
@@ -93,16 +94,157 @@ definition protocol_recv :: "('nodeid, 'op) message \<Rightarrow> ('nodeid, 'op)
   "protocol_recv msg state \<equiv>
      if causally_ready state msg then state \<lparr>state_hist := state_hist state @ [Deliver msg]\<rparr> else state"
 
+type_synonym 'op configuration = "nat \<Rightarrow> (nat, 'op) node_state \<times> (nat, 'op) message set"
+
 locale cbcast_protocol_base = executions initial_node_state _ protocol_send protocol_recv +
   fixes valid_ops :: "(nat, 'op) node_state \<Rightarrow> 'op set"
 
-locale cbcast_protocol = cbcast_protocol_base "valid_msgs valid_ops"
+locale cbcast_protocol = cbcast_protocol_base "valid_msgs valid_ops" +
+  fixes config :: "'a configuration"
+  assumes valid_execution: "execution config"
 
 definition (in cbcast_protocol) history :: "nat \<Rightarrow> (nat, 'a) message event list" where
-  "history \<equiv> state_hist \<circ> fst \<circ> (SOME conf. execution conf)"
+  "history \<equiv> state_hist \<circ> fst \<circ> config"
 
 
 subsection\<open>Proof that this protocol satisfies the causal broadcast axioms\<close>
+
+lemma (in cbcast_protocol) history_to_exec:
+  shows "history i = state_hist (fst (config i))"
+by(simp add: history_def)
+
+definition (in cbcast_protocol) config_evolution :: "'a configuration \<Rightarrow> 'a configuration list \<Rightarrow> bool" where
+  "config_evolution c cs \<equiv>
+     cs \<noteq> [] \<and>
+     hd cs = (\<lambda>n. (initial_node_state n, {})) \<and>
+     last cs = c \<and>
+     (\<forall>x \<in> set cs. execution x) \<and>
+     (\<forall>pre x y suf. cs = pre@x#y#suf \<longrightarrow> user_step x = y \<or> network_step x = y)"
+
+definition (in cbcast_protocol) forall_execs :: "('a configuration \<Rightarrow> 'a configuration \<Rightarrow> bool) \<Rightarrow> bool" where
+  "forall_execs P \<equiv> \<exists>cs. config_evolution config cs \<and>
+     (\<forall>pre x y suf. cs = pre@x#y#suf \<longrightarrow> P x y)"
+
+lemma (in cbcast_protocol) config_evolution_exists:
+  assumes "execution conf"
+  shows "\<exists>confs. config_evolution conf confs"
+  using assms unfolding config_evolution_def
+  apply(induction rule: execution.induct)
+  apply(rule_tac x="[\<lambda>a. (initial_node_state a, {})]" in exI)
+  apply(simp add: execution.intros(1))
+  apply(erule exE)
+  apply(rule_tac x="confs@[conf']" in exI, clarsimp)
+  apply(rule conjI)
+  using execution.intros(2) last_in_set apply blast
+  apply(rule allI)+
+  apply(clarsimp)
+  apply(case_tac suf, force)
+  apply(metis (no_types, lifting) butlast.simps(2) butlast_append butlast_snoc list.simps(3))
+  apply(erule exE)
+  apply(rule_tac x="confs@[conf']" in exI, clarsimp)
+  apply(rule conjI)
+  using execution.intros(3) last_in_set apply blast
+  apply(rule allI)+
+  apply(clarsimp)
+  apply(case_tac suf, force)
+  apply(metis (no_types, lifting) butlast.simps(2) butlast_append butlast_snoc list.simps(3))
+done
+
+lemma unpack_let:
+  assumes "(let x = y in f x) = z"
+  and "\<And>x. (x = y \<and> f x = z) \<Longrightarrow> R"
+  shows R
+using assms by auto
+
+lemma (in cbcast_protocol) user_step_effect:
+  assumes "user_step before = after"
+  shows "\<exists>i es msg. after = before(i := (protocol_send msg (fst (before i)), insert msg (snd (before i))))"
+  using assms
+  apply(simp add: user_step_def)
+  apply(erule unpack_let, erule conjE)
+  apply(rule_tac x=sender in exI)
+  apply(meson case_prod_beta)
+done
+
+lemma (in cbcast_protocol) network_step_effect:
+  assumes "network_step before = after"
+  shows "\<exists>i es msg. after = before(i := (protocol_recv msg (fst (before i)), snd (before i)))"
+  using assms
+  apply(simp add: network_step_def)
+  apply(erule unpack_let, erule conjE)
+  apply(erule unpack_let, erule conjE)
+  apply(rule_tac x=recipt in exI)
+  apply(meson case_prod_beta)
+done
+
+lemma (in cbcast_protocol) history_append:
+  shows "forall_execs (\<lambda>x y.
+      (\<exists>i es. state_hist (fst (x i)) @ es = state_hist (fst (y i)) \<and>
+         (\<forall>j::nat. i\<noteq>j \<longrightarrow> state_hist (fst (x j)) = state_hist (fst (y j)))))"
+  apply(unfold forall_execs_def)
+  apply(insert valid_execution)
+  apply(drule config_evolution_exists, erule exE)
+  apply(simp add: config_evolution_def)
+  apply(rule_tac x=confs in exI, simp)
+  apply(rule allI)+
+  apply(erule conjE)+
+  apply(erule_tac x=pre in allE, erule_tac x=x in allE, erule_tac x=y in allE)
+  apply(subgoal_tac "user_step x = y \<or> network_step x = y \<Longrightarrow>
+       \<exists>i. (\<exists>es. state_hist (fst (x i)) @ es = state_hist (fst (y i))) \<and>
+            (\<forall>j. i \<noteq> j \<longrightarrow> state_hist (fst (x j)) = state_hist (fst (y j)))")
+  apply simp+
+  apply(erule disjE)
+  apply(drule user_step_effect)
+  apply(clarsimp simp: protocol_send_def)
+  apply(drule network_step_effect)
+  apply(clarsimp simp: protocol_recv_def)
+done
+
+lemma (in cbcast_protocol) broadcast_node_id:
+  assumes "Broadcast msg \<in> set (history i)"
+    and "msg_id msg = (j, seq)"
+  shows "i = j"
+  using assms apply(simp add: history_to_exec)
+  apply(insert valid_execution, drule config_evolution_exists, erule exE)
+  apply(simp add: config_evolution_def)
+  apply(erule conjE)+
+  apply(subgoal_tac "\<exists>pre x y suf. confs = pre @ x # y # suf")
+  apply(erule exE)+
+  apply(erule_tac x=pre in allE, erule_tac x=x in allE, erule_tac x=y in allE)
+  apply(subgoal_tac "user_step x = y \<Longrightarrow>
+       \<exists>i es. state_hist (fst (x i)) @ es = state_hist (fst (y i))")
+  apply(clarsimp)
+  oops
+
+lemma (in cbcast_protocol) event_creation:
+  assumes "execution conf"
+    and "config_evolution conf confs"
+    and "evt \<in> set (state_hist (fst (conf i)))"
+  shows "\<exists>before after es. evt \<in> set es \<and>
+    (user_step before = after \<or> network_step before = after) \<and>
+    state_hist (fst (before i)) @ es = state_hist (fst (after i))"
+  using assms apply(induction confs arbitrary: conf rule: rev_induct)
+  apply(simp add: config_evolution_def)
+  apply(subgoal_tac "x=conf")
+  defer
+  apply(simp add: config_evolution_def)
+  apply(clarsimp)
+  apply(erule_tac x="last xs" in meta_allE)
+  apply(simp add: config_evolution_def)
+  apply(erule conjE)+
+  apply(subgoal_tac "\<exists>pre x y suf. xs @ [conf] = pre @ x # y # suf")
+  apply(erule exE)+
+  apply(erule_tac x=pre in allE, erule_tac x=x in allE, erule_tac x=y in allE)
+  apply(clarsimp)
+  apply(erule disjE)
+  apply(frule user_step_effect)
+  apply(simp add: protocol_send_def, erule exE, erule exE)
+  apply(case_tac "i=ia")
+  apply(case_tac "evt \<in> {Broadcast msg, Deliver msg}")
+  apply(rule_tac x=x in exI, rule_tac x=y in exI)
+  apply(rule_tac x="[Broadcast msg, Deliver msg]" in exI, simp)
+  apply(subgoal_tac "evt \<in> set (state_hist (fst (x ia)))")
+  oops
 
 context cbcast_protocol begin
 sublocale causal: causal_network history msg_id
