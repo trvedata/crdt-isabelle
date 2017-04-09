@@ -125,6 +125,27 @@ definition (in cbcast_protocol) forall_execs :: "('a configuration \<Rightarrow>
   "forall_execs P \<equiv> \<exists>cs. config_evolution config cs \<and>
      (\<forall>pre x y suf. cs = pre@x#y#suf \<longrightarrow> P x y)"
 
+lemma (in cbcast_protocol) config_evolution_drop_last:
+  assumes "config_evolution c2 (confs@[c1,c2])"
+  shows "config_evolution c1 (confs@[c1])"
+  using assms apply(simp add: config_evolution_def)
+  apply(erule conjE)+
+  apply(rule conjI)
+  apply(simp add: list_head_unaffected)
+  apply(metis (no_types, lifting) append.assoc append.simps(2) self_append_conv2)
+done
+
+lemma (in cbcast_protocol) config_evolution_drop_last2:
+  assumes "config_evolution (last cs) cs"
+    and "length cs > 1"
+  shows "config_evolution (last (butlast cs)) (butlast cs)"
+  using assms apply -
+  apply(subgoal_tac "\<exists>c1 c2 confs. cs = confs@[c1,c2]")
+  apply(erule exE)+
+  apply(simp add: butlast_append config_evolution_drop_last)
+  using list_two_at_end apply blast
+done
+
 lemma (in cbcast_protocol) config_evolution_exists:
   assumes "execution conf"
   shows "\<exists>confs. config_evolution conf confs"
@@ -232,18 +253,74 @@ lemma (in cbcast_protocol) event_creation:
   apply(erule_tac x="last xs" in meta_allE)
   apply(simp add: config_evolution_def)
   apply(erule conjE)+
-  apply(subgoal_tac "\<exists>pre x y suf. xs @ [conf] = pre @ x # y # suf")
+  apply(subgoal_tac "\<exists>pre x. xs = pre @ [x]")
   apply(erule exE)+
-  apply(erule_tac x=pre in allE, erule_tac x=x in allE, erule_tac x=y in allE)
+  apply(erule_tac x=pre in allE, erule_tac x=x in allE, erule_tac x=conf in allE)
   apply(clarsimp)
   apply(erule disjE)
   apply(frule user_step_effect)
   apply(simp add: protocol_send_def, erule exE, erule exE)
   apply(case_tac "i=ia")
   apply(case_tac "evt \<in> {Broadcast msg, Deliver msg}")
-  apply(rule_tac x=x in exI, rule_tac x=y in exI)
+  apply(rule_tac x=x in exI, rule_tac x=conf in exI)
   apply(rule_tac x="[Broadcast msg, Deliver msg]" in exI, simp)
-  apply(subgoal_tac "evt \<in> set (state_hist (fst (x ia)))")
+  apply(subgoal_tac "evt \<in> set (state_hist (fst (x i)))")
+  apply(subgoal_tac "hd (pre @ [x]) = (\<lambda>n. (initial_node_state n, {})) \<and>
+        (\<forall>prea xa y suf. pre @ [x] = prea @ xa # y # suf \<longrightarrow>
+            user_step xa = y \<or> network_step xa = y)")
+  apply simp
+  apply(rule conjI)
+  apply(rule list_head_unaffected, assumption)
+  apply(rule allI)+
+  apply(clarsimp)
+  apply(subgoal_tac "x=xa")
+  oops
+
+lemma (in cbcast_protocol) history_nonempty:
+  assumes "execution conf"
+  and "evt \<in> set (state_hist (fst (conf i)))"
+  shows "\<exists>confs. config_evolution conf confs \<and> length confs > 1"
+  using assms apply -
+  apply(drule config_evolution_exists, erule exE)
+  apply(rule_tac x=confs in exI, clarsimp)
+  apply(simp add: config_evolution_def)
+  apply(erule conjE)+
+  apply(subgoal_tac "length confs \<le> 1 \<Longrightarrow> False", fastforce)
+  apply(subgoal_tac "confs = [\<lambda>n. (initial_node_state n, {})]")
+  apply(metis empty_iff empty_set fst_conv initial_node_state_def last_ConsL node_state.select_convs(2))
+  apply(subgoal_tac "\<exists>xs. confs = (\<lambda>n. (initial_node_state n, {})) # xs")
+  apply(metis (no_types, lifting) One_nat_def Suc_le_mono add.right_neutral add_Suc_right length_greater_0_conv list.size(4) not_less)
+  apply(subgoal_tac "length confs = 1")
+  apply(rule_tac x="[]" in exI)
+  using list_head_length_one apply fastforce
+  apply(subgoal_tac "length confs < 1 \<Longrightarrow> False")
+  apply(simp add: le_less)
+  apply(subgoal_tac "length confs = 0 \<Longrightarrow> False")
+  apply blast+
+done
+
+lemma (in cbcast_protocol) event_creation:
+  assumes "execution conf"
+    and "config_evolution conf confs"
+    and "evt \<in> set (state_hist (fst (conf i)))"
+  shows "\<exists>before after es. evt \<in> set es \<and>
+    (user_step before = after \<or> network_step before = after) \<and>
+    state_hist (fst (before i)) @ es = state_hist (fst (after i))"
+  using assms
+  apply(induction arbitrary: confs rule: execution.induct)
+  apply(simp add: initial_node_state_def)
+  apply(subgoal_tac "\<exists>pre. confs = pre @ [conf, conf']", erule exE)
+  apply(erule_tac x="pre @ [conf]" in meta_allE)
+  apply(frule user_step_effect)
+  apply(simp add: protocol_send_def, erule exE, erule exE)
+  apply(case_tac "i=ia")
+  apply(case_tac "evt \<in> {Broadcast msg, Deliver msg}")
+  apply(rule_tac x=conf in exI, rule_tac x=conf' in exI)
+  apply(rule_tac x="[Broadcast msg, Deliver msg]" in exI, simp)
+  apply(subgoal_tac "evt \<in> set (state_hist (fst (conf i)))")
+  apply(subgoal_tac "config_evolution conf (pre @ [conf])")
+  apply(simp add: config_evolution_def)
+  using config_evolution_drop_last apply blast
   oops
 
 context cbcast_protocol begin

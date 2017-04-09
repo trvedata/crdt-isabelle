@@ -72,6 +72,36 @@ using assms by(induction xs, simp) (meson in_set_conv_nth)
 
 section\<open>Technical list lemmas\<close>
 
+lemma list_head_unaffected:
+  assumes "hd (x @ [y, z]) = v"
+    shows "hd (x @ [y   ]) = v"
+  using assms by (metis hd_append list.sel(1))
+
+lemma list_head_butlast:
+  assumes "hd xs = v"
+  and "length xs > 1"
+  shows "hd (butlast xs) = v"
+  using assms by (metis hd_conv_nth length_butlast length_greater_0_conv less_trans nth_butlast zero_less_diff zero_less_one)
+
+lemma list_head_length_one:
+  assumes "hd xs = x"
+    and "length xs = 1"
+  shows "xs = [x]"
+using assms by(metis One_nat_def Suc_length_conv hd_Cons_tl length_0_conv list.sel(3))
+
+lemma list_two_at_end:
+  assumes "length xs > 1"
+  shows "\<exists>xs' x y. xs = xs' @ [x, y]"
+  using assms apply(induction xs rule: rev_induct, simp)
+  apply(case_tac "length xs = 1")
+  apply(simp)
+  apply(rule_tac x="[]" in exI, rule_tac x="hd xs" in exI)
+  apply(simp add: list_head_length_one)
+  apply(simp)
+  apply(rule_tac x="butlast xs" in exI, rule_tac x="last xs" in exI)
+  apply simp
+done
+
 lemma list_nth_split_technical:
   assumes "m < length cs"
       and "cs \<noteq> []"
