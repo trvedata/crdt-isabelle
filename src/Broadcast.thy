@@ -293,34 +293,36 @@ using assms by simp
 
 lemma (in cbcast_protocol) event_creation:
   assumes "execution conf"
-    and "config_evolution conf confs"
     and "evt \<in> set (state_hist (fst (conf i)))"
-  shows "\<exists>before after es. evt \<in> set es \<and>
+  shows "\<exists>before after es. evt \<in> set es \<and> before \<noteq> after \<and>
     (user_step before = after \<or> network_step before = after) \<and>
     state_hist (fst (before i)) @ es = state_hist (fst (after i))"
   using assms
-  apply(induction arbitrary: confs rule: execution.induct)
+  apply(induction rule: execution.induct)
   apply(simp add: initial_node_state_def)
-  apply(subgoal_tac "\<exists>pre. confs = pre @ [conf, conf']", erule exE)
-  apply(erule_tac x="pre @ [conf]" in meta_allE)
-  apply(case_tac "conf=conf'")
-  apply(simp add: config_evolution_drop_last)
+  apply(case_tac "conf=conf'", simp)
   apply(frule user_step_effect, assumption, (erule exE)+, (erule conjE)+)
   apply(subst (asm) protocol_send_def)
   apply(case_tac "i=ia")
   apply(case_tac "evt \<in> {Broadcast msg, Deliver msg}")
   apply(rule_tac x=conf in exI, rule_tac x=conf' in exI)
   apply(rule_tac x="[Broadcast msg, Deliver msg]" in exI, simp)
-  apply(subgoal_tac "evt \<in> set (state_hist (fst (conf i)))")
-  apply(subgoal_tac "config_evolution conf (pre @ [conf])", simp)
-  apply(simp add: config_evolution_drop_last)
+  apply(subgoal_tac "evt \<in> set (state_hist (fst (conf i)))", simp)
   apply(subgoal_tac "state_hist (fst (conf ia)) @ [Broadcast msg, Deliver msg] = state_hist (fst (conf' ia))")
-  apply(metis UnE empty_set list.simps(15) set_append, simp)
-  apply(subgoal_tac "state_hist (fst (conf i)) = state_hist (fst (conf' i))")
-  apply(metis (no_types, lifting) config_evolution_drop_last, simp)
-  apply(insert history_nonempty2)
-  apply(rule_tac x="butlast (butlast confs)" in exI)
-  sorry
+  apply(metis UnE empty_set list.simps(15) set_append, simp, simp)
+  apply(case_tac "conf=conf'", simp)
+  apply(frule network_step_effect, assumption, (erule exE)+, (erule conjE)+)
+  apply(subst (asm) protocol_recv_def)
+  apply(case_tac "i = recipient")
+  apply(case_tac "causally_ready (fst (conf recipient)) msg")
+  apply(case_tac "evt = Deliver msg")
+  apply(rule_tac x=conf in exI, rule_tac x=conf' in exI)
+  apply(rule_tac x="[Deliver msg]" in exI, simp)
+  apply(subgoal_tac "evt \<in> set (state_hist (fst (conf i)))", simp)
+  apply(subgoal_tac "state_hist (fst (conf recipient)) @ [Deliver msg] = state_hist (fst (conf' recipient))")
+  apply(metis UnE empty_iff empty_set set_ConsD set_append)
+  apply simp+
+done
 
 lemma (in cbcast_protocol) broadcast_node_id:
   assumes "Broadcast msg \<in> set (history i)"
@@ -328,10 +330,14 @@ lemma (in cbcast_protocol) broadcast_node_id:
   shows "i = j"
   using assms valid_execution apply(simp add: history_def)
   apply(frule config_evolution_exists, erule exE)
-  apply(drule event_creation, simp, simp)
+  apply(drule event_creation, simp)
   apply((erule exE)+, (erule conjE)+, erule disjE)
-  apply(frule user_step_effect)
-  apply(simp add: protocol_send_def, erule exE, erule exE)
+  apply(frule user_step_effect, simp)
+  apply(simp add: protocol_send_def, erule exE, erule conjE, erule exE, erule conjE)
+  apply(subgoal_tac "msg = msga", subgoal_tac "i = ia")
+  apply(subst (asm) valid_msgs_def)
+  apply(subst (asm) next_msgid_def)
+  apply(subgoal_tac "es = [Broadcast msga, Deliver msga]")
   oops
 
 
