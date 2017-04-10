@@ -93,10 +93,10 @@ Data replication is used in distributed systems to maintain up-to-date copies of
 However, despite decades of research, algorithms for achieving consistency in replicated systems are still poorly understood.
 Indeed, many published algorithms have later been shown to be incorrect, even some that were accompanied by supposed mechanised proofs of correctness.
 In this work, we focus on the correctness of Conflict-free Replicated Data Types (CRDTs), a class of algorithm that provides strong eventual consistency guarantees for replicated data.
-We develop a modular and reusable framework in the Isabelle/HOL interactive theorem prover for verifying the correctness of CRDT implementations.
-We avoid correctness issues that have dogged previous mechanised proofs in this area by axiomatically modelling real-world computer networks using six uncontroversial axioms.
-Our framework builds on the network model to obtain a machine-checked assurance that our theorems hold in all possible network behaviours.
-We identify an abstract convergence theorem, a property of order relations, which provides a formal definition of strong eventual consistency.
+We develop a modular and reusable framework in the Isabelle/HOL interactive theorem prover for verifying the correctness of CRDT algorithms.
+We avoid correctness issues that have dogged previous mechanised proofs in this area by including a network model in our formalisation, and proving that our theorems hold in all possible executions of the network.
+Our axiomatic network model is a standard abstraction that accurately reflects the behaviour of real-world computer networks.
+Moreover, we identify an abstract convergence theorem, a property of order relations, which provides a formal definition of strong eventual consistency.
 We then obtain the first machine-checked correctness theorems for three concrete CRDTs: the Replicated Growable Array, the Observed-Remove Set, and an increment-decrement counter.
 We find that our framework is highly reusable, developing proofs of correctness for the latter two CRDTs in a few hours and with relatively little CRDT-specific code.
 \end{abstract}
@@ -155,60 +155,59 @@ We find that our framework is highly reusable, developing proofs of correctness 
 \section{Introduction}
 \label{sect.introduction}
 
-A data replication algorithm is executed by a set of computers---or \emph{nodes}---in a distributed system and ensures that all nodes eventually obtain an identical copy of some shared state.
+A data replication algorithm is executed by a set of computers---or \emph{nodes}---in a distributed system, and ensures that all nodes eventually obtain an identical copy of some shared state.
 Whilst vital for overall systems correctness, implementing a replication algorithm is a challenging task, as any such algorithm must operate across computer networks that may arbitrarily delay, drop, or reorder messages, experience temporary partitions of the nodes, or even suffer outright node failure.
 Reflecting the importance of this task, a number of replication algorithms exist, with different algorithms exploring the inherent trade-offs between the strength of data consistency guarantees, and operational characteristics such as scalability and performance.
 Accordingly, replication algorithms can be divided into classes---\emph{strong consistency}, \emph{eventual consistency}, and \emph{strong eventual consistency}---based on the consistency guarantees that they provide.
 
 Strong consistency can be understood as \emph{linearisability}, \emph{serialisability}, or a combination of the two (one-copy serialisability).
 Intuitively, the goal of strong consistency is to make a system behave like a single sequentially executing node, even when it is replicated and concurrent.
-Most systems implement strong consistency by designating a single node as the \emph{leader} that decides on a total order of operations, and that prevents any conflicts due to concurrent access.
+Most systems implement strong consistency by designating a single node as the \emph{leader}, which decides on a total order of operations and prevents concurrent access from causing conflicts.
 For example, this model is used in many relational databases such as PostgreSQL.
 
-However, strong consistency may be unwarranted or unneccessary depending on the application---it may impose an unacceptable performance degradation on the system, or it may simply be infeasible to implement, especially in large distributed systems.
-In particular, leader-based systems must constantly communicate with the leader in order to perform operations; if a node cannot reach the leader due to a network fault, execution is stalled.
-These observations motivate \emph{relaxed} consistency models, which provide weaker guarantees than strong models, but instead can provide better performance, fault-tolerance, and scalability characteristics.
+However, strong consistency may be unwarranted or unneccessary depending on the application: it may impose an unacceptable performance degradation on the system, or it may simply be infeasible to implement, especially in large distributed systems.
+Relying on a single leader or central server limits the use and deployment of these systems: the server may become a bottleneck that limits scalability, and it makes the system vulnerable to disruption by network outages, denial-of-service attacks, censorship, and server failures.
+Clients must constantly communicate with the leader in order to perform operations; if a node cannot reach the leader due to a network fault, its execution is stalled.
+This fact makes strong consistency unsuitable for mobile devices, such as laptops and smartphones, that have intermittent network connectivity and must work offline.
+It also rules out approaches that bypass the central server by using a local network for replication.
 
-One widely-implemented relaxed model is \emph{eventual consistency}, which guarantees that when no new updates are made to the shared state, all nodes will eventually have the same data \cite{Bailis:2013jc,Burckhardt:2014hy,Terry:1994fp,Vogels:2009ca}.
+By contrast, decentralised or peer-to-peer architectures with weaker consistency models are able to provide better performance, fault-tolerance, and scalability characteristics.
+One widely-implemented model is \emph{eventual consistency}, which guarantees that if no new updates are made to the shared state, all nodes will eventually have the same data \cite{Bailis:2013jc,Burckhardt:2014hy,Terry:1994fp,Vogels:2009ca}.
 Since this model allows conflicting updates to be made concurrently, it requires a mechanism for resolving such conflicts.
-For example, distributed version control systems such as Git or Mercurial require the user to resolve merge conflicts manually; and some ``NoSQL'' distributed database systems adopt a \emph{last-writer-wins} policy, under which one update is chosen as the winner, and other concurrent updates are discarded.
-The properties of eventual consistency are weak---for instance, it does not constrain the system behaviour when updates never cease, or the values of intermediate reads from shared state prior to convergence.
+For example, version control systems such as Git or Mercurial require the user to resolve merge conflicts manually; and some ``NoSQL'' distributed database systems adopt a \emph{last-writer-wins} policy, under which one update is chosen as the winner, and concurrent updates are discarded.
+Eventual consistency offers weak guarantees: it does not constrain the system behaviour when updates never cease, or the values that read operations may return prior to convergence.
 
-\emph{Strong eventual consistency} is a model that strikes a compromise between strong and eventual consistency~\cite{Shapiro:2011un}.
-Informally, it guarantees that whenever two nodes have received the same set of messages---possibly in a different order---their view of the shared state is always identical, and requires that any conflicts due to concurrent updates are merged automatically.
-This model is used in datacentre-based applications based on the Riak distributed database, and collaborative editing applications such as Google Docs.
+\emph{Strong eventual consistency} (SEC) is a model that strikes a compromise between strong and eventual consistency \cite{Shapiro:2011un}.
+Informally, it guarantees that whenever two nodes have received the same set of messages---possibly in a different order---their view of the shared state is identical, and any conflicting concurrent updates must be merged automatically.
+Large-scale deployments of SEC algorithms include datacentre-based applications using the Riak distributed database, and collaborative editing applications such as Google Docs.
 
-Many replication algorithms---including that used in Google Docs---require that all updates pass through a central server, which limits the use and deployment of these systems: the server may become a bottleneck that limits scalability, and it makes the system vulnerable to network outages, denial-of-service attacks, censorship, and server failures.
-Requiring communication through a central server also limits offline use on mobile devices with intermittent connectivity (e.g. in calendar applications), and precludes replication over local networks.
-By contrast, decentralised or peer-to-peer architectures are especially attractive and widely-deployed in contexts where reliance on a central server is impractical or undesirable.
-
-Unfortunately, we currently have a poor understanding of algorithms that enable strong eventual consistency in such a decentralised setting.
-Several decentralised replication algorithms, published in peer-reviewed venues, claimed to provide strong eventual consistency, but were subsequently shown to violate their supposed guarantees (see, for example~\cite{Imine:2003ks,Imine:2006kn,Oster:2005vi}).
-Informal reasoning has resulted in the development of algorithms later shown incorrect, and even mechanised formal proofs of the correctness of algorithms have later been shown to be incorrect (see, for example~\cite{Imine:2003ks}).
+Unlike strong consistency models, it is possible to implement SEC in decentralised settings without any central server or leader, and it allows local execution at each node to proceed without waiting for communication with other nodes.
+However, algorithms for achieving decentralised SEC are currently poorly understood: several such algorithms, published in peer-reviewed venues, were subsequently shown to violate their supposed guarantees \cite{Imine:2003ks,Imine:2006kn,Oster:2005vi}.
+As we show in Section~\ref{sect.relatedwork}, informal reasoning has repeatedly produced plausible-looking but incorrect algorithms, and there have even been examples of mechanised formal proofs of SEC algorithm correctness later being shown to be flawed.
 These mechanised proofs failed because, in formalising the algorithm, they made false assumptions about the execution environment.
 
-In this work we provide a framework in Isabelle/HOL, a generic proof assistant tool~\cite{DBLP:conf/tphol/WenzelPN08}, for reasoning about the correctness of a particular class of decentralised replication algorithms in a reliable way.
-We do this by formalising not only the replication algorithms, but also the network in which they execute, allowing us to prove that the algorithm's assumptions hold in all possible behaviours of the network.
+In this work we use Isabelle/HOL, a generic proof assistant tool \cite{DBLP:conf/tphol/WenzelPN08}, to create a framework for reliably reasoning about the correctness of a particular class of decentralised replication algorithms.
+We do this by formalising not only the replication algorithms, but also the network in which they execute, allowing us to prove that the algorithm's assumptions hold in all possible executions of the network.
 We model the network using the axioms of \emph{asynchronous unreliable causal broadcast}, a well-understood abstraction that is commonly implemented by network protocols, and which can run on almost any computer network, including large-scale networks that delay, reorder, or drop messages, and in which nodes may fail.
 
-We then use this framework to produce machine-checked proofs of correctness for three Conflict-Free Replicated Data Types (CRDT)~\citet{Shapiro:2011wy,Shapiro:2011un}, a class of strong eventual consistency replicated algorithms.
-These algorithms support applications running on mobile devices (such as laptops and smartphones), which are not always connected to the Internet, but which may have a local connection (e.g. via Bluetooth) to other nodes carrying copies of the shared state.
-Example applications built using such algorithms could include collaborative editing systems such as text documents or spreadsheets where several users need to work on the same document, or data synchronisation tasks such as shared calendars, address books, or note-taking tools.
+We then use this framework to produce machine-checked proofs of correctness for three Conflict-Free Replicated Data Types (CRDTs), a class of replication algorithms that ensure strong eventual consistency \cite{Shapiro:2011wy,Shapiro:2011un}.
+These algorithms are suitable for use on mobile devices, which are not always connected to the Internet, but which may have a local connection (e.g. via Bluetooth) to other nodes carrying copies of the shared state.
+We have used these algorithms to build a collaborative text editing application, and we plan to encapsulate them in a library that will allow developers to easily build applications that require data synchronisation, such as collaboratively editable spreadsheets, shared calendars, address books, and note-taking tools.
 
 Our contributions in this paper are as follows:
 \begin{itemize}
 \item
-We outline a proof framework for establishing the correctness of strong eventual consistency algorithms.
-This approach is `deep' in that we model asynchronous causal networks, a communication paradigm supported by virtually all computer network technologies today, and `build up' in composable layers towards a full proof of correctness for a particular algorithm.
-Correctness of any particular algorithm is obtained via a thin-layer of algorithm-specific code.
-To our knowledge, this is the first, modular and reusable framework for verifying the correctness of strong eventual consistency algorithms, obtaining a machine-checked assurance that our theorems hold in all possible network behaviours.
+We establish a framework for proving the strong eventual consistency (SEC) property of replication algorithms.
+Our approach is ``foundational'' in the sense that we start with a general-purpose model of asynchronous causal broadcast, a communication abstraction that is compatible with virtually all network technologies today, and build up composable layers towards a full proof of correctness for a particular algorithm.
+To our knowledge, this is the first machine-checked verification of SEC algorithms that explicitly models the network and reasons about all possible network behaviours.
+The framework is modular and reusable, making it easy to formulate proofs for new algorithms.
 \item
-We provide the first mechanised proofs of the Replicated Growable Array, the Observed-Remove Set and increment-decrement counter CRDTs.
-In particular, these mechanised proofs demonstrate that our framework is highly reusable: we developed proofs of the Observed-Remove Set and a increment-decrement counter CRDTs in a few hours and with little CRDT-specific code using a fixed proof pattern that applies to all of our CRDT proofs.
+We provide the first mechanised proofs of the Replicated Growable Array, the operation-based Observed-Remove Set, and the operation-based counter CRDT.
+These mechanised proofs demonstrate that our framework is highly reusable: we developed proofs of the set and counter CRDTs in a few hours and with little CRDT-specific code, by using a fixed pattern that applies to all of our CRDT proofs.
 \item
-As part of our proof framework, we identify an abstract convergence theorem, a property of order relations, with which we can obtain correctness theorems for concrete strong eventual consistency algorithms.
+As part of our proof framework, we identify an abstract convergence theorem, a property of order relations, from which we can deduce correctness theorems for concrete SEC algorithms.
 Intuitively, this theorem can be viewed as the ``essence'' of why strong eventual consistency algorithms converge.
-Accordingly, all convergence theorems for our three concrete CRDT implementations above are obtained as direct corollaries of this theorem.
+The convergence theorems for our three concrete CRDTs are obtained as direct corollaries of this theorem.
 \end{itemize}
 
 All of our Isabelle/HOL definitions and proofs have been submitted as anonymised supplementary material for the reviewing process.
