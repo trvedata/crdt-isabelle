@@ -183,8 +183,8 @@ Requiring communication through a central server also limits offline use on mobi
 By contrast, decentralised or peer-to-peer architectures are especially attractive and widely-deployed in contexts where reliance on a central server is impractical or undesirable.
 
 Unfortunately, we currently have a poor understanding of algorithms that enable strong eventual consistency in such a decentralised setting.
-Several decentralised replication algorithms, published in peer-reviewed venues, claimed to provide strong eventual consistency, but were subsequently shown to violate their supposed guarantees.
-Informal reasoning has resulted in the development of algorithms later shown incorrect, and even mechanised formal proofs of the correctness of algorithms have later been shown to be incorrect.
+Several decentralised replication algorithms, published in peer-reviewed venues, claimed to provide strong eventual consistency, but were subsequently shown to violate their supposed guarantees (see, for example~\cite{Imine:2003ks,Imine:2006kn,Oster:2005vi}).
+Informal reasoning has resulted in the development of algorithms later shown incorrect, and even mechanised formal proofs of the correctness of algorithms have later been shown to be incorrect (see, for example~\cite{Imine:2003ks}).
 These mechanised proofs failed because, in formalising the algorithm, they made false assumptions about the execution environment.
 
 In this work we provide a framework in Isabelle/HOL, a generic proof assistant tool~\cite{DBLP:conf/tphol/WenzelPN08}, for reasoning about the correctness of a particular class of decentralised replication algorithms in a reliable way.
