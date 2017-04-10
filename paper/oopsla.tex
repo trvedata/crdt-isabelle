@@ -157,7 +157,7 @@ We find that our framework is highly reusable, developing proofs of correctness 
 
 A data replication algorithm is executed by a set of computers---or \emph{nodes}---in a distributed system and ensures that all nodes eventually obtain an identical copy of some shared state.
 Whilst vital for overall systems correctness, implementing a replication algorithm is a challenging task, as any such algorithm must operate across computer networks that may arbitrarily delay, drop, or reorder messages, experience temporary partitions of the nodes, or even suffer outright node failure.
-Reflecting the importance of this task, a number of replication algorithms exist, with different algorithms exploring the inherent trade-off between the strength of data consistency guarantees, and operational characteristics such as scalability and performance.
+Reflecting the importance of this task, a number of replication algorithms exist, with different algorithms exploring the inherent trade-offs between the strength of data consistency guarantees, and operational characteristics such as scalability and performance.
 Accordingly, replication algorithms can be divided into classes---\emph{strong consistency}, \emph{eventual consistency}, and \emph{strong eventual consistency}---based on the consistency guarantees that they provide.
 
 Strong consistency can be understood as \emph{linearisability}, \emph{serialisability}, or a combination of the two (one-copy serialisability).
@@ -172,12 +172,11 @@ These observations motivate \emph{relaxed} consistency models, which provide wea
 One widely-implemented relaxed model is \emph{eventual consistency}, which guarantees that when no new updates are made to the shared state, all nodes will eventually have the same data \cite{Bailis:2013jc,Burckhardt:2014hy,Terry:1994fp,Vogels:2009ca}.
 Since this model allows conflicting updates to be made concurrently, it requires a mechanism for resolving such conflicts.
 For example, distributed version control systems such as Git or Mercurial require the user to resolve merge conflicts manually; and some ``NoSQL'' distributed database systems adopt a \emph{last-writer-wins} policy, under which one update is chosen as the winner, and other concurrent updates are discarded.
-The properties of eventual consistency are weak---for instance, it constrains neither the system behaviour when updates never cease, nor the values of intermediate reads from shared state prior to convergence.
+The properties of eventual consistency are weak---for instance, it does not constrain the system behaviour when updates never cease, or the values of intermediate reads from shared state prior to convergence.
 
-\emph{Strong eventual consistency} is a model that strikes a compromise between strong and eventual consistency \cite{Shapiro:2011un}.
-Informally, it guarantees that whenever two nodes have received the same set of messages---possibly in a different order---their view of the shared state is always identical.
-In particular, it requires that any conflicts due to concurrent updates are merged automatically.
-This model is used in datacentre-based applications based on the Riak distributed database, and collaborative editing applications such as Google Docs, for example.
+\emph{Strong eventual consistency} is a model that strikes a compromise between strong and eventual consistency~\cite{Shapiro:2011un}.
+Informally, it guarantees that whenever two nodes have received the same set of messages---possibly in a different order---their view of the shared state is always identical, and requires that any conflicts due to concurrent updates are merged automatically.
+This model is used in datacentre-based applications based on the Riak distributed database, and collaborative editing applications such as Google Docs.
 
 Many replication algorithms---including that used in Google Docs---require that all updates pass through a central server, which limits the use and deployment of these systems: the server may become a bottleneck that limits scalability, and it makes the system vulnerable to network outages, denial-of-service attacks, censorship, and server failures.
 Requiring communication through a central server also limits offline use on mobile devices with intermittent connectivity (e.g. in calendar applications), and precludes replication over local networks.
@@ -188,7 +187,7 @@ Several decentralised replication algorithms, published in peer-reviewed venues,
 Informal reasoning has resulted in the development of algorithms later shown incorrect, and even mechanised formal proofs of the correctness of algorithms have later been shown to be incorrect.
 These mechanised proofs failed because, in formalising the algorithm, they made false assumptions about the execution environment.
 
-In this work we provide a framework in Isabelle/HOL, a generic proof assistant tool \cite{DBLP:conf/tphol/WenzelPN08}, for reasoning about the correctness of a particular class of decentralised replication algorithms in a reliable way.
+In this work we provide a framework in Isabelle/HOL, a generic proof assistant tool~\cite{DBLP:conf/tphol/WenzelPN08}, for reasoning about the correctness of a particular class of decentralised replication algorithms in a reliable way.
 We do this by formalising not only the replication algorithms, but also the network in which they execute, allowing us to prove that the algorithm's assumptions hold in all possible behaviours of the network.
 We model the network using the axioms of \emph{asynchronous unreliable causal broadcast}, a well-understood abstraction that is commonly implemented by network protocols, and which can run on almost any computer network, including large-scale networks that delay, reorder, or drop messages, and in which nodes may fail.
 
@@ -211,6 +210,8 @@ As part of our proof framework, we identify an abstract convergence theorem, a p
 Intuitively, this theorem can be viewed as the ``essence'' of why strong eventual consistency algorithms converge.
 Accordingly, all convergence theorems for our three concrete CRDT implementations above are obtained as direct corollaries of this theorem.
 \end{itemize}
+
+All of our Isabelle/HOL definitions and proofs have been submitted as anonymised supplementary material for the reviewing process.
 
 \input{proof-strategy}
 \input{isabelle}
