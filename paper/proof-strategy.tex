@@ -1,7 +1,7 @@
 \section{Proof strategy}
 \label{sect.high-level.proof.strategy}
 
-Since our formalisation of distributed algorithms goes into more depth than prior work on strong eventual consistency, it is important to have a structure that keeps the proofs manageable.
+Since our formalisation of distributed algorithms goes into greater depth than prior work on strong eventual consistency, it is important to have a structure that keeps the proofs manageable.
 Our approach breaks the proof into simple modules with cleanly defined properties---called \emph{locales}---and composes them in order to describe more complex objects.
 This locale structure is illustrated in Figure~\ref{fig.proof.structure} and explained below.
 %See Section~\ref{sect.isabelle.locales} for more detail on locales.
@@ -16,8 +16,8 @@ Dashed arrows indicate a sublocale that satisfies the assumptions of the superlo
 \end{figure}
 
 Approximately half of our proof (by lines of code) is used to construct a general-purpose model of consistency in distributed systems (Section~\ref{sect.abstract.convergence}) and an axiomatic model of a computer network (Section~\ref{sect.network}). 
-These are independent of any particular replication algorithm.
-The other half contains our formalisation of three example CRDTs and their proofs of correctness (Sections~\ref{sect.rga} and~\ref{sect.simple.crdts}).
+These modules are independent of any particular replication algorithm.
+The remainder contains our formalisation of three example CRDTs and their proofs of correctness (Sections~\ref{sect.rga} and~\ref{sect.simple.crdts}).
 %TODO Review whether the split between framework and CRDTs is still 50/50
 By keeping the general-purpose modules abstract and implementation-independent, we construct a reusable library of specifications and theorems.
 
@@ -27,8 +27,8 @@ We are able to prove this fact without mentioning networks nor any particular CR
 This definition constitutes an abstract specification of what we mean by strong eventual consistency.
 
 In Section~\ref{sect.network} we describe an axiomatic model of asynchronous networks.
-The definition of the network is important because it allows us to prove that certain properties hold in \emph{all} possible executions of the network, and that we are not making any dangerous assumptions that might be violated---an aspect that has dogged previous verification efforts (see Section~\ref{sect.related.verification}).
-The network is the only part of our proof in which we make any axiomatic assumptions, and we show in Section~\ref{sect.network} that our assumptions are realistic and reflect both standard conventions for the modelling of distributed systems and the practical realities of network protocols today.
+The definition of the network is important because it allows us to prove that the desired properties hold in \emph{all} possible executions of the network, and that we are not making any dangerous assumptions that might be violated---an aspect that has dogged previous verification efforts (see Section~\ref{sect.related.verification}).
+The network is the only part of our proof in which we make any axiomatic assumptions, and we show in Section~\ref{sect.network} that our assumptions are realistic, reflecting both standard conventions for modelling distributed systems, and the practical realities of network protocols today.
 We then prove that our network satisfies the ordering properties required by the abstract convergence theorem of Section~\ref{sect.abstract.convergence}, and thus deduce a convergence theorem for our network model.
 
 We then use the general-purpose theorems and definitions from Sections~\ref{sect.abstract.convergence} and~\ref{sect.network} to prove the strong eventual consistency properties of concrete algorithms.
