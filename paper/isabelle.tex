@@ -5,7 +5,7 @@ To aid the understanding of later sections, we provide a brief introduction to t
 Readers who are already familiar with Isabelle may skip to Section~\ref{sect.abstract.convergence}.
 A more detailed introduction can be found in the standard tutorial material~\cite{DBLP:books/sp/NipkowK14}.
 
-\subsubsection{Syntax of expressions}\label{sect.isabelle.syntax}
+\subsubsection*{Syntax of expressions}\label{sect.isabelle.syntax}
 
 Isabelle/HOL is a logic with a strict, polymorphic type system resembling that of mainstream functional programming languages.
 \emph{Function types} are written $\tau_1 \Rightarrow \tau_2$, and are inhabited by \emph{total} functions, mapping elements of $\tau_1$ to elements of $\tau_2$.
@@ -26,7 +26,7 @@ Isabelle/HOL's equality constant is polymorphic: we write $t = u$ for an asserti
 We write $\forall{x}.\: t$ and $\exists{x}.\: t$ for universal and existential quantification---and write $\forall{x{\in}t}.\: u$ and $\exists{x{\in}t}.\: u$ for their bounded forms, restricted to members of a set $\isa{t}$.
 An alternative implication arrow $\isa{t} \Longrightarrow \isa{u}$ is used by Isabelle in certain contexts; it is subtly different from standard implication $\isa{t} \longrightarrow \isa{u}$, but for purposes of an intuitive understanding, the two forms of implication can be regarded as equivalent.
 
-\subsubsection{Definitions and theorems}\label{sect.isabelle.definitions}
+\subsubsection*{Definitions and theorems}\label{sect.isabelle.definitions}
 
 New non-recursive definitions are entered into Isabelle's global context using the $\mathbf{definition}$ keyword.
 Recursive functions are defined using the $\mathbf{fun}$ keyword, and support pattern matching on the parameters.
@@ -64,7 +64,7 @@ Isabelle then requires that this claim be proved by using one of its proof metho
 Some proofs can be automated, whilst others require the user to provide explicit reasoning steps.
 The theorem is assigned a name, here $\isa{only-fives-concat}$, so that it may be referenced in later proofs.
 
-\subsubsection{Locales}\label{sect.isabelle.locales}
+\subsubsection*{Locales}\label{sect.isabelle.locales}
 
 Lastly, we use \emph{locales}---or local theories~\cite{DBLP:conf/tphol/KammullerWP99,DBLP:conf/types/HaftmannW08}---extensively to structure the proof, as shown in Figure~\ref{fig.proof.structure}.
 A declaration of the form
