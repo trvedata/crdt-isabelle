@@ -2,7 +2,7 @@
 \label{sect.simple.crdts}
 
 We close the technical body of our paper with a demonstration that our network and abstract convergence theorem truly form a `framework' for mechanically verifying the convergence of operation-based CRDTs.
-In particular, we demonstrate the convergence of two well-known CRDTs---the increment-decrement counter, and the observed-removed set---again as corollaries of our abstract convergence theorem.
+In particular, we demonstrate the convergence of two well-known CRDTs---the increment-decrement counter, and the Observed-Remove Set (ORSet)---again as corollaries of our abstract convergence theorem.
 This bolsters our claim that the network and abstract convergence layers of our mechanisation are reusable components, and fully independent of any one CRDT implementation.
 
 \subsection{Increment-decrement counter}
@@ -70,8 +70,8 @@ From this, and our abstract convergence theorems, we can show convergence for th
 \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}
 \end{isabellebody}
 
-\subsection{Observed-removed set}
-\label{subsect.observed-removed.set}
+\subsection{Observed-remove set (ORSet)}
+\label{subsect.orset}
 
 The ORSet is a well-known CRDT for implementing replicated sets, supporting two operations: the \emph{insertion} and \emph{deletion} of an arbitrary element in the shared set.
 We start by providing a concrete type of network messages, representing the two possible operations:

@@ -97,7 +97,7 @@ We develop a modular and reusable framework in the Isabelle/HOL interactive theo
 We avoid correctness issues that have dogged previous mechanised proofs in this area by axiomatically modelling real-world computer networks using six uncontroversial axioms.
 Our framework builds on the network model to obtain a machine-checked assurance that our theorems hold in all possible network behaviours.
 We identify an abstract convergence theorem, a property of order relations, which provides a formal definition of strong eventual consistency.
-We then obtain the first machine-checked correctness theorems for three concrete CRDTs: the Replicated Growable Array, the Observed-Removed set, and an increment-decrement counter.
+We then obtain the first machine-checked correctness theorems for three concrete CRDTs: the Replicated Growable Array, the Observed-Remove Set, and an increment-decrement counter.
 We find that our framework is highly reusable, developing proofs of correctness for the latter two CRDTs in a few hours and with relatively little CRDT-specific code.
 \end{abstract}
 
@@ -203,8 +203,8 @@ This approach is `deep' in that we model asynchronous causal networks, a communi
 Correctness of any particular algorithm is obtained via a thin-layer of algorithm-specific code.
 To our knowledge, this is the first, modular and reusable framework for verifying the correctness of strong eventual consistency algorithms, obtaining a machine-checked assurance that our theorems hold in all possible network behaviours.
 \item
-We provide the first mechanised proofs of the Replicated Growable Array, the Observed-Removed Set and increment-decrement counter CRDTs.
-In particular, these mechanised proofs demonstrate that our framework is highly reusable: we developed proofs of the Observed-Removed Set and a increment-decrement counter CRDTs in a few hours and with little CRDT-specific code using a fixed proof pattern that applies to all of our CRDT proofs.
+We provide the first mechanised proofs of the Replicated Growable Array, the Observed-Remove Set and increment-decrement counter CRDTs.
+In particular, these mechanised proofs demonstrate that our framework is highly reusable: we developed proofs of the Observed-Remove Set and a increment-decrement counter CRDTs in a few hours and with little CRDT-specific code using a fixed proof pattern that applies to all of our CRDT proofs.
 \item
 As part of our proof framework, we identify an abstract convergence theorem, a property of order relations, with which we can obtain correctness theorems for concrete strong eventual consistency algorithms.
 Intuitively, this theorem can be viewed as the ``essence'' of why strong eventual consistency algorithms converge.
