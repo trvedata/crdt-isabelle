@@ -9,7 +9,7 @@
 \node (network)  at (5,5)   [locale] {$\isa{network}$};
 \node (causal)   at (5,4)   [locale] {$\isa{causal-network}$};
 \node (netops)   at (5,3)   [locale] {$\isa{network-with-ops}$};
-\node (netops2)  at (7.5,1.5) [locale] {$\isa{network-with-constrained-ops}$};
+\node (netops2)  at (7,1.8) [locale] {$\isa{network-with-constrained-ops}$};
 \node (counter)  at (1,0)   [locale] {$\isa{counter}$};
 \node (orset)    at (3,0)   [locale] {$\isa{orset}$};
 \node (rga)      at (5,0)   [locale] {$\isa{rga}$};
@@ -36,9 +36,9 @@
     \draw (network) to (hist);
     \draw (causal) to (network);
     \draw (netops) to (causal);
-    \draw (node cs:name=netops2,angle=150) to [out=90,in=270] (node cs:name=netops, angle=340);
+    \draw (node cs:name=netops2,angle=164) to [out=90,in=270] (node cs:name=netops, angle=340);
     \draw (node cs:name=counter,angle=50)  to [out=90,in=270] (node cs:name=netops, angle=200);
-    \draw (node cs:name=orset,  angle=50)  to [out=90,in=270] (node cs:name=netops, angle=270);
+    \draw (node cs:name=orset,  angle=50)  to [out=90,in=270] (node cs:name=netops2,angle=191);
     \draw (node cs:name=rga,    angle=50)  to [out=90,in=270] (node cs:name=netops2,angle=210);
     \tikzstyle{every path}=[thick,dashed,->]
     \draw (node cs:name=causal, angle=160) to [out=90,in=270] (node cs:name=hb, angle=340);
