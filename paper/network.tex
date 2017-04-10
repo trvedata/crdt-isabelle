@@ -128,14 +128,6 @@ More precisely, based on the well-known definition by \citet{Lamport:1978jq}, we
 \item There exists some operation $\isa{m3}$ such that $\isa{m1} \prec \isa{m3}$ and $\isa{m3} \prec \isa{m2}$.
 \end{enumerate}
 
-\ifextended
-\begin{figure}
-\centering
-\input{happens-before}
-\caption{Illustrating the three conditions under which we consider one message to ``happen before'' another.}\label{fig.happens-before}
-\end{figure}
-The three cases are illustrated in Figure~\ref{fig.happens-before}.
-\fi
 This verbal definition translates directly into Isabelle syntax:
 \vspace{0.375em}
 \begin{isabellebody}
