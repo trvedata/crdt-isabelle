@@ -15,9 +15,8 @@ Dashed arrows indicate a sublocale that satisfies the assumptions of the superlo
 }\label{fig.proof.structure}
 \end{figure}
 
-By lines of code, approximately half of our proof is used to construct a general-purpose model of consistency in distributed systems, described in Section~\ref{sect.abstract.convergence}, and an axiomatic model of a computer network, described in Section~\ref{sect.network}.
-These modules are independent of any particular replication algorithm.
-The remainder contains our formalisation of three example CRDTs and their proofs of correctness, described in Sections~\ref{sect.rga} and~\ref{sect.simple.crdts}.
+By lines of code, approximately half of our proof is used to construct a general-purpose model of consistency in distributed systems, described in Section~\ref{sect.abstract.convergence}, and an axiomatic model of a computer network, described in Section~\ref{sect.network}, with both modules independent of any particular replication algorithm.
+The remainder describes a formalisation of three CRDTs and their proofs of correctness, described in Sections~\ref{sect.rga} and~\ref{sect.simple.crdts}.
 %TODO Review whether the split between framework and CRDTs is still 50/50
 By keeping the general-purpose modules abstract and implementation-independent, we construct a reusable library of specifications and theorems.
 
@@ -38,5 +37,6 @@ Insertion and deletion only commute under various conditions, so we prove that t
 Next, in Section~\ref{sect.simple.crdts}, we demonstrate the generality of our proof framework with definitions of two simple CRDTs: a Counter and an Observed-Remove Set.
 %We show that with the previously established tooling in place, it is very easy to prove that these algorithms implement the abstract specification of strong eventual consistency.
 
-As illustrated in Figure~\ref{fig.proof.structure}, the $\isa{counter}$, $\isa{orset}$, and $\isa{rga}$ locales can use the definitions and lemmas of the network model because they extend the network model. We then prove that all three locales satisfies the abstract specification $\isa{strong-eventual-consistency}$, and therefore formally prove these algorithms do indeed provide strong eventual consistency.
+As illustrated in Figure~\ref{fig.proof.structure}, the $\isa{counter}$, $\isa{orset}$, and $\isa{rga}$ locales can use the definitions and lemmas of the network model because they extend that model.
+We then prove that all three locales satisfy the abstract specification $\isa{strong-eventual-consistency}$, and therefore show these algorithms provide strong eventual consistency.
 

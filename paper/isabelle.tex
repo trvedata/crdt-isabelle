@@ -5,9 +5,9 @@ We now provide a brief introduction to the key concepts and syntax of Isabelle/H
 Familiar readers may skip to Section~\ref{sect.abstract.convergence}.
 A more detailed introduction can be found in the standard tutorial material~\cite{DBLP:books/sp/NipkowK14}.
 
-\subsubsection*{Syntax of expressions}\label{sect.isabelle.syntax}
+\paragraph{Syntax of expressions.}
 
-Isabelle/HOL is a logic with a strict, polymorphic type system resembling that of mainstream functional programming languages.
+Isabelle/HOL is a logic with a strict, polymorphic, inferred type system.
 \emph{Function types} are written $\tau_1 \Rightarrow \tau_2$, and are inhabited by \emph{total} functions, mapping elements of $\tau_1$ to elements of $\tau_2$.
 We write $\tau_1 \times \tau_2$ for the \emph{product type} of $\tau_1$ and $\tau_2$, inhabited by pairs of elements of type $\tau_1$ and $\tau_2$, respectively.
 In a similar fashion to Standard ML and OCaml \emph{type operators} are applied to arguments in reverse order, and therefore $\tau\ \isa{list}$ and $\tau\ \isa{set}$ denote the type of lists of elements of type $\tau$, and the type of mathematical (i.e., potentially infinite) sets of type $\tau$, respectively.
@@ -19,14 +19,10 @@ We write $\lambda{x}.\: t$ for an anonymous function mapping an argument $\isa{x
 Terms of list type are introduced using one of two constructors: the empty list $[\,]$ or `nil', and the infix operator $\isa{\#}$ which is pronounced `cons', and which prepends an element to an existing list.
 We use $[t_1, \ldots, t_n]$ as syntactic sugar for a list literal, and $\isa{xs} \mathbin{\isacharat} \isa{ys}$ to express the concatenation (appending) of two lists $\isa{xs}$ and $\isa{ys}$.
 We write $\{\,\}$ for the empty set, and use usual mathematical notation for set union, disjunction, membership tests, and so on: $\isa{t} \cup \isa{u}$, $\isa{t} \cap \isa{u}$, and $\isa{x} \in \isa{t}$.
-
-Terms with type $\isa{bool}$ are called \emph{formulae}, writing $\isa{True}$ and $\isa{False}$ for the logical truthity and falsity constants, respectively.
-We write $\isa{t} \longrightarrow \isa{u}$, $\isa{t} \wedge \isa{u}$, and $\isa{t} \vee \isa{u}$ for implication, conjunction, and disjunction, respectively, and write $\neg t$ for the negation of $t$.
-Isabelle/HOL's equality constant is polymorphic: we write $t = u$ for an equality assertion between two terms of the same type.
-We write $\forall{x}.\: t$ and $\exists{x}.\: t$ for universal and existential quantification---and write $\forall{x{\in}t}.\: u$ and $\exists{x{\in}t}.\: u$ for their bounded forms, restricted to a set $\isa{t}$.
+We write $t \longrightarrow s$ for logical implication between formulae (terms of type $\isa{bool}$).
 An alternative implication arrow $\isa{t} \Longrightarrow \isa{u}$ is used by Isabelle in certain contexts; it is subtly different from standard implication $\isa{t} \longrightarrow \isa{u}$, but for purposes of an intuitive understanding, the two forms of implication can be regarded as equivalent.
 
-\subsubsection*{Definitions and theorems}\label{sect.isabelle.definitions}
+\paragraph{Definitions and theorems.}
 
 New non-recursive definitions are entered into Isabelle's global context using the $\mathbf{definition}$ keyword.
 Recursive functions are defined using the $\mathbf{fun}$ keyword, and support pattern matching on their arguments.
@@ -64,21 +60,21 @@ Isabelle then requires that this claim be proved by using one of its proof metho
 Some proofs can be automated, whilst others require the user to provide explicit reasoning steps.
 The theorem is assigned a name, here $\isa{only-fives-concat}$, so that it may be referenced in later proofs.
 
-\subsubsection*{Locales}\label{sect.isabelle.locales}
+\paragraph{Locales.}
 
 Lastly, we use \emph{locales}---or local theories~\cite{DBLP:conf/tphol/KammullerWP99,DBLP:conf/types/HaftmannW08}---extensively to structure the proof, as shown in Figure~\ref{fig.proof.structure}.
 A declaration of the form
 \vspace{0.35em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{locale} foo = \isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ f\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes} {\isachardoublequoteopen}f\ x = x{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \isacommand{locale} semigroup = \isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ f\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a{\isachardoublequoteclose}\ {\isasymRightarrow}\ {\isacharprime}a{\isachardoublequoteclose} \isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes} {\isachardoublequoteopen}f\ x\ (f\ y\ z)\ =\ f\ (f\ x\ y)\ z{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.35em}
 \noindent
-introduces a locale, with a fixed, typed constant $\isa{f}$, and an associated law that states that $\isa{f}$ is the identity function.
-Functions and constants may now be defined, and theorems conjectured and proved, within the context of the $\isa{foo}$ theory.
-This is indicated syntactically by writing $(\isacommand{in}\ \isa{foo})$ before the name of the constant being defined, or the theorem being conjectured, at the point of definition or conjecture.
-Any function, constant, or theorem, marked in this way may make reference to $\isa{f}$, or the fact that $\isa{f}\ \isa{x} = \isa{x}$ for all $\isa{x}$.
-\emph{Interpreting} a locale---such as $\isa{foo}$ above---involves providing a concrete implementation of $\isa{f}$ coupled with a proof that the concrete implementation satisfies the associated law.
-Once interpreted, all functions, definitions, and theorems made within the $\isa{foo}$ locale become available to use for that concrete implementation.
+introduces a locale, with a fixed, typed constant $\isa{f}$, and a law asserting that $\isa{f}$ is associative.
+Functions and constants may now be defined, and theorems conjectured and proved, within the context of the $\isa{semigoup}$ theory.
+This is indicated syntactically by writing $(\isacommand{in}\ \isa{semigroup})$ before the name of the constant being defined, or the theorem being conjectured, at the point of definition or conjecture.
+Any function, constant, or theorem, marked in this way may make reference to $\isa{f}$, or the fact that $\isa{f}$ is associative.
+\emph{Interpreting} a locale---such as $\isa{semigroup}$ above---involves providing a concrete implementation of $\isa{f}$ coupled with a proof that the concrete implementation satisfies the associated law.
+Once interpreted, all functions, definitions, and theorems made within the $\isa{semigroup}$ locale become available to use for that concrete implementation.
