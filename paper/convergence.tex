@@ -107,7 +107,41 @@ This theorem states that two hb-consistent lists of distinct operations, which a
 \vspace{0.375em}
 \noindent
 A fully mechanised proof of this theorem can be found in the supplementary material of this paper.
+Although this theorem may seem ``obvious'' at first glance---commutativity allows the operation order to be permuted---it is more subtle than it seems.
+The difficulty arises because operations may succeed when applied to some state, but fail when applied to another state (for example, deleting an element that does not exist in the state).
+We find it interesting that it is nevertheless sufficient for the definition of $\isa{concurrent-ops-commute}$ to be expressed only in terms of the Kleisli arrow composition, and without explicitly referring to the state.
 
 \subsection{Formalising Strong Eventual Consistency}\label{sect.abstract.sec.spec}
 
-TODO describe the $\isa{strong-eventual-consistency}$ locale.
+Besides convergence, another required property of SEC is \emph{progress}: if a valid operation was issued on one node, then applying that operation on other nodes must also succeed---that is, the execution must not become stuck in an error state.
+Although the type signature of the interpretation function allows operations to fail, we need to prove that in all $\isa{hb-consistent}$ executions such failure never actually occurs.
+We capture the combined requirements of convergence and progress in the $\isa{strong-eventual-consistency}$ locale, which extends $\isa{happens-before}$:
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{locale}\ strong{\isacharunderscore}eventual{\isacharunderscore}consistency\ {\isacharequal}\ happens{\isacharunderscore}before\ {\isacharplus}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ op{\isacharunderscore}history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ list\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{and}\ initial{\isacharunderscore}state\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}state{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ causality{\isacharcolon}\ \ \ \ \ {\isachardoublequoteopen}op{\isacharunderscore}history\ xs\ {\isasymLongrightarrow}\ hb{\isacharunderscore}consistent\ xs{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ distinctness{\isacharcolon}\ \ {\isachardoublequoteopen}op{\isacharunderscore}history\ xs\ {\isasymLongrightarrow}\ distinct\ xs{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ trunc{\isacharunderscore}history{\isacharcolon}\ {\isachardoublequoteopen}op{\isacharunderscore}history{\isacharparenleft}xs{\isacharat}{\isacharbrackleft}x{\isacharbrackright}{\isacharparenright}\ {\isasymLongrightarrow}\ op{\isacharunderscore}history\ xs{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ commutativity{\isacharcolon}\ {\isachardoublequoteopen}op{\isacharunderscore}history\ xs\ {\isasymLongrightarrow}\ concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ xs{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ no{\isacharunderscore}failure{\isacharcolon}\ \ \ \ {\isachardoublequoteopen}op{\isacharunderscore}history{\isacharparenleft}xs{\isacharat}{\isacharbrackleft}x{\isacharbrackright}{\isacharparenright}\ {\isasymLongrightarrow}\ apply{\isacharunderscore}operations\ xs\ initial{\isacharunderscore}state\ {\isacharequal}\ Some\ state\ {\isasymLongrightarrow}\ {\isasymlangle}x{\isasymrangle}\ state\ {\isasymnoteq}\ None{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
+Here, $\isa{op-history}$ is an abstract predicate describing any valid operation history of some replication algorithm.
+This locale serves as a concise summary of the properties that we require in order to achieve SEC, and from these assumptions and the theorem above we easily obtain the two safety properties of SEC as theorems:
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{theorem}\ {\isacharparenleft}\isakeyword{in}\ strong{\isacharunderscore}eventual{\isacharunderscore}consistency{\isacharparenright}\ sec{\isacharunderscore}convergence{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ xs\ {\isacharequal}\ set\ ys{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}op{\isacharunderscore}history\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}op{\isacharunderscore}history\ ys{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}
+\end{isabellebody}
+\vspace{0.375em}
+\begin{isabellebody}
+\ \ \ \ \ \ \ \ \isacommand{theorem}\ {\isacharparenleft}\isakeyword{in}\ strong{\isacharunderscore}eventual{\isacharunderscore}consistency{\isacharparenright}\ sec{\isacharunderscore}progress{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}op{\isacharunderscore}history\ xs{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ initial{\isacharunderscore}state\ {\isasymnoteq}\ None{\isachardoublequoteclose}\isanewline
+\end{isabellebody}
+\vspace{0.375em}
+Thus, in order to prove SEC for some replication algorithm, we only need to show that the five assumptions of the $\isa{strong-eventual-consistency}$ locale are satisfied.
+As we shall see in Section~\ref{sect.network}, the first three assumptions are satisfied by our network model, and do not require any algorithm-specific proofs.
+For individual algorithms we only need to prove the $\isa{commutativity}$ and $\isa{no-failure}$ properties, and we show how to do this in Sections~\ref{sect.rga} and~\ref{sect.simple.crdts}.
