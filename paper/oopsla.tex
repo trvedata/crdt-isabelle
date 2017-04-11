@@ -160,7 +160,7 @@ Accordingly, replication algorithms can be divided into classes---\emph{strong c
 Strong consistency can be understood as \emph{linearisability}, \emph{serialisability}, or a combination of the two (one-copy serialisability).
 Intuitively, the goal of strong consistency is to make a system behave like a single sequentially executing node, even when it is replicated and concurrent.
 Most systems implement strong consistency by designating a single node as the \emph{leader}, which decides on a total order of operations and prevents concurrent access from causing conflicts.
-For example, this model is used in many relational databases such as PostgreSQL~\cite{postgresql}.
+Many relational databases, such as PostgreSQL \cite{postgresql}, use this model.
 
 However, strong consistency may be unwarranted or unneccessary depending on the application: it may impose an unacceptable performance degradation on the system, or it may simply be infeasible to implement, especially in large distributed systems.
 Relying on a single leader or central server limits the use and deployment of these systems: the server may become a bottleneck that limits scalability, and it makes the system vulnerable to disruption by network outages, denial-of-service attacks, censorship, and server failures.
@@ -171,12 +171,12 @@ It also rules out approaches that bypass the central server by using a local net
 By contrast, decentralised or peer-to-peer architectures with weaker consistency models are able to provide better performance, fault-tolerance, and scalability characteristics.
 One widely-implemented model is \emph{eventual consistency}, which guarantees that if no new updates are made to the shared state, all nodes will eventually have the same data \cite{Bailis:2013jc,Burckhardt:2014hy,Terry:1994fp,Vogels:2009ca}.
 Since this model allows conflicting updates to be made concurrently, it requires a mechanism for resolving such conflicts.
-For example, version control systems such as Git or Mercurial require the user to resolve merge conflicts manually; and some ``NoSQL'' distributed database systems (for example \texttt{TODO}) adopt a \emph{last-writer-wins} policy, under which one update is chosen as the winner, and concurrent updates are discarded.
+For example, version control systems such as Git or Mercurial require the user to resolve merge conflicts manually; and some ``NoSQL'' distributed database systems such as Cassandra adopt a \emph{last-writer-wins} policy, under which one update is chosen as the winner, and concurrent updates are discarded \cite{KingsburyCassandra}.
 Eventual consistency offers weak guarantees: it does not constrain the system behaviour when updates never cease, or the values that read operations may return prior to convergence.
 
 \emph{Strong eventual consistency} (SEC) is a model that strikes a compromise between strong and eventual consistency~\cite{Shapiro:2011un}.
 Informally, it guarantees that whenever two nodes have received the same set of messages---possibly in a different order---their view of the shared state is identical, and any conflicting concurrent updates must be merged automatically.
-Large-scale deployments of SEC algorithms include datacentre-based applications using the Riak distributed database~\cite{riak}, and collaborative editing applications such as Google Docs~\cite{google-docs}.
+Large-scale deployments of SEC algorithms include datacentre-based applications using the Riak distributed database \cite{Brown:2014hs}, and collaborative editing applications such as Google Docs \cite{DayRichter:2010tt}.
 
 Unlike strong consistency models, it is possible to implement SEC in decentralised settings without any central server or leader, and it allows local execution at each node to proceed without waiting for communication with other nodes.
 However, algorithms for achieving decentralised SEC are currently poorly understood: several such algorithms, published in peer-reviewed venues, were subsequently shown to violate their supposed guarantees \cite{Imine:2003ks,Imine:2006kn,Oster:2005vi}.
