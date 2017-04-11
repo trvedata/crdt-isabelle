@@ -35,13 +35,12 @@ It returns the list with the new element inserted at the appropriate position, o
 The function iterates over the list, and for each list element $\isa{x}$, it compares the ID (the first component of the $\isacharprime\isa{id} \mathbin{\isasymtimes} \isacharprime\isa{v} \mathbin{\isasymtimes} \isa{bool}$ triple, written $\isa{fst x}$) to the requested insertion position:
 \vspace{0.375em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{fun} insert\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}linorder{\isacharbraceright}{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ {\isasymRightarrow}\ {\isacharprime}id\ option\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ option{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{fun}\ insert\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}linorder{\isacharbraceright}{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ {\isasymRightarrow}\ {\isacharprime}id\ option\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ option{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert\ xs\ \ \ \ \ e\ None\ \ \ \ \ {\isacharequal}\ Some\ {\isacharparenleft}insert{\isacharunderscore}body\ xs\ e{\isacharparenright}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert\ {\isacharbrackleft}{\isacharbrackright}\ \ \ \ \ e\ {\isacharparenleft}Some\ i{\isacharparenright}\ {\isacharequal}\ None{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert\ {\isacharparenleft}x{\isacharhash}xs{\isacharparenright}\ e\ {\isacharparenleft}Some\ i{\isacharparenright}\ {\isacharequal}\ {\isacharparenleft}if\ fst\ x\ {\isacharequal}\ i\ then\ Some\ {\isacharparenleft}x{\isacharhash}insert{\isacharunderscore}body\ xs\ e{\isacharparenright}\ else\ do\ {\isacharbraceleft}\ t\ {\isasymleftarrow}\ insert\ xs\ e\ {\isacharparenleft}Some\ i{\isacharparenright}\ {\isacharsemicolon}\ Some\ {\isacharparenleft}x{\isacharhash}t{\isacharparenright}\ {\isacharbraceright}{\isacharparenright}{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}insert\ {\isacharparenleft}x{\isacharhash}xs{\isacharparenright}\ e\ {\isacharparenleft}Some\ i{\isacharparenright}\ {\isacharequal}\ {\isacharparenleft}if\ fst\ x\ {\isacharequal}\ i\ then\ Some\ {\isacharparenleft}x{\isacharhash}insert{\isacharunderscore}body\ xs\ e{\isacharparenright}\ else\ insert\ xs\ e\ {\isacharparenleft}Some\ i{\isacharparenright}\ {\isasymbind}\ {\isacharparenleft}{\isasymlambda}t{\isachardot}\ Some\ {\isacharparenleft}x{\isacharhash}t{\isacharparenright}{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-The notation $\isa{do}\ {\isacharbraceleft} \ldots {\isacharbraceright}$ is a \emph{monadic sequencing block}, similar to Haskell's \emph{do}-notation, which collapses to a return value of $\isa{None}$ if any of the block's semicolon-separated steps fails.
 When the insertion position is found (or, in the case of insertion at the head of the list, immediately), the function $\isa{insert-body}$ is invoked to perform the actual insertion:
 \vspace{0.375em}
 \begin{isabellebody}
@@ -64,9 +63,9 @@ To be precise, RGA requires the total order of IDs to be consistent with causali
 The delete operation is straightforward---it searches recursively for the element with a given identifier, and marks it as deleted by setting its flag to $\isa{True}$:
 \vspace{0.375em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{fun} delete\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}linorder{\isacharbraceright}{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymRightarrow}\ {\isacharprime}id\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ option{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{fun}\ delete\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcolon}{\isacharcolon}{\isacharbraceleft}linorder{\isacharbraceright}{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ {\isasymRightarrow}\ {\isacharprime}id\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}v{\isacharparenright}\ elt\ list\ option{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}delete\ {\isacharbrackleft}{\isacharbrackright}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ i\ {\isacharequal}\ None{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}delete\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}\ v{\isacharcomma}\ flag{\isacharparenright}{\isacharhash}xs{\isacharparenright}\ i\ {\isacharequal}\ {\isacharparenleft}if\ i{\isacharprime}\ {\isacharequal}\ i\ then\ Some\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}\ v{\isacharcomma}\ True{\isacharparenright}{\isacharhash}xs{\isacharparenright}\ else\ do\ {\isacharbraceleft}\ t\ {\isasymleftarrow}\ delete\ xs\ i\ {\isacharsemicolon}\ Some\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}v{\isacharcomma}flag{\isacharparenright}{\isacharhash}t{\isacharparenright}\ {\isacharbraceright}{\isacharparenright}{\isachardoublequoteclose}%
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}delete\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}\ v{\isacharcomma}\ flag{\isacharparenright}{\isacharhash}xs{\isacharparenright}\ i\ {\isacharequal}\ {\isacharparenleft}if\ i{\isacharprime}\ {\isacharequal}\ i\ then\ Some\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}\ v{\isacharcomma}\ True{\isacharparenright}{\isacharhash}xs{\isacharparenright}\ else\ delete\ xs\ i\ {\isasymbind}\ {\isacharparenleft}{\isasymlambda}t{\isachardot}\ Some\ {\isacharparenleft}{\isacharparenleft}i{\isacharprime}{\isacharcomma}v{\isacharcomma}flag{\isacharparenright}{\isacharhash}t{\isacharparenright}{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}%
 \end{isabellebody}
 \vspace{0.375em}
 Note that the operations presented here are deliberately inefficient, in order to make them easier to reason with.
@@ -78,8 +77,8 @@ Recall from Section~\ref{sect.ops.commute} that in order to prove the convergenc
 It is straightforward to demonstrate that $\isa{delete}$ will always commute with itself, on concurrent and non-concurrent operations alike:
 \vspace{0.375em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{lemma} delete{\isacharunderscore}commutes{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ delete\ xs\ i{\isadigit{1}}{\isacharsemicolon}\ delete\ ys\ i{\isadigit{2}}\ {\isacharbraceright}\ {\isacharequal}\ do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ delete\ xs\ i{\isadigit{2}}{\isacharsemicolon}\ delete\ ys\ i{\isadigit{1}}\ {\isacharbraceright}{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \isacommand{lemma}\ delete{\isacharunderscore}commutes{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}delete\ xs\ i{\isadigit{1}}\ {\isasymbind}\ {\isacharparenleft}{\isasymlambda}ys{\isachardot}\ delete\ ys\ i{\isadigit{2}}{\isacharparenright}\ {\isacharequal}\ delete\ xs\ i{\isadigit{2}}\ {\isasymbind}\ {\isacharparenleft}{\isasymlambda}ys{\isachardot}\ delete\ ys\ i{\isadigit{1}}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
 
@@ -89,9 +88,9 @@ Further, let $\isa{i1} \mathbin{\isacharcolon\isacharcolon} \isacharprime\isa{id
 Then the two insertions commute only under certain assumptions:
 \vspace{0.375em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{lemma} insert{\isacharunderscore}commutes{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{lemma}\ insert{\isacharunderscore}commutes{\isacharcolon}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}fst\ e{\isadigit{1}}\ {\isasymnoteq}\ fst\ e{\isadigit{2}}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}i{\isadigit{1}}\ {\isacharequal}\ None\ {\isasymor}\ i{\isadigit{1}}\ {\isasymnoteq}\ Some\ {\isacharparenleft}fst\ e{\isadigit{2}}{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}i{\isadigit{2}}\ {\isacharequal}\ None\ {\isasymor}\ i{\isadigit{2}}\ {\isasymnoteq}\ Some\ {\isacharparenleft}fst\ e{\isadigit{1}}{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ insert\ xs\ e{\isadigit{1}}\ i{\isadigit{1}}{\isacharsemicolon}\ insert\ ys\ e{\isadigit{2}}\ i{\isadigit{2}}\ {\isacharbraceright}\ {\isacharequal}\ do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ insert\ xs\ e{\isadigit{2}}\ i{\isadigit{2}}{\isacharsemicolon}\ insert\ ys\ e{\isadigit{1}}\ i{\isadigit{1}}\ {\isacharbraceright}{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}insert\ xs\ e{\isadigit{1}}\ i{\isadigit{1}}\ {\isasymbind}\ {\isacharparenleft}{\isasymlambda}ys{\isachardot}\ insert\ ys\ e{\isadigit{2}}\ i{\isadigit{2}}{\isacharparenright}\ {\isacharequal}\ insert\ xs\ e{\isadigit{2}}\ i{\isadigit{2}}\ {\isasymbind}\ {\isacharparenleft}{\isasymlambda}ys{\isachardot}\ insert\ ys\ e{\isadigit{1}}\ i{\isadigit{1}}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
 \noindent
@@ -100,9 +99,9 @@ We prove later that these assumptions are indeed satisfied for all concurrent op
 Finally, $\isa{delete}$ commutes with $\isa{insert}$ whenever the element to be deleted is not the same as the element to be inserted:
 \vspace{0.375em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{lemma} insert{\isacharunderscore}delete{\isacharunderscore}commute{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{lemma}\ insert{\isacharunderscore}delete{\isacharunderscore}commute{\isacharcolon}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i{\isadigit{2}}\ {\isasymnoteq}\ fst\ e{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ insert\ xs\ e\ i{\isadigit{1}}{\isacharsemicolon}\ delete\ ys\ i{\isadigit{2}}\ {\isacharbraceright}\ {\isacharequal}\ do\ {\isacharbraceleft}\ ys\ {\isasymleftarrow}\ delete\ xs\ i{\isadigit{2}}{\isacharsemicolon}\ insert\ ys\ e\ i{\isadigit{1}}\ {\isacharbraceright}{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}insert\ xs\ e\ i{\isadigit{1}}\ {\isasymbind}\ {\isacharparenleft}{\isasymlambda}ys{\isachardot}\ delete\ ys\ i{\isadigit{2}}{\isacharparenright}\ {\isacharequal}\ delete\ xs\ i{\isadigit{2}}\ {\isasymbind}\ {\isacharparenleft}{\isasymlambda}ys{\isachardot}\ insert\ ys\ e\ i{\isadigit{1}}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
 

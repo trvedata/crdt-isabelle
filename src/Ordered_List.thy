@@ -2,7 +2,6 @@ theory
   Ordered_List
 imports
   Util
-  "~~/src/HOL/Library/Monad_Syntax"
 begin
 
 type_synonym ('id, 'v) elt = "'id \<times> 'v \<times> bool"
@@ -25,9 +24,7 @@ fun insert :: "('id::{linorder}, 'v) elt list \<Rightarrow> ('id, 'v) elt \<Righ
      (if fst x = i then
         Some (x#insert_body xs e)
       else
-        do { t \<leftarrow> insert xs e (Some i)
-           ; Some (x#t)
-           })"
+        insert xs e (Some i) \<bind> (\<lambda>t. Some (x#t)))"
 
 fun delete :: "('id::{linorder}, 'v) elt list \<Rightarrow> 'id \<Rightarrow> ('id, 'v) elt list option" where
   "delete []                 i = None" |
@@ -35,9 +32,7 @@ fun delete :: "('id::{linorder}, 'v) elt list \<Rightarrow> 'id \<Rightarrow> ('
      (if i' = i then
         Some ((i', v, True)#xs)
       else
-        do { t \<leftarrow> delete xs i
-           ; Some ((i',v,flag)#t)
-           })"
+        delete xs i \<bind> (\<lambda>t. Some ((i',v,flag)#t)))"
 
 section\<open>Well-definedness of insert and delete\<close>
 
@@ -107,7 +102,7 @@ using assms by(induction xs, auto)
 lemma insert_insert_body:
   assumes "fst e1 \<noteq> fst e2"
       and "i2 \<noteq> Some (fst e1)"
-  shows   "insert (insert_body xs e1) e2 i2 = do { ys \<leftarrow> insert xs e2 i2; Some (insert_body ys e1) }"
+  shows   "insert (insert_body xs e1) e2 i2 = insert xs e2 i2 \<bind> (\<lambda>ys. Some (insert_body ys e1))"
 using assms by (induction xs; cases i2) (auto split: if_split_asm simp add: insert_body_commutes)
 
 lemma insert_Nil_None:
@@ -128,8 +123,8 @@ lemma insert_commutes:
   assumes "fst e1 \<noteq> fst e2"
           "i1 = None \<or> i1 \<noteq> Some (fst e2)"
           "i2 = None \<or> i2 \<noteq> Some (fst e1)"
-  shows   "do { ys \<leftarrow> insert xs e1 i1; insert ys e2 i2 } =
-             do { ys \<leftarrow> insert xs e2 i2; insert ys e1 i1 }"
+  shows   "insert xs e1 i1 \<bind> (\<lambda>ys. insert ys e2 i2) =
+           insert xs e2 i2 \<bind> (\<lambda>ys. insert ys e1 i1)"
 using assms proof(induction rule: insert.induct)
   fix xs and e :: "('a, 'b) elt"
   assume "i2 = None \<or> i2 \<noteq> Some (fst e)" and "fst e \<noteq> fst e2"
@@ -183,7 +178,7 @@ next
 qed
 
 lemma delete_commutes:
-  shows "do { ys \<leftarrow> delete xs i1; delete ys i2 } = do { ys \<leftarrow> delete xs i2; delete ys i1 }"
+  shows "delete xs i1 \<bind> (\<lambda>ys. delete ys i2) = delete xs i2 \<bind> (\<lambda>ys. delete ys i1)"
 by(induction xs, auto split: bind_splits if_split_asm)
 
 lemma insert_body_delete_commute:
@@ -194,7 +189,7 @@ using assms by (induction xs arbitrary: x; cases e, auto split: bind_splits if_s
 
 lemma insert_delete_commute:
   assumes "i2 \<noteq> fst e"
-  shows   "do { ys \<leftarrow> insert xs e i1; delete ys i2 } = do { ys \<leftarrow> delete xs i2; insert ys e i1 }"
+  shows   "insert xs e i1 \<bind> (\<lambda>ys. delete ys i2) = delete xs i2 \<bind> (\<lambda>ys. insert ys e i1)"
 using assms by(induction xs; cases e; cases i1, auto split: bind_splits if_split_asm simp add: insert_body_delete_commute)
 
 section\<open>Alternative definition of insert\<close>
