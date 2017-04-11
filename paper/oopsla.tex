@@ -195,7 +195,7 @@ Our contributions in this paper are as follows:
 \begin{itemize}
 \item
 We establish a framework for proving the strong eventual consistency (SEC) property of replication algorithms.
-Our approach is ``foundational'' in the sense that we start with a general-purpose model of asynchronous causal broadcast, a communication abstraction that is compatible with virtually all network technologies today, and build up composable layers towards a full proof of correctness for a particular algorithm.
+Our approach is ``foundational'' in the sense that we start with a general-purpose model of asynchronous unreliable causal broadcast networks---a communication abstraction that is compatible with virtually all network technologies today---and build up composable layers towards a full proof of correctness for a particular algorithm.
 To our knowledge, this is the first machine-checked verification of SEC algorithms that explicitly models the network and reasons about all possible network behaviours.
 The framework is modular and reusable, making it easy to formulate proofs for new algorithms.
 \item
