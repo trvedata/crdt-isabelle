@@ -14,26 +14,23 @@ We then provide concrete implementations of that abstract model in later section
 \subsection{The happens-before relation and causality}\label{sect.happens.before}
 
 The simplest way of achieving convergence is to require all operations to be commutative, but this definition is too strong to be useful for many datatypes.
-For example, in a list or set data structure, an element may first be added and then subsequently removed again.
+For example, in a list data structure, an element may first be added and then subsequently removed again.
 Although it is possible to make such additions and removals unconditionally commutative, doing so yields counterintuitive semantics \cite{Bieniusa:2012wu,Bieniusa:2012gt}.
-
 Instead, a better approach is to require only \emph{concurrent} operations to commute with each other.
 Two operations are concurrent if neither ``knew about'' the other at the time when they were generated.
 If one operation happened before another---for example, if the removal of an element from a set knew about the prior addition of that element from the set---then it is reasonable to assume that all nodes will apply the operations in that order (first the addition, then the removal).
 
 The \emph{happens-before} relation, as introduced by \citet{Lamport:1978jq}, captures such causal dependencies between operations.
 It can be defined in terms of sending and receiving messages on a network, and we give such a definition in Section~\ref{sect.network}.
-However, for now, we keep it abstract and general.
-We write $\isa{x} \prec \isa{y}$ to indicate that operation $\isa{x}$ happened before $\isa{y}$, where $\prec$ is a predicate of type $\isacharprime\isa{oper} \mathbin{\isasymRightarrow} \isacharprime\isa{oper} \mathbin{\isasymRightarrow} \isa{bool}$.
+However, for now, we keep it abstract, writing $\isa{x} \prec \isa{y}$ to indicate that operation $\isa{x}$ happened before $\isa{y}$, where $\prec$ is a predicate of type $\isacharprime\isa{oper} \mathbin{\isasymRightarrow} \isacharprime\isa{oper} \mathbin{\isasymRightarrow} \isa{bool}$.
 In words, $\prec$ can be applied to two operations of some abstract type $\isacharprime\isa{oper}$, returning either $\isa{True}$ or $\isa{False}$.%
 \footnote{Note that in the distributed systems literature it is conventional to write the happens-before relation as $\isa{x} \rightarrow \isa{y}$, but we reserve the arrow operator to denote logical implication.}
-
 Our only restriction on the happens-before relation $\prec$ is that it must be a \emph{strict partial order}, that is, it must be irreflexive and transitive, which implies that it is also antisymmetric.
 We say that two operations $x$ and $y$ are \emph{concurrent}, written $x \mathbin{\isasymparallel} y$, whenever one does not happen before the other:
 $\neg (\isa{x} \prec \isa{y})$ and $\neg (\isa{y} \prec \isa{x})$.
 Thus, given any two operations $\isa{x}$ and $\isa{y}$, there are three mutually exclusive ways in which they can be related: either $\isa{x} \prec \isa{y}$, or $\isa{y} \prec \isa{x}$, or $\isa{x} \mathbin{\isasymparallel} \isa{y}$.
 
-As discussed above, the purpose of the happens-before partial order is to require that some operations must be applied in a particular order, while allowing concurrent operations to be reordered with respect to each other.
+As discussed above, the purpose of the happens-before relation is to require that some operations must be applied in a particular order, while allowing concurrent operations to be reordered with respect to each other.
 We assume that each node applies operations in some sequential order (a standard assumption for distributed algorithms), and so we can model the execution history of a node as a list of operations.
 We can then inductively define a list of operations as being \emph{consistent with the happens-before relation}, or simply \emph{hb-consistent}, as follows:
 \vspace{0.375em}
@@ -64,11 +61,11 @@ It fixes two constants: a preorder that we call $\isa{hb-weak}$ or $\preceq$, an
 We are only interested in the strict partial order, so we define $\isa{hb-weak}$ as $\isa{x}\preceq\isa{y} \equiv \isa{x}\prec\isa{y} \vee \isa{x}=\isa{y}$, and otherwise ignore it.
 
 Moreover, the locale fixes the interpretation function $\isa{interp}$ as described above, which means that we assume the existence of a function with the given type signature without specifying an implementation.
-The code in parentheses defines the operators $\preceq$, $\prec$, and $\langle\isa{x}\rangle$ for notational convenience.
+The code in parentheses defines the mixfix operators $\preceq$, $\prec$, and $\langle\isa{x}\rangle$ for notational convenience.
 
 Given two operations $\isa{x}$ and $\isa{y}$, we can now define the composition of state transformers: we write $\langle\isa{x}\rangle \mathbin{\isasymrhd} \langle\isa{y}\rangle$ to denote the state transformer that first applies the effect of $\isa{x}$ to some state, and then applies the effect of $\isa{y}$ to the result.
 If either $\langle\isa{x}\rangle$ or $\langle\isa{y}\rangle$ fails, the combined state transformer also fails.
-The operator $\isasymrhd$ is the \emph{Kleisli arrow composition}, which we define as:
+The operator $\isasymrhd$ is a specialised form of the \emph{Kleisli arrow composition}, which we define as:
 \vspace{0.375em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{definition} kleisli\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ option{\isacharparenright}\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ option{\isacharparenright}\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ option{\isacharparenright}{\isachardoublequoteclose}\ {\isacharparenleft}\isakeyword{infixr}\ {\isachardoublequoteopen}{\isasymrhd}{\isachardoublequoteclose}\ {\isadigit{6}}{\isadigit{5}}{\isacharparenright}\ \isakeyword{where}\isanewline
@@ -108,7 +105,8 @@ This theorem states that two hb-consistent lists of distinct operations, which a
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
-The proof can be found in the supplementary material of this paper.
+\noindent
+A fully mechanised proof of this theorem can be found in the supplementary material of this paper.
 
 \subsection{Formalising Strong Eventual Consistency}\label{sect.abstract.sec.spec}
 
