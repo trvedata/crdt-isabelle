@@ -26,14 +26,14 @@ We are able to prove this fact without mentioning networks nor any particular CR
 This definition constitutes an abstract specification of what we mean by strong eventual consistency.
 
 In Section~\ref{sect.network} we describe an axiomatic model of asynchronous networks.
-The definition of the network is important because it allows us to prove that the desired properties hold in \emph{all} possible executions of the network, and that we are not making any dangerous assumptions that might be violated---an aspect that has dogged previous verification efforts (see Section~\ref{sect.related.verification}).
+The definition of the network is important because it allows us to prove that the desired properties hold in \emph{all} possible network behaviours, and that we are not making any dangerous assumptions that might be violated---an aspect that has dogged previous verification efforts for related algorithms (see Section~\ref{sect.related.verification}).
 The network is the only part of our proof in which we make any axiomatic assumptions, and we show in Section~\ref{sect.network} that our assumptions are realistic, reflecting both standard conventions for modelling distributed systems, and the practical realities of network protocols today.
 We then prove that our network satisfies the ordering properties required by the abstract convergence theorem of Section~\ref{sect.abstract.convergence}, and thus deduce a convergence theorem for our network model.
 
 We then use the general-purpose theorems and definitions from Sections~\ref{sect.abstract.convergence} and~\ref{sect.network} to prove the strong eventual consistency properties of concrete algorithms.
 In Section~\ref{sect.rga} we describe our formalisation of the Replicated Growable Array (RGA), a CRDT for ordered lists.
 We first show how to implement the RGA's insert and delete operations, with proofs that each operation commutes with itself, and that all operations commute with each other.
-Insertion and deletion only commute under various conditions, so we prove that these conditions are satisfied in all possible executions of the network, and thus we obtain a concrete convergence theorem for our RGA implementation.
+Insertion and deletion only commute under various conditions, so we prove that these conditions are satisfied in all possible network behaviours, and thus we obtain a concrete convergence theorem for our RGA implementation.
 Next, in Section~\ref{sect.simple.crdts}, we demonstrate the generality of our proof framework with definitions of two simple CRDTs: a Counter and an Observed-Remove Set.
 %We show that with the previously established tooling in place, it is very easy to prove that these algorithms implement the abstract specification of strong eventual consistency.
 

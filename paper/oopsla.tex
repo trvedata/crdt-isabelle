@@ -90,8 +90,8 @@ Data replication is used in distributed systems to maintain up-to-date copies of
 However, despite decades of research, algorithms for achieving consistency in replicated systems are still poorly understood.
 Indeed, many published algorithms have later been shown to be incorrect, even some that were accompanied by supposed mechanised proofs of correctness.
 In this work, we focus on the correctness of Conflict-free Replicated Data Types (CRDTs), a class of algorithm that provides strong eventual consistency guarantees for replicated data.
-We develop a modular and reusable framework in the Isabelle/HOL interactive theorem prover for verifying the correctness of CRDT algorithms.
-We avoid correctness issues that have dogged previous mechanised proofs in this area by including a network model in our formalisation, and proving that our theorems hold in all possible executions of the network.
+We develop a modular and reusable framework in the Isabelle/HOL interactive proof assistant for verifying the correctness of CRDT algorithms.
+We avoid correctness issues that have dogged previous mechanised proofs in this area by including a network model in our formalisation, and proving that our theorems hold in all possible network behaviours.
 Our axiomatic network model is a standard abstraction that accurately reflects the behaviour of real-world computer networks.
 Moreover, we identify an abstract convergence theorem, a property of order relations, which provides a formal definition of strong eventual consistency.
 We then obtain the first machine-checked correctness theorems for three concrete CRDTs: the Replicated Growable Array, the Observed-Remove Set, and an increment-decrement counter.
@@ -183,8 +183,8 @@ However, algorithms for achieving decentralised SEC are currently poorly underst
 As we show in Section~\ref{sect.relatedwork}, informal reasoning has repeatedly produced plausible-looking but incorrect algorithms, and there have even been examples of mechanised formal proofs of SEC algorithm correctness later being shown to be flawed.
 These mechanised proofs failed because, in formalising the algorithm, they made false assumptions about the execution environment.
 
-In this work we use Isabelle/HOL, a generic proof assistant tool \cite{DBLP:conf/tphol/WenzelPN08}, to create a framework for reliably reasoning about the correctness of a particular class of decentralised replication algorithms.
-We do this by formalising not only the replication algorithms, but also the network in which they execute, allowing us to prove that the algorithm's assumptions hold in all possible executions of the network.
+In this work we use the Isabelle/HOL proof assistant~\cite{DBLP:conf/tphol/WenzelPN08} to create a framework for reliably reasoning about the correctness of a particular class of decentralised replication algorithms.
+We do this by formalising not only the replication algorithms, but also the network in which they execute, allowing us to prove that the algorithm's assumptions hold in all possible network behaviours.
 We model the network using the axioms of \emph{asynchronous unreliable causal broadcast}, a well-understood abstraction that is commonly implemented by network protocols, and which can run on almost any computer network, including large-scale networks that delay, reorder, or drop messages, and in which nodes may fail.
 
 We then use this framework to produce machine-checked proofs of correctness for three Conflict-Free Replicated Data Types (CRDTs), a class of replication algorithms that ensure strong eventual consistency \cite{Shapiro:2011wy,Shapiro:2011un}.
@@ -200,7 +200,7 @@ To our knowledge, this is the first machine-checked verification of SEC algorith
 The framework is modular and reusable, making it easy to formulate proofs for new algorithms.
 \item
 We provide the first mechanised proofs of the Replicated Growable Array, the operation-based Observed-Remove Set, and the operation-based counter CRDT.
-These mechanised proofs demonstrate that our framework is highly reusable: we developed proofs of the set and counter CRDTs in a few hours and with little CRDT-specific code, by using a fixed pattern that applies to all of our CRDT proofs.
+These mechanised proofs demonstrate that our framework is highly reusable: we were able to quickly develop proofs of convergence for the set and counter CRDTs with little CRDT-specific code, by using a fixed proof pattern that applies to all of our CRDTs.
 \item
 As part of our proof framework, we identify an abstract convergence theorem, a property of order relations, from which we can deduce correctness theorems for concrete SEC algorithms.
 Intuitively, this theorem can be viewed as the ``essence'' of why strong eventual consistency algorithms converge.
@@ -221,7 +221,7 @@ In this paper we introduced a new approach for proving the correctness of SEC al
 We then complemented this model with an abstract specification of SEC.
 We took this approach both to ease the burden of constructing proofs of new SEC algorithms, but also to address the difficulties with previous approaches where peer-reviewed proofs, including mechanised proofs, have later been shown to be incorrect.
 
-We used our framework to show that three op-based CRDT algorithms do indeed provide the SEC property under all possible valid executions of our network model.
+We used our framework to show that three op-based CRDT algorithms do indeed provide the SEC property under all possible valid behaviours of our network model.
 Our second and third proofs took only a few hours to write and under 100 lines of additional code, demonstrating that our framework is readily reusable.
 
 All of our convergence proofs for our CRDT implementations follow a familiar recipe.
