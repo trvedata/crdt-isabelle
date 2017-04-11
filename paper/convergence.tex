@@ -114,7 +114,7 @@ We find it interesting that it is nevertheless sufficient for the definition of 
 \subsection{Formalising Strong Eventual Consistency}\label{sect.abstract.sec.spec}
 
 Besides convergence, another required property of SEC is \emph{progress}: if a valid operation was issued on one node, then applying that operation on other nodes must also succeed---that is, the execution must not become stuck in an error state.
-Although the type signature of the interpretation function allows operations to fail, we need to prove that in all $\isa{hb-consistent}$ executions such failure never actually occurs.
+Although the type signature of the interpretation function allows operations to fail, we need to prove that in all $\isa{hb-consistent}$ network behaviours such failure never actually occurs.
 We capture the combined requirements of convergence and progress in the $\isa{strong-eventual-consistency}$ locale, which extends $\isa{happens-before}$:
 \vspace{0.35em}
 \begin{isabellebody}
