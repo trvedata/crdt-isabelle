@@ -2,3 +2,13 @@
 .DS_Store
 src/output
 *.cut
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.pdf
+*.nav
+*.snm
+*.toc
+*.vrb
