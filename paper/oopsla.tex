@@ -207,14 +207,6 @@ Intuitively, this theorem can be viewed as the ``essence'' of why strong eventua
 The convergence theorems for our three concrete CRDTs are obtained as direct corollaries of this theorem.
 \end{itemize}
 
-We now provide a brief overview of the structure of the rest of the paper.
-In Section~\ref{sect.high-level.proof.strategy} we provide a high-level English-language description of our proof strategy, and in Section~\ref{subsect.an.overview.of.isabelle} we briefly describe the Isabelle/HOL interactive proof assistant which we used to mechanise our proof, providing enough material for the unfamiliar reader to be able to follow the rest of our paper.
-In Section~\ref{sect.abstract.convergence} we describe the mechanised proof of abstract convergence theorem, which we claim is the essence of why strong eventual consistency algorithms converge, whilst in Section~\ref{sect.network} we describe an axiomatic model of asynchronous unreliable causal broadcast networks, and related definitions---a standard abstraction in distributed systems theory.
-In Section~\ref{sect.rga} we describe a mechanisation and formal proof of correctness of the Replicated Growable Array (RGA) replicated ordered list data type, and in Section~\ref{sect.simple.crdts} we describe the mechanisation and proof of correctness of two more CRDTs.
-In Section~\ref{sect.relatedwork} we survey related work, and finally in Section~\ref{sect.conclusion} we conclude.
-
-All of our Isabelle/HOL definitions and proofs have been submitted as anonymised supplementary material for the reviewing process.
-
 \input{proof-strategy}
 \input{isabelle}
 \input{convergence}
