@@ -1,9 +1,11 @@
 \section{Two other CRDTs: Counter and Set}
 \label{sect.simple.crdts}
 
-We close the technical body of our paper with a demonstration that our network and abstract convergence theorem truly form a `framework' for mechanically verifying the convergence of operation-based CRDTs.
-In particular, we demonstrate the convergence of two well-known CRDTs---the increment-decrement counter, and the Observed-Remove Set (ORSet)---again as corollaries of our abstract convergence theorem.
-This bolsters our claim that the network and abstract convergence layers of our mechanisation are reusable components, and fully independent of any one CRDT implementation.
+To demonstrate that our proof framework provides reusable components that significantly simplify SEC proofs for new algorithms, we show proofs for two other well-known operation-based CRDTs: the Observed-Remove Set (ORSet) and the Increment-Decrement Counter as described by \citet{Shapiro:2011wy}.
+These proofs build upon the abstract convergence theorem and the network model of Sections~\ref{sect.abstract.convergence} and~\ref{sect.network}, and reuse some of the proof techniques developed in the formalisation of RGA in Section~\ref{sect.rga}.
+
+As these proofs leverage the framework's machinery and proof techniques, we were able to develop them very quickly: the counter was proved correct in a matter of minutes, and the specification and correctness proof of the ORSet was done in about four hours by one of the authors, an Isabelle novice who had never used any proof assistant software prior to the start of this project.
+Although these anecdotes do not constitute a formal evaluation of ease of use, we take them as being an encouraging sign.
 
 \subsection{Increment-Decrement Counter}
 \label{subsect.increment-decrement.counter}
@@ -15,57 +17,32 @@ As the name suggests, the data structure supports two operations: $\isa{incremen
 \ \ \ \ \ \ \ \ \isacommand{datatype}\ operation {\isacharequal}\ Increment\ {\isacharbar}\ Decrement
 \end{isabellebody}
 \vspace{0.35em}
-Providing a semantics for these two operations is straightforward, so we only present the function implementing the increment operation, here, eliding the corresponding implementation of decrement:
+\noindent The interpretation function for these two operations is straightforward:
 \vspace{0.35em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{definition}\ increment\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}int\ {\isasymRightarrow}\ int{\isachardoublequoteclose}\ \isakeyword{where}\ {\isachardoublequoteopen}increment\ x\ {\isasymequiv}\ {\isadigit{1}}\ {\isacharplus}\ x{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \isacommand{fun}\ counter{\isacharunderscore}op\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}operation\ {\isasymRightarrow}\ int\ {\isasymRightarrow}\ int\ option{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}counter{\isacharunderscore}op\ Increment\ x\ {\isacharequal}\ Some\ {\isacharparenleft}x\ {\isacharplus}\ {\isadigit{1}}{\isacharparenright}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}counter{\isacharunderscore}op\ Decrement\ x\ {\isacharequal}\ Some\ {\isacharparenleft}x\ {\isacharminus}\ {\isadigit{1}}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.35em}
-Note that neither $\isa{increment}$ nor $\isa{decrement}$ fail on under- or overflow, as both functions are defined on a type of unbounded (mathematical) integers.
-We could also have implemented the counter using fixed bitwidth integers---e.g. signed 32- or 64-bit machine words---with wrap-around on overflow which would not have impacted the proofs presented here.
-Interpreting the $\isa{operation}$ data type and lifting it into a (partial) state transformer is a straightforward exercise in pattern matching:
+Note that the operations do not fail on under- or overflow, as they are defined on a type of unbounded (mathematical) integers.
+We could also have implemented the counter using fixed-size integers---e.g. signed 32- or 64-bit machine words---with wrap-around on overflow, which would not have impacted the proofs.
+Showing commutativity of the operations is an easy exercise in applying Isabelle's proof automation:
 \vspace{0.35em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{fun}\ interpret{\isacharunderscore}operation\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}operation\ {\isasymRightarrow}\ int\ {\isasymRightarrow}\ int\ option{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}interpret{\isacharunderscore}operation\ Increment\ {\isacharequal}\ Some\ o\ increment{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}interpret{\isacharunderscore}operation\ Decrement\ {\isacharequal}\ Some\ o\ decrement{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isachardoublequoteopen}counter{\isacharunderscore}op\ x\ {\isasymrhd}\ counter{\isacharunderscore}op\ y\ {\isacharequal}\ counter{\isacharunderscore}op\ y\ {\isasymrhd}\ counter{\isacharunderscore}op\ x{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.35em}
-Here, $\isa{f}\ \isa{o}\ \isa{g}$ denotes the composition of functions $\isa{f}$ and $\isa{g}$.
-Note that as neither of the $\isa{increment}$ and $\isa{decrement}$ operations fail, each must be composed with the $\isa{Some}$ constructor of the $\isa{option}$ type to effect the lifting into a partial state transformer, suitable for use with our $\isa{network}{\isacharunderscore}\isa{with}{\isacharunderscore}\isa{ops}$ locale.
-
-We next consider commutation of increment and decrement.
-Showing that both operations commute with each other, and with themselves, is an easy exercise in applying Isabelle's proof automation.
-We present only a single commutation lemma, here, eliding the rest:
+Unlike more complex CRDTs such as RGA, the operations of the increment-decrement counter commute unconditionally.
+As a result, this CRDT converges in any asynchronous broadcast network, without requiring causally ordered delivery.
+For simplicity, we define $\isa{counter}$ as a simple extension of our existing $\isa{network}{\isacharunderscore}\isa{with}{\isacharunderscore}\isa{ops}$ locale.
+We need only specify the interpretation function and the initial state 0:
 \vspace{0.35em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isachardoublequoteopen}increment\ {\isacharparenleft}decrement\ x{\isacharparenright}\ {\isacharequal}\ decrement\ {\isacharparenleft}increment\ x{\isacharparenright}{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \isacommand{locale}\ counter\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharunderscore}\ counter{\isacharunderscore}op\ {\isadigit{0}}
 \end{isabellebody}
 \vspace{0.35em}
-Unlike more complex CRDTs, such as the Replicated Growable Array discussed in Section~\ref{sect.rga}, the operations of the increment-decrement counter commute unconditionally.
-As a result, the increment-decrement counter will converge in any execution of a causal asynchronous network, without restriction on possible network behaviours.
-We capture this by creating a CRDT-specific locale, $\isa{counter}$, which is just a thin veneer over the $\isa{network}{\isacharunderscore}\isa{with}{\isacharunderscore}\isa{ops}$ locale, specialising the types and providing a fixed initial state (here, $\isa{0}$):
-\vspace{0.35em}
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{locale}\ counter\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharunderscore}\ {\isacharunderscore}\ interpret{\isacharunderscore}operation\ {\isadigit{0}}
-\end{isabellebody}
-\vspace{0.35em}
-Within this locale, we can then show that all concurrent delivered messages of a prefix of a node's local history, within a $\isa{counter}$ network commute.
-Compared to the Replicated Growable Array case, this is straightforward, as operations commute unconditionally:
-\vspace{0.35em}
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{lemma}\ concurrent{\isacharunderscore}operations{\isacharunderscore}commute{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\ \ \ \isakeyword{shows}\ \ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}
-\end{isabellebody}
-\vspace{0.35em}
-From this, and our abstract convergence theorems, we can show convergence for the increment-decrement counter, which is captured by $\isa{counter}{\isacharunderscore}\isa{convergence}$:
-\vspace{0.35em}
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{corollary}\ counter{\isacharunderscore}convergence{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}ys\ prefix\ of\ j{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}
-\end{isabellebody}
+It is then straightforward to prove that $\isa{counter}$ is a sublocale of $\isa{strong-eventual-consistency}$ (see Section~\ref{sect.abstract.sec.spec}), from which we obtain concrete convergence and progress theorems for the counter CRDT.
 
 \subsection{Observed-Remove Set (ORSet)}
 \label{subsect.orset}

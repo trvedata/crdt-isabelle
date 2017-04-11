@@ -6,12 +6,15 @@ begin
 
 datatype operation = Increment | Decrement
 
-fun interpret_operation :: "operation \<Rightarrow> int \<rightharpoonup> int" where
-  "interpret_operation Increment x = Some (x + 1)" |
-  "interpret_operation Decrement x = Some (x - 1)"
+fun counter_op :: "operation \<Rightarrow> int \<rightharpoonup> int" where
+  "counter_op Increment x = Some (x + 1)" |
+  "counter_op Decrement x = Some (x - 1)"
 
-locale counter = network_with_ops _ interpret_operation 0
-  
+locale counter = network_with_ops _ counter_op 0
+
+lemma (in counter) "counter_op x \<rhd> counter_op y = counter_op y \<rhd> counter_op x"
+  by(case_tac x; case_tac y; auto simp add: kleisli_def)
+
 lemma (in counter) concurrent_operations_commute:
   assumes "xs prefix of i"
   shows "hb.concurrent_ops_commute (node_deliver_messages xs)"
@@ -36,7 +39,7 @@ sublocale sec: strong_eventual_consistency weak_hb hb interp_msg
   "\<lambda>ops. \<exists>xs i. xs prefix of i \<and> node_deliver_messages xs = ops" 0
   apply(standard; clarsimp)
       apply(auto simp add: hb_consistent_prefix drop_last_message node_deliver_messages_distinct concurrent_operations_commute)
-   apply(metis (full_types) interp_msg_def interpret_operation.elims)
+   apply(metis (full_types) interp_msg_def counter_op.elims)
   using drop_last_message apply blast
 done
 
