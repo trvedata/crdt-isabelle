@@ -90,6 +90,12 @@ lemma (in node_histories) prefix_to_carriers [intro]:
     shows "set xs \<subseteq> set (history i)"
 using assms by(clarsimp simp: prefix_of_node_history_def) (metis Un_iff set_append)
 
+lemma (in node_histories) prefix_elem_to_carriers:
+  assumes "xs prefix of i"
+      and "x \<in> set xs"
+    shows "x \<in> set (history i)"
+using assms by(clarsimp simp: prefix_of_node_history_def) (metis Un_iff set_append)
+
 lemma (in node_histories) local_order_prefix_closed:
   assumes "x \<sqsubset>\<^sup>i y"
       and "xs prefix of i"
@@ -406,16 +412,19 @@ using assms apply -
     node_deliver_messages_distinct not_Cons_self2 pre_suf_eq_distinct_list self_append_conv2)
 done
 
-locale network_with_ops = causal_network history
-  for history :: "nat \<Rightarrow> 'msg event list" +
-  fixes interp :: "'msg \<Rightarrow> 'state \<rightharpoonup> 'state"
+locale network_with_ops = causal_network history fst
+  for history :: "nat \<Rightarrow> ('msgid \<times> 'op) event list" +
+  fixes interp :: "'op \<Rightarrow> 'state \<rightharpoonup> 'state"
   and initial_state :: "'state"
 
 context network_with_ops begin
 
-sublocale hb: happens_before weak_hb hb
+definition interp_msg :: "'msgid \<times> 'op \<Rightarrow> 'state \<rightharpoonup> 'state" where
+  "interp_msg msg state \<equiv> interp (snd msg) state"
+
+sublocale hb: happens_before weak_hb hb interp_msg
 proof
-  fix x y :: "'msg"
+  fix x y :: "'msgid \<times> 'op"
   show "hb x y = (weak_hb x y \<and> \<not> weak_hb y x)"
     unfolding weak_hb_def using hb_antisym by blast
 next
@@ -431,8 +440,11 @@ qed
 
 end
 
-definition (in network_with_ops) apply_operations :: "'msg event list \<rightharpoonup> 'state" where
+definition (in network_with_ops) apply_operations :: "('msgid \<times> 'op) event list \<rightharpoonup> 'state" where
   "apply_operations es \<equiv> hb.apply_operations (node_deliver_messages es) initial_state"
+
+definition (in network_with_ops) node_deliver_ops :: "('msgid \<times> 'op) event list \<Rightarrow> 'op list" where
+  "node_deliver_ops cs \<equiv> map snd (node_deliver_messages cs)"
 
 lemma (in network_with_ops) apply_operations_empty [simp]:
   shows "apply_operations [] = Some initial_state"
@@ -443,7 +455,7 @@ lemma (in network_with_ops) apply_operations_Broadcast [simp]:
 by(auto simp add: apply_operations_def node_deliver_messages_def map_filter_def)
 
 lemma (in network_with_ops) apply_operations_Deliver [simp]:
-  shows "apply_operations (xs @ [Deliver m]) = (apply_operations xs \<bind> interp m)"
+  shows "apply_operations (xs @ [Deliver m]) = (apply_operations xs \<bind> interp_msg m)"
 by(auto simp add: apply_operations_def node_deliver_messages_def map_filter_def kleisli_def)
 
 lemma (in network_with_ops) hb_consistent_technical:
@@ -512,17 +524,40 @@ using assms
   done
 
 locale network_with_constrained_ops = network_with_ops +
-  fixes valid_op :: "'c \<Rightarrow> 'a \<Rightarrow> bool"
-  assumes broadcast_only_valid_ops: "pre @ [Broadcast m] prefix of i \<Longrightarrow>
-             \<exists>state. apply_operations pre = Some state \<and> valid_op state m"
+  fixes valid_msg :: "'c \<Rightarrow> ('a \<times> 'b) \<Rightarrow> bool"
+  assumes broadcast_only_valid_msgs: "pre @ [Broadcast m] prefix of i \<Longrightarrow>
+             \<exists>state. apply_operations pre = Some state \<and> valid_msg state m"
 
 lemma (in network_with_constrained_ops) broadcast_is_valid:
   assumes "Broadcast m \<in> set (history i)"
-  shows "\<exists>state. valid_op state m"
+  shows "\<exists>state. valid_msg state m"
   using assms
   apply(subgoal_tac "\<exists>pre. pre @ [Broadcast m] prefix of i")
-  using broadcast_only_valid_ops apply blast
+  using broadcast_only_valid_msgs apply blast
   using events_before_exist apply blast
+done
+
+lemma (in network_with_constrained_ops) deliver_is_valid:
+  assumes "Deliver m \<in> set (history i)"
+  shows "\<exists>j pre state. pre @ [Broadcast m] prefix of j \<and> apply_operations pre = Some state \<and> valid_msg state m"
+  using assms apply -
+  apply(drule delivery_has_a_cause)
+  apply(erule exE)
+  apply(subgoal_tac "\<exists>pre. pre @ [Broadcast m] prefix of j")
+  using broadcast_only_valid_msgs apply blast
+  using events_before_exist apply blast
+done
+
+lemma (in network_with_constrained_ops) deliver_in_prefix_is_valid:
+  assumes "xs prefix of i"
+      and "Deliver m \<in> set xs"
+    shows "\<exists>state. valid_msg state m"
+  using assms apply -
+  apply(subgoal_tac "Deliver m \<in> set (history i)")
+  apply(drule delivery_has_a_cause)
+  apply(erule exE)
+  apply(rule broadcast_is_valid, assumption)
+  apply(simp add: prefix_elem_to_carriers)
 done
 
 section\<open>Example instantiations and interpretations\<close>
@@ -535,8 +570,8 @@ interpretation trivial_network: network "\<lambda>m. []" id
     
 interpretation trivial_causal_network: causal_network "\<lambda>m. []" id
   by standard auto
-    
-interpretation trivial_network_with_ops: network_with_ops "(\<lambda>x::nat \<Rightarrow> nat option. (0::nat))" "\<lambda>m. []" id 0
+
+interpretation trivial_network_with_ops: network_with_ops "\<lambda>m. []" "(\<lambda>x y. Some y)" 0
   by standard auto
-    
+
 end

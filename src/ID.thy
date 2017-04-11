@@ -4,9 +4,11 @@ imports
   RGA
   "~~/src/HOL/Library/Product_Lexorder"
 begin
-  
-locale lamport_rga = rga history for history :: "nat \<Rightarrow> (nat \<times> nat, 'b) operation event list" +
-  assumes lamport_spec: "hb (Insert e n') (Insert f n) \<Longrightarrow> fst (fst e) < fst (fst f)"
+
+type_synonym lamport = "nat \<times> nat"
+
+locale lamport_rga = rga history for history :: "nat \<Rightarrow> (lamport \<times> (lamport, 'b) operation) event list" +
+  assumes lamport_spec: "hb (i1, op1) (i2, op2) \<Longrightarrow> i1 < i2"
 
 (* What the fuck... *)
 lemma finite_deliveries:
