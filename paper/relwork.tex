@@ -1,6 +1,6 @@
 \section{Related work}\label{sect.relatedwork}
 
-In a system where different replicas may concurrently perform updates without coordinating with each other, strong eventual consistency requires a conflict resolution algorithm to reconcile concurrent updates. 
+In a system where different nodes may concurrently perform updates without coordinating with each other, strong eventual consistency requires a conflict resolution algorithm to reconcile concurrent updates. 
 In some cases, a trivial algorithm is used, for example:
 
 \begin{description}
@@ -26,7 +26,7 @@ but which take different approaches towards achieving it.
 Some operations, such as addition of numbers, are naturally commutative. Thus, if the replicated
 data structure is a number whose value can only be incremented or decremented (a counter),
 convergence can be achieved by applying the increment and decrement operations in any order at each
-replica.
+node.
 
 \emph{Conflict-free replicated data types} (CRDTs) generalise this idea to other data structures and
 operations. For example, an ordered list (sequence) of values can be modified by inserting or
@@ -35,11 +35,11 @@ the value associated with a key or deleting a key-value pair from the map. In a 
 modification operations are constructed to be commutative by attaching additional metadata to the
 data structure.
 
-To propagate changes between replicas, a CRDT either captures every update as an operation and
-broadcasts it to other replicas (an \emph{operation-based} CRDT), or periodically broadcasts its
-entire replica state (a \emph{state-based} CRDT). Operation-based CRDTs require operations to be
+To propagate changes between nodes, a CRDT either captures every update as an operation and
+broadcasts it to other nodes (an \emph{operation-based} CRDT), or periodically broadcasts its
+entire node state (a \emph{state-based} CRDT). Operation-based CRDTs require operations to be
 commutative; state-based CRDTs require a merge function over a join-semilattice, allowing two states
-to be combined such that the result reflects changes made in both replicas. The two models have
+to be combined such that the result reflects changes made in both nodes. The two models have
 different performance characteristics, but equivalent expressivity
 \cite{Shapiro:2011wy,Shapiro:2011un}.
 
@@ -59,7 +59,7 @@ In this work we formally verify three representative operation-based CRDTs: a co
 
 \subsection{Operational Transformation (OT)}\label{sect.related.ot}
 
-Another family of algorithms for achieving convergence of replicas uses the \emph{operational
+Another family of algorithms for achieving convergence of nodes uses the \emph{operational
 transformation} (OT) approach. They are designed for collaborative editing, that is, multiple users
 concurrently modifying a document on their local device, and propagating updates asynchronously to
 other users' devices. The replicated data structure is most commonly assumed to be a text document,

@@ -22,7 +22,7 @@ The remainder contains our formalisation of three example CRDTs and their proofs
 By keeping the general-purpose modules abstract and implementation-independent, we construct a reusable library of specifications and theorems.
 
 We describe our formalisation of strong eventual consistency in Section~\ref{sect.abstract.convergence}.
-In particular, we define what we mean by convergence, and prove an \emph{abstract convergence theorem}, which states that replicas converge if concurrent operations commute.
+In particular, we define what we mean by convergence, and prove an \emph{abstract convergence theorem}, which shows that the state of nodes converges if concurrent operations commute.
 We are able to prove this fact without mentioning networks nor any particular CRDT, but merely by reasoning about the ordering and properties of operations.
 This definition constitutes an abstract specification of what we mean by strong eventual consistency.
 

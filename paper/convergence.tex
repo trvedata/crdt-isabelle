@@ -3,9 +3,9 @@
 
 Strong eventual consistency requires \emph{convergence} of all copies of shared state stored on nodes in the distributed system.
 It guarantees that whenever two nodes have received the same set of updates to shared state---possibly in a different order---their view of the shared state is always identical.
-A node that has a copy of the data is called a \emph{replica}, and replicas can perform reads and writes using only its local state, without waiting for network communication.
-Replicas exchange updates with other replicas asynchronously when a network connection is available.  
 This definition constrains the values that reads may return at any time, making it a stronger property than eventual consistency.
+By accessing only their local copy of the shared state, nodes can execute read and write operations without waiting for network communication.
+Nodes exchange updates with other nodes asynchronously when a network connection is available.  
 
 We now use Isabelle to formalise the notion of strong eventual consistency.
 To maximise the generality of our framework, our approach does not make any assumptions about networks, data structures, or conflict resolution algorithms.
@@ -13,14 +13,14 @@ Rather, it uses an abstract model of operations that may be reordered, and reaso
 
 \subsection{The happens-before relation and causality}\label{sect.happens.before}
 
-Convergence implies that whenever two replicas have received the same set of operations, in \emph{any} order, their states must be equivalent---in other words, all operations must be commutative.
+Convergence implies that whenever two nodes have received the same set of operations, in \emph{any} order, their states must be equivalent---in other words, all operations must be commutative.
 This definition is too strong to be useful for many datatypes.
 For example, in a list or set data structure, an element may first be added and then subsequently removed again.
 Although it is possible to make such additions and removals unconditionally commutative, doing so yields semantics that application developers find surprising \cite{Bieniusa:2012wu,Bieniusa:2012gt}.
 
 Instead, a better approach is to require only \emph{concurrent} operations to commute with each other.
 Two operations are concurrent if neither ``knew about'' the other at the time when they were generated.
-If one operation happened before another---for example, if the removal of an element from a set knew about the prior addition of that element from the set---then it is reasonable to assume that all replicas will apply the operations in that order (first the addition, then the removal).
+If one operation happened before another---for example, if the removal of an element from a set knew about the prior addition of that element from the set---then it is reasonable to assume that all nodes will apply the operations in that order (first the addition, then the removal).
 
 The \emph{happens-before} relation, as introduced by \citet{Lamport:1978jq}, captures such causal dependencies between operations.
 It can be defined in terms of sending and receiving messages on a network, and we give such a definition in Section~\ref{sect.network}.
@@ -35,7 +35,7 @@ $\neg (\isa{x} \prec \isa{y})$ and $\neg (\isa{y} \prec \isa{x})$.
 Thus, given any two operations $\isa{x}$ and $\isa{y}$, there are three mutually exclusive ways in which they can be related: either $\isa{x} \prec \isa{y}$, or $\isa{y} \prec \isa{x}$, or $\isa{x} \mathbin{\isasymparallel} \isa{y}$.
 
 As discussed above, the purpose of the happens-before partial order is to require that some operations must be applied in a particular order, while allowing concurrent operations to be reordered with respect to each other.
-We assume that each replica applies operations in some sequential order (a standard assumption for distributed algorithms), and so we can model the execution history of a replica as a list of operations.
+We assume that each node applies operations in some sequential order (a standard assumption for distributed algorithms), and so we can model the execution history of a node as a list of operations.
 We can then inductively define a list of operations as being \emph{consistent with the happens-before relation}, or simply \emph{hb-consistent}, as follows:
 \vspace{0.375em}
 \begin{isabellebody}
@@ -48,11 +48,11 @@ In words: the empty list is hb-consistent; furthermore, given an hb-consistent l
 
 \subsection{Interpretation of operations}\label{sect.ops.interpretation}
 
-Our intuition for convergence is that replicas end up in the same state if they have applied the same set of operations.
+Our intuition for convergence is that nodes end up in the same state if they have applied the same set of operations.
 In order to reach a precise definition of convergence, we must define what a state is and how it can be changed.
-For generality, we use an abstract type variable $\isacharprime\isa{state}$ for the state of a replica, and we do not assume anything about its properties.
+For generality, we use an abstract type variable $\isacharprime\isa{state}$ for the state of a node, and we do not assume anything about its properties.
 
-To model state changes, we assume the existence of an \emph{interpretation} function, which changes the state of a replica based on an operation.
+To model state changes, we assume the existence of an \emph{interpretation} function, which changes the state of a node based on an operation.
 This function has a type signature of $\isa{interp} \mathbin{\isacharcolon\isacharcolon} \isacharprime\isa{oper} \mathbin{\isasymRightarrow} \isacharprime\isa{state} \mathbin{\isasymrightharpoonup} \isacharprime\isa{state}$, where $\isasymrightharpoonup$ denotes a partial function (equivalently, the type signature could be written as $\isacharprime\isa{oper} \mathbin{\isasymRightarrow} \isacharprime\isa{state} \mathbin{\isasymRightarrow} \isacharprime\isa{state}\ \isa{option}$).
 The interpretion function lifts an operation into a state transformer---a function that either maps an old state to a new state, or fails by returning $\isa{None}$.
 If $\isa{x}$ is an operation, we also write $\langle\isa{x}\rangle$ for the state transformer obtained by applying $\isa{x}$ to the interpretation function.
