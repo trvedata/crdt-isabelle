@@ -8,7 +8,7 @@ begin
 section\<open>Kleisli arrow composition for the option monad\<close>
 
 definition kleisli :: "('b \<Rightarrow> 'b option) \<Rightarrow> ('b \<Rightarrow> 'b option) \<Rightarrow> ('b \<Rightarrow> 'b option)" (infixr "\<rhd>" 65) where
-  "f \<rhd> g \<equiv> \<lambda>x. f x \<bind> (\<lambda>fx. g fx)"
+  "f \<rhd> g \<equiv> \<lambda>x. (f x \<bind> (\<lambda>y. g y))"
 
 lemma kleisli_comm_cong:
   assumes "x \<rhd> y = y \<rhd> x"

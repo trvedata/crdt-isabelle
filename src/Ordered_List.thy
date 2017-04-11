@@ -18,7 +18,7 @@ fun insert_body :: "('id::{linorder}, 'v) elt list \<Rightarrow> ('id, 'v) elt \
         e#x#xs
       else x#insert_body xs e)"
 
-fun insert :: "('id::{linorder}, 'v) elt list \<Rightarrow> ('id, 'v) elt \<Rightarrow> 'id option \<rightharpoonup> ('id, 'v) elt list" where
+fun insert :: "('id::{linorder}, 'v) elt list \<Rightarrow> ('id, 'v) elt \<Rightarrow> 'id option \<Rightarrow> ('id, 'v) elt list option" where
   "insert xs     e None     = Some (insert_body xs e)" |
   "insert []     e (Some i) = None" |
   "insert (x#xs) e (Some i) =
@@ -29,7 +29,7 @@ fun insert :: "('id::{linorder}, 'v) elt list \<Rightarrow> ('id, 'v) elt \<Righ
            ; Some (x#t)
            })"
 
-fun delete :: "('id::{linorder}, 'v) elt list \<Rightarrow> 'id \<rightharpoonup> ('id, 'v) elt list" where
+fun delete :: "('id::{linorder}, 'v) elt list \<Rightarrow> 'id \<Rightarrow> ('id, 'v) elt list option" where
   "delete []                 i = None" |
   "delete ((i', v, flag)#xs) i = 
      (if i' = i then

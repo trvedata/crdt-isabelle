@@ -160,7 +160,7 @@ In the new locale $\isa{network-with-ops}$ we do not assume any additional axiom
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{locale}\ network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharequal}\ causal{\isacharunderscore}network\ history\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{for}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharprime}msg\ event\ list{\isachardoublequoteclose}\ {\isacharplus}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ interp\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}msg\ {\isasymRightarrow}\ {\isacharprime}state\ {\isasymrightharpoonup}\ {\isacharprime}state{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ interp\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}msg\ {\isasymRightarrow}\ {\isacharprime}state\ {\isasymRightarrow}\ {\isacharprime}state\ option{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ initial{\isacharunderscore}state\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}state{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
@@ -179,7 +179,7 @@ Broadcast events do not change the state, but since every message must be delive
 We can then define the state of some node after executing some history by using our definition of $\isa{apply-operations}$ from Section~\ref{sect.ops.interpretation} (here renamed to $\isa{hb.apply-operations}$):
 \vspace{0.375em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{definition}\ {\isacharparenleft}\isakeyword{in}\ network{\isacharunderscore}with{\isacharunderscore}ops{\isacharparenright}\ apply{\isacharunderscore}operations\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}msg\ event\ list\ {\isasymrightharpoonup}\ {\isacharprime}state{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{definition}\ {\isacharparenleft}\isakeyword{in}\ network{\isacharunderscore}with{\isacharunderscore}ops{\isacharparenright}\ apply{\isacharunderscore}operations\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}msg\ event\ list\ {\isasymRightarrow}\ {\isacharprime}state\ option{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ es\ {\isasymequiv}\ hb{\isachardot}apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ es{\isacharparenright}\ initial{\isacharunderscore}state{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}

@@ -47,10 +47,8 @@ In words: the empty list is hb-consistent; furthermore, given an hb-consistent l
 
 \subsection{Interpretation of operations}\label{sect.ops.interpretation}
 
-We describe the state of a node using an abstract type variable $\isacharprime\isa{state}$, and we do not assume anything about its properties.
-To model state changes, we assume the existence of an \emph{interpretation} function, which changes the state of a node based on an operation.
-This function has a type signature of $\isa{interp} \mathbin{\isacharcolon\isacharcolon} \isacharprime\isa{oper} \mathbin{\isasymRightarrow} \isacharprime\isa{state} \mathbin{\isasymrightharpoonup} \isacharprime\isa{state}$, where $\isasymrightharpoonup$ denotes a partial function (equivalently, the type signature could be written as $\isacharprime\isa{oper} \mathbin{\isasymRightarrow} \isacharprime\isa{state} \mathbin{\isasymRightarrow} \isacharprime\isa{state}\ \isa{option}$).
-The interpretion function lifts an operation into a \emph{state transformer}---a function that either maps an old state to a new state, or fails by returning $\isa{None}$.
+We describe the state of a node using an abstract type variable $\isacharprime\isa{state}$.
+To model state changes, we assume the existence of an \emph{interpretation} function of type $\isa{interp} \mathbin{\isacharcolon\isacharcolon} \isacharprime\isa{oper} \mathbin{\isasymRightarrow} \isacharprime\isa{state} \mathbin{\isasymRightarrow} \isacharprime\isa{state}\ \isa{option}$, which lifts an operation into a \emph{state transformer}---a function that either maps an old state to a new state, or fails by returning $\isa{None}$.
 If $\isa{x}$ is an operation, we also write $\langle\isa{x}\rangle$ for the state transformer obtained by applying $\isa{x}$ to the interpretation function.
 
 Concretely, these definitions are captured in Isabelle with the following locale declaration:
@@ -58,7 +56,7 @@ Concretely, these definitions are captured in Isabelle with the following locale
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{locale} happens{\isacharunderscore}before\ {\isacharequal}\ preorder\ hb{\isacharunderscore}weak\ hb\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{for}\ hb{\isacharunderscore}weak\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ {\isasymRightarrow}\ {\isacharprime}oper\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}{\isasympreceq}{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{and}\ hb\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ {\isasymRightarrow}\ {\isacharprime}oper\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \ {\isacharparenleft}\isakeyword{infix}\ {\isachardoublequoteopen}{\isasymprec}{\isachardoublequoteclose}\ {\isadigit{5}}{\isadigit{0}}{\isacharparenright}\ {\isacharplus}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ interp\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ {\isasymRightarrow}\ {\isacharprime}state\ {\isasymrightharpoonup}\ {\isacharprime}state{\isachardoublequoteclose}\ {\isacharparenleft}{\isachardoublequoteopen}{\isasymlangle}{\isacharunderscore}{\isasymrangle}{\isachardoublequoteclose}\ {\isacharbrackleft}{\isadigit{0}}{\isacharbrackright}\ {\isadigit{1}}{\isadigit{0}}{\isadigit{0}}{\isadigit{0}}{\isacharparenright}
+\ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ interp\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ {\isasymRightarrow}\ {\isacharprime}state\ {\isasymRightarrow}\ {\isacharprime}state\ option{\isachardoublequoteclose}\ {\isacharparenleft}{\isachardoublequoteopen}{\isasymlangle}{\isacharunderscore}{\isasymrangle}{\isachardoublequoteclose}\ {\isacharbrackleft}{\isadigit{0}}{\isacharbrackright}\ {\isadigit{1}}{\isadigit{0}}{\isadigit{0}}{\isadigit{0}}{\isacharparenright}
 \end{isabellebody}
 \vspace{0.375em}
 The $\isa{happens-before}$ locale extends the $\isa{preorder}$ locale, which is part of Isabelle's standard library and includes various useful lemmas.
@@ -82,7 +80,7 @@ We can now define a function $\isa{apply-operations}$ that composes an arbitrary
 We first map $\isa{interp}$ across the list to obtain a state transformer for each operation, and then collectively compose them using the Kleisli arrow composition combinator:
 \vspace{0.375em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{definition} apply{\isacharunderscore}operations\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ list\ {\isasymRightarrow}\ {\isacharprime}state\ {\isasymrightharpoonup}\ {\isacharprime}state{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ \ \ \ \ \ \ \isacommand{definition} apply{\isacharunderscore}operations\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ list\ {\isasymRightarrow}\ {\isacharprime}state\ {\isasymRightarrow}\ {\isacharprime}state\ option{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ es\ {\isasymequiv}\ foldl\ {\isacharparenleft}op\ {\isasymrhd}{\isacharparenright}\ Some\ {\isacharparenleft}map\ interp\ es{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.375em}
