@@ -233,7 +233,7 @@ Coupling our abstract convergence theorem with a CRDT-specific technical lemma s
 In fact, the same single line of Isabelle proof is used to obtain the convergence theorem as a corollary, in all of our three concrete CRDT implementations.
 
 As this recipe described above demonstrates, in this work we have not only isolated a series of reusable lemmas and models of networks, but also identified a fixed proof strategy that developers of new operation-based CRDTs can use to obtain a convergence theorem for their replicated type.
-This idea is made precise with the $\isa{strong}{\isacharunderscore}\isa{eventual}{\isacharunderscore}\isa{consistency}$ local theory, which provides sufficient conditions in order to obtain a convergence theorem for a replicated type.
+This idea is made precise with the $\isa{strong}{\isacharunderscore}\isa{eventual}{\isacharunderscore}\isa{consistency}$ locale, which provides sufficient conditions in order to obtain a convergence theorem for a replicated type.
 
 Our work was motivated by the desire to support a wider range of SEC algorithms in distributed systems.
 OT algorithms which support the $\mathit{TP}_1$ alone are already widely used in systems such as Google Docs, however these require all clients communicate changes via a single central server.

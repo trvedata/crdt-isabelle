@@ -1,41 +1,25 @@
 \section{An axiomatic network model}
 \label{sect.network}
 
-In this section, we provide a formal definition of an asynchronous unreliable causal broadcast network, giving us a realistic setting in which we can embed various replication algorithms, and prove that they guarantee strong eventual consistency in all possible behaviours of the network.
-Our network model is defined using only six axioms, all of which are standard assumptions in the modelling of distributed systems, and which are satisfied by many systems in practice.
-All theorems in this paper are derived from those axioms; in particular, we show that the causal delivery abstraction satisfies the strict partial ordering assumption of $\isa{hb-consistent}$ (Section~\ref{sect.happens.before}), allowing us to use the $\isa{convergence}$ theorem (Section~\ref{sect.ops.commute}) in locales that extend the network.
+In this section we develop a formal definition of an \emph{asynchronous unreliable causal broadcast network}.
+We choose this model because it satisfies the causal delivery requirements of many operation-based CRDTs \cite{Almeida:2015fc,Baquero:2014ed}.
+Moreover, it is suitable for use in decentralised settings, as motivated in the introduction, since it does not require waiting for communication with a central server or a quorum of nodes.
+Stronger consistency models do not have this property \cite{Attiya:2015dm,Davidson:1985hv}.
 
-%TODO Martin to check that he is happy with the rest of this intro. Have we stated informally why we want to model an asynchronous unreliable causal broadcast network and what this means?
-We start by assuming that all communication between nodes are sent as messages via the network and that these messages may be delayed, reordered, or lost entirely---an assumption that matches the behaviour of many networks in practice~\cite{Bailis:2014jx}.
-Moreover, nodes or network links may fail at any time, and the non-faulty parts of the system need
-to continue working in spite of such partial failures.
+The \emph{causal} and \emph{broadcast} aspects of the model are explained in Sections~\ref{sect.network.broadcast} and~\ref{sect.network.causal}.
+The \emph{asynchronous} aspect means that we make no timing assumptions: messages sent over the network may suffer unbounded delays before they are delivered, nodes may pause their execution for unbounded periods of time, and we require no clock synchronisation.
+\emph{Unreliable} means that messages may never arrive at all, and nodes may fail permanently without warning.
+Networks are known to exhibit these behaviours in practice \cite{Bailis:2014jx}, and replication algorithms must tolerate such failures.
 
-As motivated in the Introduction, we do not wish to rely on a central server.
-Rather, we aim to support scenarios in which subsets of nodes can communicate with each other, but some are disconnected (\emph{partitioned}) from others.
-It is possible to provide totally ordered delivery without a central server and thus obtain strong consistency; this abstraction is known as \emph{total order broadcast} or \emph{atomic broadcast} \cite{Cachin:2011wt,Defago:2004ji}.
-Unfortunately, it is expensive: it requires a quorum of nodes (typically a majority) to be reachable in order to make progress \cite{Chandra:1996cp}.
-This is not an assumption we wish to make since, when nodes represent laptops or smartphones, it is likely that less than a majority of devices are online at any one time, and so any algorithm for total order broadcast would be stalled.
-For example, consider some data shared between two users, each of whom has two devices. 
-Each user may want to synchronise the data between their two devices using a local wireless link, even if they are temporarily disconnected from the internet, and re-synchronise with the other user when they are next online. 
-In this scenario, strong consistency across both users could only be achieved by preventing users from making any offline updates; if updates are allowed, weaker consistency is inevitable \cite{Attiya:2015dm,Davidson:1985hv}.
-
-We therefore use an \emph{asynchronous} network model, which means that we make no timing assumptions: messages sent over the network may suffer unbounded delays before they are delivered, or they may never arrive at all. 
-Nodes may pause their execution for unbounded periods of time, r fail permanently \cite{Cachin:2011wt}. 
-If a user makes updates while offline, and the device re-synchronises when it is next online, we can simply model that interaction as very large network delay.
-Moreover, if network interruptions between nodes last only for a finite time, every update can be eventually delivered to every non-failed node by re-sending messages until they arrive.
-%Thus, all non-failed nodes will eventually deliver the same set of updates (although perhaps in a different order), and
-%so strong eventual consistency will ensure that they all converge to an equivalent state. 
-We can therefore assume that the network is \emph{unreliable}.
-If nodes are partitioned from each other forever, they will not converge, but that is the case for any replication algorithm, since the network is assumed to be the only communication channel.
-In such cases we assume that the node has failed.
-
-%Although most practical systems have fairly low network delay and fairly brief execution pauses most of the time, the asynchronous model is a useful lower bound for the assumptions that a distributed algorithm may make. 
-%Any algorithm that is proved correct under the assumptions of the asynchronous model is also guaranteed to be correct in a system that provides stronger guarantees, for example around timing and reliability.
+This model provides a realistic setting in which we can embed various replication algorithms, and prove that they guarantee SEC in all possible behaviours of the network.
+But it is also abstract enough to be able to model a wide range of scenarios: for example, if a user makes updates while offline, and the device re-synchronises when it is next online, we can simply model that interaction as very large network delay.
+Our network model is defined using only six axioms, all of which are standard assumptions when modelling distributed systems, and which are satisfied by many systems in practice.
+All theorems in this paper are derived from those axioms; in particular, we show that the causal delivery abstraction satisfies the strict partial ordering assumption of $\isa{hb-consistent}$ (Section~\ref{sect.happens.before}), allowing us to use the convergence theorem in any locales that extend the network.
 
 \subsection{Modelling a distributed system}
 
 We model a distributed system as an unbounded number of communicating nodes.
-We do assume nothing about the communication pattern of nodes---we assume only that each node is uniquely identified by a natural number, and that the flow of execution at each node consists of a finite, totally ordered sequence of execution steps (events).
+We assume nothing about the communication pattern of nodes---we assume only that each node is uniquely identified by a natural number, and that the flow of execution at each node consists of a finite, totally ordered sequence of execution steps (events).
 We call that sequence of events at node $i$ the \emph{history} of that node.
 For convenience, we assume that every event or execution step is unique within a node's history; this assumption is standard when modelling distributed systems \cite{Cachin:2011wt} and can easily be implemented by attaching a sequence number, timestamp, or other unique identifier to each event.
 This system model can be expressed in Isabelle as follows:
@@ -45,25 +29,26 @@ This system model can be expressed in Isabelle as follows:
 \ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharprime}a\ list{\isachardoublequoteclose}\ \isakeyword{assumes}\ histories{\isacharunderscore}distinct{\isacharcolon}\ {\isachardoublequoteopen}distinct\ {\isacharparenleft}history\ i{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.35em}
-Here, the history of a node $\isa{i}$ is obtained by using a function fixed by the local theory, $\isa{history}$.
+Here, the history of a node $\isa{i}$ is obtained by using a function fixed by the locale, $\isa{history}$.
 The history is simply a list of events, and each event is modelled as an abstract type variable---here we use $\isa{{\isacharprime}a}$.
 The $\isa{distinct}$ predicate is an Isabelle/HOL library function that asserts that a list contains no duplicate elements.
 Note that we make no assumption about the number of nodes in the system, which allows us to model systems in which nodes join and leave the network over time.
-A node that does not exist is simply modelled by an empty list of events.
+A node that does not exist is simply modelled as an empty list of events.
 
 A node's history is finite, and at the end of a node's history we assume that a node has either failed or successfully terminated.
-In this model, a node failure is permanent, and is modelled by the absence of any further events in its history (there is no explicit failure event).
+In this model, a node failure is permanent, and is modelled by the absence of any further events in its history.
+There is no explicit failure event, and the failure of one node cannot be detected by other nodes.
 This \emph{crash-stop} abstraction is commonly used by distributed algorithms \cite{Cachin:2011wt}.
 
 Within the $\isa{node{\isacharunderscore}histories}$ locale we may define when one event \emph{comes before} another at one particular node.
 We write $\isa{x} \sqsubset^\isa{i} \isa{y}$ whenever event $\isa{x}$ comes before event $\isa{y}$ in the history of node $\isa{i}$.
-More formally, $\isa{x} \sqsubset^\isa{i} \isa{y}$ whenever there exist lists $\isa{xs}$, $\isa{ys}$, and $\isa{zs}$ such that $\isa{xs}\mathbin{@}[\isa{x}]\mathbin{@}\isa{ys}\mathbin{@}[\isa{y}]\mathbin{@}\isa{zs} = \isa{history\ i}$.
+More formally, $\isa{x} \sqsubset^\isa{i} \isa{y}$ whenever there exist (possibly empty) lists $\isa{xs}$, $\isa{ys}$, and $\isa{zs}$ such that $\isa{xs}\mathbin{@}[\isa{x}]\mathbin{@}\isa{ys}\mathbin{@}[\isa{y}]\mathbin{@}\isa{zs} = \isa{history\ i}$.
 
-\subsection{An asynchronous broadcast network}
+\subsection{An asynchronous broadcast network}\label{sect.network.broadcast}
 
 We now extend the $\isa{node-histories}$ locale by defining how nodes can communicate.
 We specialise $\isacharprime\isa{a}$ to be one of two kinds of event: either \emph{broadcast} or \emph{deliver}.
-(They could equivalently be called \emph{send} and \emph{receive}, but we stick to the conventional distributed systems terminology.)
+(In the conventional distributed systems terminology, a \emph{deliver} event indicates that a message was received from the network and delivered to the application.)
 Each event contains a message of some abstract type $\isacharprime\isa{msg}$:
 \vspace{0.35em}
 \begin{isabellebody}
@@ -100,14 +85,14 @@ The axioms can be understood as follows:
 In addition, the $\isa{network}$ locale inherits the $\isa{histories-distinct}$ axiom from the parent locale $\isa{node-histories}$.
 Many other properties that we require can be deduced as lemmas from these axioms.
 For example, we can prove that for every message message that is delivered by some node, there is exactly one broadcast event (on the same or some other node) that created the message.
-Also, due to the $\isa{histories-distinct}$ axiom we know that the same message is not delivered more than once, an aspect that can easily be implemented in practical systems by differentiating messages with a unique ID.
+Also, due to the $\isa{histories-distinct}$ axiom we know that the same message is not delivered more than once to each node---an aspect that can easily be implemented in practical systems by having each node keep track of message IDs it has received, and suppressing any duplicates.
 
 Note, however, that we are not making any assumptions about the reliability or the ordering of messages.
 If one node broadcasts a message, it \emph{may} be delivered by other nodes, but we do not state if or when that will happen.
 Messages may be arbitrarily delayed, reordered, or even lost entirely.
 It is even acceptable for a node to never deliver any messages besides those it broadcasts itself, modelling a node that is permanently disconnected from the network.
 
-\subsection{Causally ordered delivery}
+\subsection{Causally ordered delivery}\label{sect.network.causal}
 
 As discussed in Section~\ref{sect.happens.before}, some replication algorithms require that some operations be applied in a particular order because the later operation has a causal dependency on the earlier one.
 We previously characterised these dependencies using the \emph{happens-before} relation $\prec$, which we required to be a strict partial order, but otherwise kept abstract.
