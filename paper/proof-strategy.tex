@@ -30,7 +30,7 @@ The definition of the network is important because it allows us to prove that th
 The network is the only part of our proof in which we make any axiomatic assumptions, and we show in Section~\ref{sect.network} that our assumptions are realistic, reflecting both standard conventions for modelling distributed systems, and the practical realities of network protocols today.
 We then prove that our network satisfies the ordering properties required by the abstract convergence theorem of Section~\ref{sect.abstract.convergence}, and thus deduce a convergence theorem for our network model.
 
-We then use the general-purpose theorems and definitions from Sections~\ref{sect.abstract.convergence} and~\ref{sect.network} to prove the strong eventual consistency properties of concrete algorithms.
+We use the general-purpose theorems and definitions from Sections~\ref{sect.abstract.convergence} and~\ref{sect.network} to prove the strong eventual consistency properties of concrete algorithms.
 In Section~\ref{sect.rga} we describe our formalisation of the Replicated Growable Array (RGA), a CRDT for ordered lists.
 We first show how to implement the RGA's insert and delete operations, with proofs that each operation commutes with itself, and that all operations commute with each other.
 Insertion and deletion only commute under various conditions, so we prove that these conditions are satisfied in all possible network behaviours, and thus we obtain a concrete convergence theorem for our RGA implementation.

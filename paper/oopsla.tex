@@ -1,4 +1,4 @@
-\documentclass[acmlarge,review]{acmart}\settopmatter{printfolios=true}
+\documentclass[acmlarge,anonymous,review]{acmart}\settopmatter{printfolios=true}
 %\documentclass[acmlarge]{acmart}\settopmatter{}
 
 \bibliographystyle{ACM-Reference-Format}
@@ -94,7 +94,7 @@ We develop a modular and reusable framework in the Isabelle/HOL interactive proo
 We avoid correctness issues that have dogged previous mechanised proofs in this area by including a network model in our formalisation, and proving that our theorems hold in all possible network behaviours.
 Our axiomatic network model is a standard abstraction that accurately reflects the behaviour of real-world computer networks.
 Moreover, we identify an abstract convergence theorem, a property of order relations, which provides a formal definition of strong eventual consistency.
-We then obtain the first machine-checked correctness theorems for three concrete CRDTs: the Replicated Growable Array, the Observed-Remove Set, and an increment-decrement counter.
+We then obtain the first machine-checked correctness theorems for three concrete CRDTs: the Replicated Growable Array, the Observed-Remove Set, and an Increment-Decrement Counter.
 We find that our framework is highly reusable, developing proofs of correctness for the latter two CRDTs in a few hours and with relatively little CRDT-specific code.
 \end{abstract}
 

@@ -94,7 +94,7 @@ The axioms can be understood as follows:
         Local delivery may seem redundant, since the effect of the delivery could also be implemented by the broadcast event itself; however, it is standard practice in the description of broadcast protocols that the sender of a message also sends it to itself, since this property simplifies the definition of algorithms built on top of the broadcast abstraction \cite{Cachin:2011wt}.
     \item[msg-id-unique:] We do not assume that the message type $\isacharprime\isa{msg}$ has any particular structure; we only assume the existence of a function $\isa{msg-id} \mathbin{\isacharcolon\isacharcolon} \isacharprime\isa{msg} \mathbin{\isasymRightarrow} \isacharprime\isa{msgid}$ that maps every message to some globally unique identifier of type $\isacharprime\isa{msgid}$.
         We assert this uniqueness by stating that if $\isa{m1}$ and $\isa{m2}$ are any two messages broadcast by any two nodes, and their $\isa{msg-id}$s are the same, then they were in fact broadcast by the same node and the two messages are identical. 
-        In practice, these globally unique IDs can by implemented using unique node identifiers, sequence numbers, timestamps, or random numbers.
+        In practice, these globally unique IDs can by implemented using unique node identifiers, sequence numbers or timestamps.
 \end{description}
 
 In addition, the $\isa{network}$ locale inherits the $\isa{histories-distinct}$ axiom from the parent locale $\isa{node-histories}$.
