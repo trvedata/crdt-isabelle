@@ -8,7 +8,7 @@ By accessing only their local copy of the shared state, nodes can execute read a
 Nodes exchange updates asynchronously when a network connection is available.  
 
 We now use Isabelle to formalise the notion of strong eventual consistency.
-In this section we do not make any assumptions about networks, data structures, or conflict resolution algorithms; instead, we use an abstract model of operations that may be reordered, and we reason about the properties that those operations must satisfy.
+In this section we do not make any assumptions about networks, or data structures; instead, we use an abstract model of operations that may be reordered, and we reason about the properties that those operations must satisfy.
 We then provide concrete implementations of that abstract model in later sections.
 
 \subsection{The happens-before relation and causality}\label{sect.happens.before}
