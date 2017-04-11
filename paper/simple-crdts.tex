@@ -5,10 +5,10 @@ We close the technical body of our paper with a demonstration that our network a
 In particular, we demonstrate the convergence of two well-known CRDTs---the increment-decrement counter, and the Observed-Remove Set (ORSet)---again as corollaries of our abstract convergence theorem.
 This bolsters our claim that the network and abstract convergence layers of our mechanisation are reusable components, and fully independent of any one CRDT implementation.
 
-\subsection{Increment-decrement counter}
+\subsection{Increment-Decrement Counter}
 \label{subsect.increment-decrement.counter}
 
-The increment-decrement counter is perhaps the simplest CRDT, and a paradigmatic example of a replicated data structure with commutative operations.
+The Increment-Decrement Counter is perhaps the simplest CRDT, and a paradigmatic example of a replicated data structure with commutative operations.
 As the name suggests, the data structure supports two operations: $\isa{increment}$ and $\isa{decrement}$ which respectively increment and decrement a shared integer counter:
 \vspace{0.35em}
 \begin{isabellebody}
@@ -69,7 +69,7 @@ From this, and our abstract convergence theorems, we can show convergence for th
 \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}
 \end{isabellebody}
 
-\subsection{Observed-remove set (ORSet)}
+\subsection{Observed-Remove Set (ORSet)}
 \label{subsect.orset}
 
 The ORSet is a well-known CRDT for implementing replicated sets, supporting two operations: the \emph{insertion} and \emph{deletion} of an arbitrary element in the shared set.
