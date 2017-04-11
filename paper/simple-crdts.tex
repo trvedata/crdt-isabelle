@@ -10,59 +10,59 @@ This bolsters our claim that the network and abstract convergence layers of our 
 
 The increment-decrement counter is perhaps the simplest CRDT, and a paradigmatic example of a replicated data structure with commutative operations.
 As the name suggests, the data structure supports two operations: $\isa{increment}$ and $\isa{decrement}$ which respectively increment and decrement a shared integer counter:
-\vspace{0.375em}
+\vspace{0.35em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{datatype}\ operation {\isacharequal}\ Increment\ {\isacharbar}\ Decrement
 \end{isabellebody}
-\vspace{0.375em}
+\vspace{0.35em}
 Providing a semantics for these two operations is straightforward, so we only present the function implementing the increment operation, here, eliding the corresponding implementation of decrement:
-\vspace{0.375em}
+\vspace{0.35em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{definition}\ increment\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}int\ {\isasymRightarrow}\ int{\isachardoublequoteclose}\ \isakeyword{where}\ {\isachardoublequoteopen}increment\ x\ {\isasymequiv}\ {\isadigit{1}}\ {\isacharplus}\ x{\isachardoublequoteclose}
 \end{isabellebody}
-\vspace{0.375em}
+\vspace{0.35em}
 Note that neither $\isa{increment}$ nor $\isa{decrement}$ fail on under- or overflow, as both functions are defined on a type of unbounded (mathematical) integers.
 We could also have implemented the counter using fixed bitwidth integers---e.g. signed 32- or 64-bit machine words---with wrap-around on overflow, or some other similar design choice.
 Any reasonable alternative design would not have impacted the proofs presented here.
 Interpreting the $\isa{operation}$ data type and lifting it into a (partial) state transformer is a straightforward exercise in pattern matching:
-\vspace{0.375em}
+\vspace{0.35em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{fun}\ interpret{\isacharunderscore}operation\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}operation\ {\isasymRightarrow}\ int\ {\isasymRightarrow}\ int\ option{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}interpret{\isacharunderscore}operation\ Increment\ {\isacharequal}\ Some\ o\ increment{\isachardoublequoteclose}\ {\isacharbar}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}interpret{\isacharunderscore}operation\ Decrement\ {\isacharequal}\ Some\ o\ decrement{\isachardoublequoteclose}
 \end{isabellebody}
-\vspace{0.375em}
+\vspace{0.35em}
 Here, $\isa{f}\ \isa{o}\ \isa{g}$ denotes the composition of functions $\isa{f}$ and $\isa{g}$.
 Note that as neither of the $\isa{increment}$ and $\isa{decrement}$ operations fail, each must be composed with the $\isa{Some}$ constructor of the $\isa{option}$ type to effect the lifting into a partial state transformer, suitable for use with our $\isa{network}{\isacharunderscore}\isa{with}{\isacharunderscore}\isa{ops}$ locale.
 
 We next consider commutation of increment and decrement.
 Showing that both operations commute with each other, and with themselves, is an easy exercise in applying Isabelle's proof automation.
 We present only a single commutation lemma, here, eliding the rest:
-\vspace{0.375em}
+\vspace{0.35em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{lemma}\ increment{\isacharunderscore}decrement{\isacharunderscore}commute{\isacharcolon}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}increment\ {\isacharparenleft}decrement\ x{\isacharparenright}\ {\isacharequal}\ decrement\ {\isacharparenleft}increment\ x{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
-\vspace{0.375em}
+\vspace{0.35em}
 Unlike more complex CRDTs, such as the Replicated Growable Array discussed in Section~\ref{sect.rga}, the operations of the increment-decrement counter commute unconditionally.
 As a result, the increment-decrement counter will converge in any execution of a causal asynchronous network, without restriction on possible network behaviours.
 We capture this by creating a CRDT-specific locale, $\isa{counter}$, which is just a thin veneer over the $\isa{network}{\isacharunderscore}\isa{with}{\isacharunderscore}\isa{ops}$ locale, specialising the types and providing a fixed initial state (here, $\isa{0}$):
-\vspace{0.375em}
+\vspace{0.35em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{locale}\ counter\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharunderscore}\ {\isacharunderscore}\ interpret{\isacharunderscore}operation\ {\isadigit{0}}
 \end{isabellebody}
-\vspace{0.375em}
+\vspace{0.35em}
 Within this locale, we can then show that all concurrent delivered messages of a prefix of a node's local history, within a $\isa{counter}$ network commute.
 Compared to the Replicated Growable Array case, this is straightforward, as operations commute unconditionally:
-\vspace{0.375em}
+\vspace{0.35em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ counter{\isacharparenright}\ concurrent{\isacharunderscore}operations{\isacharunderscore}commute{\isacharcolon}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
-\vspace{0.375em}
+\vspace{0.35em}
 From this, and our abstract convergence theorems, we can show convergence for the increment-decrement counter, which is captured by $\isa{counter}{\isacharunderscore}\isa{convergence}$:
-\vspace{0.375em}
+\vspace{0.35em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{corollary}\ {\isacharparenleft}\isakeyword{in}\ counter{\isacharparenright}\ counter{\isacharunderscore}convergence{\isacharcolon}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\isanewline
@@ -75,11 +75,11 @@ From this, and our abstract convergence theorems, we can show convergence for th
 
 The ORSet is a well-known CRDT for implementing replicated sets, supporting two operations: the \emph{insertion} and \emph{deletion} of an arbitrary element in the shared set.
 We start by providing a concrete type of network messages, representing the two possible operations:
-\vspace{0.375em}
+\vspace{0.35em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{datatype}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isacharequal}\ Add\ {\isachardoublequoteopen}{\isacharprime}id{\isachardoublequoteclose}\ {\isachardoublequoteopen}{\isacharprime}a{\isachardoublequoteclose}\ {\isacharbar}\ Rem\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id\ set{\isacharparenright}{\isachardoublequoteclose}\ {\isachardoublequoteopen}{\isacharprime}a{\isachardoublequoteclose}
 \end{isabellebody}
-\vspace{0.375em}
+\vspace{0.35em}
 
 \noindent Here, ${\isacharprime}id$ is an abstract type of message identifiers.
 Insertion messages are tagged with an identifier in order to distinguish between different invocations of the operation.
@@ -93,7 +93,7 @@ If this set is empty, the element is not in the data structure.
 
 The interpretation of each operation is straightforward: insertions add a fresh element identifier to the associated observed identifiers set and deletions remove a subset of them:
 
-\vspace{0.375em}
+\vspace{0.35em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{definition}\ interpret{\isacharunderscore}op\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ state\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ state\ option{\isachardoublequoteclose}\ {\isacharparenleft}{\isachardoublequoteopen}{\isasymlangle}{\isacharunderscore}{\isasymrangle}{\isachardoublequoteclose}\ {\isacharbrackleft}{\isadigit{0}}{\isacharbrackright}\ {\isadigit{1}}{\isadigit{0}}{\isadigit{0}}{\isadigit{0}}{\isacharparenright}\ \isakeyword{where}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}interpret{\isacharunderscore}op\ oper\ state\ {\isasymequiv}\isanewline
@@ -101,60 +101,60 @@ The interpretation of each operation is straightforward: insertions add a fresh 
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ after\ \ {\isacharequal}\ case\ oper\ of\ Add\ i\ e\ {\isasymRightarrow}\ before\ {\isasymunion}\ {\isacharbraceleft}i{\isacharbraceright}\ {\isacharbar}\ Rem\ is\ e\ {\isasymRightarrow}\ before\ {\isacharminus}\ is\isanewline
 \ \ \ \ \ \ \ \ \ \ \ \ \ in\ \ Some\ {\isacharparenleft}state\ {\isacharparenleft}{\isacharparenleft}op{\isacharunderscore}elem\ oper{\isacharparenright}\ {\isacharcolon}{\isacharequal}\ after{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
-\vspace{0.375em}
+\vspace{0.35em}
 
 When removing an element $e$, a node must use the entire observed set of identifiers for $e$.
 Since message identifiers in the network are always fresh, we use them when adding new elements.
 The \isa{valid-behaviours} predicate for ORSet is then:
 
-\vspace{0.375em}
+\vspace{0.35em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{definition}\ valid{\isacharunderscore}behaviours\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isasymRightarrow}\ {\isacharprime}id{\isacharparenright}\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ state\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}valid{\isacharunderscore}behaviours\ msg{\isacharunderscore}id\ state\ oper\ {\isasymequiv}\ case\ oper\ of\ Add\ i\ \ e\ {\isasymRightarrow}\ i\ {\isacharequal}\ msg{\isacharunderscore}id\ oper\ {\isacharbar}\ Rem\ is\ e\ {\isasymRightarrow}\ is\ {\isacharequal}\ state\ e{\isachardoublequoteclose}
 \end{isabellebody}
-\vspace{0.375em}
+\vspace{0.35em}
 We follow the same recipe from the previous CRDTs to show that ORSet satisfies
 strong eventual consistency. First, we define a CRDT-specific locale, here
 called $\isa{orset}$, which extends the
 $\isa{network}{\isacharunderscore}with{\isacharunderscore}\isa{constrained}{\isacharunderscore}\isa{ops}$
 locale:
-\vspace{0.375em}
+\vspace{0.35em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{locale}\ orset\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}constrained{\isacharunderscore}ops\ msg{\isacharunderscore}id\ history\ interpret{\isacharunderscore}op\ {\isachardoublequoteopen}{\isasymlambda}x{\isachardot}\ {\isacharbraceleft}{\isacharbraceright}{\isachardoublequoteclose}\ {\isachardoublequoteopen}valid{\isacharunderscore}behaviours\ msg{\isacharunderscore}id{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{for}\ msg{\isacharunderscore}id\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isasymRightarrow}\ {\isacharprime}id{\isachardoublequoteclose}\ \isakeyword{and}\ history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ event\ list{\isachardoublequoteclose}
 \end{isabellebody}
-\vspace{0.375em}
+\vspace{0.35em}
 
 \noindent Then, using the $\isa{orset}$ locale, we show that
 $\isa{apply}{\isacharunderscore}operations$ in this network never fails---i.e.
 never returns $\isa{None}$ on some prefix of the local history of a node in the
 network:
-\vspace{0.375em}
+\vspace{0.35em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ apply{\isacharunderscore}operations{\isacharunderscore}never{\isacharunderscore}fails{\isacharcolon}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isasymnoteq}\ None{\isachardoublequoteclose}
 \end{isabellebody}
-\vspace{0.375em}
+\vspace{0.35em}
 \noindent Finally, we must show that concurrent operations commute.
-\vspace{0.375em}
+\vspace{0.35em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{lemma} {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ concurrent{\isacharunderscore}operations{\isacharunderscore}commute{\isacharcolon}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
-\vspace{0.375em}
+\vspace{0.35em}
 \noindent It is easy to see that two insertions operations (and two deletions)
 commute with each other unconditionally. Insertion and deletion operations
 commute only in the case where the identifier of the insertion operation is not
 an element of tombstone set of the remove operation:
-\vspace{0.375em}
+\vspace{0.35em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ add{\isacharunderscore}rem{\isacharunderscore}commute{\isacharcolon}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i\ {\isasymnotin}\ is{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isasymlangle}Add\ i\ e{\isadigit{1}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Rem\ is\ e{\isadigit{2}}{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}Rem\ is\ e{\isadigit{2}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Add\ i\ e{\isadigit{1}}{\isasymrangle}{\isachardoublequoteclose}
 \end{isabellebody}
-\vspace{0.375em}
+\vspace{0.35em}
 
 \noindent To prove that this is indeed the case when the operations are
 commutative is a little bit more laborious. We first define \isa{added-ids} as
@@ -162,29 +162,29 @@ the set of \emph{all} identifiers of insertion operations for each element
 given a list of delivered events.  Then we prove that the set of observed
 identifiers is a subset of \isa{added-ids}:
 
-\vspace{0.375em}
+\vspace{0.35em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ apply{\isacharunderscore}operations{\isacharunderscore}added{\isacharunderscore}ids{\isacharcolon}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}es\ prefix\ of\ j{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ es\ {\isacharequal}\ Some\ f{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}f\ x\ {\isasymsubseteq}\ set\ {\isacharparenleft}added{\isacharunderscore}ids\ es\ x{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
-\vspace{0.375em}
+\vspace{0.35em}
 
 \noindent From this, one is able to prove that when an insertion and a deletion
 operations are concurrent, the identifier of the first one cannot be
 in the tombstone set of the second.
 
-\vspace{0.375em}
+\vspace{0.35em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ concurrent{\isacharunderscore}add{\isacharunderscore}remove{\isacharunderscore}independent{\isacharcolon}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}{\isacharparenleft}Add\ i\ e{\isadigit{1}}{\isacharparenright}\ $\|$ {\isacharparenleft}Rem\ is\ e{\isadigit{2}}{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}xs\ prefix\ of\ j{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}Add\ i\ e{\isadigit{1}}\ {\isasymin}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}Rem\ is\ e{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}i\ {\isasymnotin}\ is{\isachardoublequoteclose}
 \end{isabellebody}
-\vspace{0.375em}
+\vspace{0.35em}
 
 We now obtain the final convergence theorem for the ORSet, which is captured by:
-\vspace{0.375em}
+\vspace{0.35em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{theorem} {\isacharparenleft}\isakeyword{in}\ orset{\isacharparenright}\ convergence{\isacharcolon}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}\ {\isacharequal}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ ys{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}xs\ prefix\ of\ i{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}ys\ prefix\ of\ j{\isachardoublequoteclose}\isanewline

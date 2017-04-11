@@ -2,7 +2,7 @@
 
 \tikzstyle{locale}=[draw,anchor=base,minimum width=30pt,text height=8pt,text depth=3pt]
 
-\node (preorder) at (0,7.5) [locale] {$\isa{preorder}$};
+%\node (preorder) at (0,7.5) [locale] {$\isa{preorder}$};
 \node (hb)       at (0,6)   [locale] {$\isa{happens-before}$};
 \node (sec)      at (0,4)   [locale] {$\isa{strong-eventual-consistency}$};
 \node (hist)     at (5,6)   [locale] {$\isa{node-histories}$};
@@ -15,13 +15,13 @@
 \node (rga)      at (5,0)   [locale] {$\isa{rga}$};
 
 \begin{scope}[thick,dotted]
-    \path [draw] (-2.5,6.8) -- ( 10,6.8);
+    %\path [draw] (-2.5,6.8) -- ( 10,6.8);
     \path [draw] (-2.5,0.8) -- ( 10,0.8);
     \path [draw] ( 2.8,0.8) -- (2.8,6.8);
 \end{scope}
 
 \begin{scope}[left,text width=5cm,text ragged left,font=\footnotesize]
-    \node at (10, 7.2) {Isabelle standard library};
+    %\node at (10, 7.2) {Isabelle standard library};
     \node at (10, 6.2) {Network model\\(Section \ref{sect.network})};
 \end{scope}
 \begin{scope}[text width=5cm,font=\footnotesize]
@@ -31,7 +31,7 @@
 
 \begin{scope}[>=open triangle 60]
     \tikzstyle{every path}=[thick,->]
-    \draw (hb) to (preorder);
+    %\draw (hb) to (preorder);
     \draw (sec) to (hb);
     \draw (network) to (hist);
     \draw (causal) to (network);
