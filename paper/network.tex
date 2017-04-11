@@ -20,7 +20,7 @@ Each user may want to synchronise the data between their two devices using a loc
 In this scenario, strong consistency across both users could only be achieved by preventing users from making any offline updates; if updates are allowed, weaker consistency is inevitable \cite{Attiya:2015dm,Davidson:1985hv}.
 
 We therefore use an \emph{asynchronous} network model, which means that we make no timing assumptions: messages sent over the network may suffer unbounded delays before they are delivered, or they may never arrive at all. 
-Nodes may pause their execution for unbounded periods of time, or fail permanently \cite{Cachin:2011wt}. 
+Nodes may pause their execution for unbounded periods of time, r fail permanently \cite{Cachin:2011wt}. 
 If a user makes updates while offline, and the device re-synchronises when it is next online, we can simply model that interaction as very large network delay.
 Moreover, if network interruptions between nodes last only for a finite time, every update can be eventually delivered to every non-failed node by re-sending messages until they arrive.
 %Thus, all non-failed nodes will eventually deliver the same set of updates (although perhaps in a different order), and
@@ -35,9 +35,9 @@ In such cases we assume that the node has failed.
 \subsection{Modelling a distributed system}
 
 We model a distributed system as an unbounded number of communicating nodes.
-We do not assume anything about the communication pattern of nodes---we assume only that each node is uniquely identified by a natural number, and that the flow of execution at each node consists of a finite, totally ordered sequence of execution steps (events).
+We do assume nothing about the communication pattern of nodes---we assume only that each node is uniquely identified by a natural number, and that the flow of execution at each node consists of a finite, totally ordered sequence of execution steps (events).
 We call that sequence of events at node $i$ the \emph{history} of that node.
-For convenience, we assume that every event or execution step is unique within a node's history; this assumption is standard in the modelling of distributed systems \cite{Cachin:2011wt} and can easily be implemented by attaching a sequence number, timestamp, or other unique identifier to each event.
+For convenience, we assume that every event or execution step is unique within a node's history; this assumption is standard when modelling distributed systems \cite{Cachin:2011wt} and can easily be implemented by attaching a sequence number, timestamp, or other unique identifier to each event.
 This system model can be expressed in Isabelle as follows:
 \vspace{0.35em}
 \begin{isabellebody}
@@ -100,7 +100,7 @@ The axioms can be understood as follows:
 In addition, the $\isa{network}$ locale inherits the $\isa{histories-distinct}$ axiom from the parent locale $\isa{node-histories}$.
 Many other properties that we require can be deduced as lemmas from these axioms.
 For example, we can prove that for every message message that is delivered by some node, there is exactly one broadcast event (on the same or some other node) that created the message.
-Also, due to the $\isa{histories-distinct}$ axiom we know that the same message is not delivered more than once, an aspect that can easily be implemented in practical systems by deduplicating messages based on their unique ID.
+Also, due to the $\isa{histories-distinct}$ axiom we know that the same message is not delivered more than once, an aspect that can easily be implemented in practical systems by differentiating messages with a unique ID.
 
 Note, however, that we are not making any assumptions about the reliability or the ordering of messages.
 If one node broadcasts a message, it \emph{may} be delivered by other nodes, but we do not state if or when that will happen.
@@ -145,7 +145,7 @@ We express this requirement as follows:
 The $\isa{causal-delivery}$ axiom does not strengthen the reliability assumptions of the network: only in the case where some message $\isa{m2}$ is delivered, it requires that any causally preceding messages are delivered first.
 It is still possible for some message never to be delivered.
 The abstraction defined by this locale is known as \emph{causal broadcast}, and it is typically implemented in network protocols using vector timestamps \cite{Schwarz:1994gl,Fidge:1988tv,Raynal:1996jl}.
-As these protocols are widely known and well understood, we leave them out of scope for this paper.
+As these protocols are widely known and well understood, we elide any further discussion.
 
 \subsection{Using operations in the network}\label{sect.network.ops}
 
@@ -180,7 +180,7 @@ We can then define the state of some node after executing some history by using 
 \vspace{0.35em}
 
 So far we have no restriction of what messages (operations) may be broadcast, except that they must be of some type $\isacharprime\isa{msg}$.
-Many replication algorithms have additional requirements regarding the contents of messages that cannot be expressed in Isabelle's type system.
+This suffices for some replication algorithms, but many have additional requirements regarding the contents of messages that cannot be expressed in Isabelle's type system.
 As a general-purpose mechanism for describing such requirements, the locale $\isa{network-with-constrained-ops}$ allows a replication algorithm to define a predicate $\isa{valid-op}$ that specifies whether a node is allowed to broadcast some message when in a particular state:
 \vspace{0.35em}
 \begin{isabellebody}
@@ -193,16 +193,16 @@ As a general-purpose mechanism for describing such requirements, the locale $\is
 
 $\isa{broadcast-only-valid-ops}$ is our final axiom, and it simply requires that if a node broadcasts some message, it must be a valid operation according to the $\isa{valid-op}$ predicate.
 Since the choice of messages to broadcast is under the control of the replication algorithm, and the replication algorithm defines this predicate, this assumption is reasonable.
-To summarise, the six axioms that define our network model are as follows:
-\vspace{0.35em}
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ histories{\isacharunderscore}distinct{\isacharcolon}\ {\isachardoublequoteopen}distinct\ {\isacharparenleft}history\ i{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ delivery{\isacharunderscore}has{\isacharunderscore}a{\isacharunderscore}cause{\isacharcolon}\ {\isachardoublequoteopen}Deliver\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ {\isasymexists}j{\isachardot}\ Broadcast\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ deliver{\isacharunderscore}locally{\isacharcolon}\ {\isachardoublequoteopen}Broadcast\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ Broadcast\ m\ {\isasymsqsubset}\isactrlsup i\ Deliver\ m{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ msg{\isacharunderscore}id{\isacharunderscore}unique{\isacharcolon}\ {\isachardoublequoteopen}Broadcast\ m{\isadigit{1}}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ Broadcast\ m{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}\ {\isasymLongrightarrow}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ msg{\isacharunderscore}id\ m{\isadigit{1}}\ {\isacharequal}\ msg{\isacharunderscore}id\ m{\isadigit{2}}\ {\isasymLongrightarrow}\ i\ {\isacharequal}\ j\ {\isasymand}\ m{\isadigit{1}}\ {\isacharequal}\ m{\isadigit{2}}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ causal{\isacharunderscore}delivery{\isacharcolon}\ {\isachardoublequoteopen}Deliver\ m{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{2}}\ {\isasymLongrightarrow}\ Deliver\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup i\ Deliver\ m{\isadigit{2}}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ broadcast{\isacharunderscore}only{\isacharunderscore}valid{\isacharunderscore}ops{\isacharcolon}\ {\isachardoublequoteopen}{\isasymexists}suf{\isachardot}\ pre\ {\isacharat}\ {\isacharbrackleft}Broadcast\ m{\isacharbrackright}\ {\isacharat}\ suf\ {\isacharequal}\ history\ i \ {\isasymLongrightarrow}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isasymexists}state{\isachardot}\ apply{\isacharunderscore}operations\ pre\ {\isacharequal}\ Some\ state\ {\isasymand}\ valid{\isacharunderscore}op\ state\ m{\isachardoublequoteclose}
-\end{isabellebody}
-\vspace{0.35em}
+%To summarise, the six axioms that define our network model are as follows:
+%\vspace{0.35em}
+%\begin{isabellebody}
+%\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ histories{\isacharunderscore}distinct{\isacharcolon}\ {\isachardoublequoteopen}distinct\ {\isacharparenleft}history\ i{\isacharparenright}{\isachardoublequoteclose}\isanewline
+%\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ delivery{\isacharunderscore}has{\isacharunderscore}a{\isacharunderscore}cause{\isacharcolon}\ {\isachardoublequoteopen}Deliver\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ {\isasymexists}j{\isachardot}\ Broadcast\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}{\isachardoublequoteclose}\isanewline
+%\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ deliver{\isacharunderscore}locally{\isacharcolon}\ {\isachardoublequoteopen}Broadcast\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ Broadcast\ m\ {\isasymsqsubset}\isactrlsup i\ Deliver\ m{\isachardoublequoteclose}\isanewline
+%\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ msg{\isacharunderscore}id{\isacharunderscore}unique{\isacharcolon}\ {\isachardoublequoteopen}Broadcast\ m{\isadigit{1}}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ Broadcast\ m{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}\ {\isasymLongrightarrow}\isanewline
+%\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ msg{\isacharunderscore}id\ m{\isadigit{1}}\ {\isacharequal}\ msg{\isacharunderscore}id\ m{\isadigit{2}}\ {\isasymLongrightarrow}\ i\ {\isacharequal}\ j\ {\isasymand}\ m{\isadigit{1}}\ {\isacharequal}\ m{\isadigit{2}}{\isachardoublequoteclose}\isanewline
+%\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ causal{\isacharunderscore}delivery{\isacharcolon}\ {\isachardoublequoteopen}Deliver\ m{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ {\isasymLongrightarrow}\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{2}}\ {\isasymLongrightarrow}\ Deliver\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup i\ Deliver\ m{\isadigit{2}}{\isachardoublequoteclose}\isanewline
+%\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ broadcast{\isacharunderscore}only{\isacharunderscore}valid{\isacharunderscore}ops{\isacharcolon}\ {\isachardoublequoteopen}{\isasymexists}suf{\isachardot}\ pre\ {\isacharat}\ {\isacharbrackleft}Broadcast\ m{\isacharbrackright}\ {\isacharat}\ suf\ {\isacharequal}\ history\ i \ {\isasymLongrightarrow}\isanewline
+%\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isasymexists}state{\isachardot}\ apply{\isacharunderscore}operations\ pre\ {\isacharequal}\ Some\ state\ {\isasymand}\ valid{\isacharunderscore}op\ state\ m{\isachardoublequoteclose}
+%\end{isabellebody}
+%\vspace{0.35em}

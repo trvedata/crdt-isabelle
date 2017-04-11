@@ -22,8 +22,7 @@ Providing a semantics for these two operations is straightforward, so we only pr
 \end{isabellebody}
 \vspace{0.35em}
 Note that neither $\isa{increment}$ nor $\isa{decrement}$ fail on under- or overflow, as both functions are defined on a type of unbounded (mathematical) integers.
-We could also have implemented the counter using fixed bitwidth integers---e.g. signed 32- or 64-bit machine words---with wrap-around on overflow, or some other similar design choice.
-Any reasonable alternative design would not have impacted the proofs presented here.
+We could also have implemented the counter using fixed bitwidth integers---e.g. signed 32- or 64-bit machine words---with wrap-around on overflow which would not have impacted the proofs presented here.
 Interpreting the $\isa{operation}$ data type and lifting it into a (partial) state transformer is a straightforward exercise in pattern matching:
 \vspace{0.35em}
 \begin{isabellebody}
@@ -144,7 +143,7 @@ network:
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ xs{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.35em}
-\noindent It is easy to see that two insertions operations (and two deletions)
+\noindent It is easy to see that two insertion operations (and two deletions)
 commute with each other unconditionally. Insertion and deletion operations
 commute only in the case where the identifier of the insertion operation is not
 an element of tombstone set of the remove operation:

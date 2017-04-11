@@ -20,7 +20,7 @@ Insertion operations place the new element \emph{after} an existing list element
 Deletion operations refer to the ID of the list element that is to be deleted.
 However, it is not safe for a deletion operation to completely remove a list element, because then a concurrent insertion after the deleted element would not be able to locate the insertion position.
 Instead, the list retains so-called \emph{tombstones}: a deletion operation merely sets a flag on a list element to mark it as deleted, but the element actually remains in the list.
-A separate garbage collection process can be used to eventually purge tombstones \cite{Roh:2011dw}, but we leave it out of the scope of this paper.
+A separate garbage collection process can be used to eventually purge tombstones \cite{Roh:2011dw}, but we do not consider it here.
 
 The RGA state at each node is a list of elements.
 Each element is a triple consisting of the unique ID of the list element (of some type $\isacharprime\isa{id}$), the value inserted by the application (of some type $\isacharprime\isa{v}$), and a flag that indicates whether the element has been marked as deleted (of type $\isa{bool}$):
@@ -69,11 +69,11 @@ The delete operation is straightforward---it searches recursively for the elemen
 \end{isabellebody}
 \vspace{0.35em}
 Note that the operations presented here are deliberately inefficient, in order to make them easier to reason with.
-One can see our implementations of $\isa{insert-body}$, $\isa{insert}$, and $\isa{delete}$ as functional specifications for RGAs, which could be refined into more efficient algorithms using data refinement, if desired.
+One can see our implementations of $\isa{insert-body}$, $\isa{insert}$, and $\isa{delete}$ as functional specifications for RGAs, which could be optimised into more efficient algorithms using data refinement, if desired.
 
 \subsection{Commutativity of insertion and deletion}
 
-Recall from Section~\ref{sect.ops.commute} that in order to prove the convergence theorem we need to show that for the datatype in question, all concurrent operations commute.
+Recall from Section~\ref{sect.ops.commute} that in order to prove the convergence theorem we need to show that for the datatype in question, all its concurrent operations commute.
 It is straightforward to demonstrate that $\isa{delete}$ will always commute with itself, on concurrent and non-concurrent operations alike:
 \vspace{0.35em}
 \begin{isabellebody}
