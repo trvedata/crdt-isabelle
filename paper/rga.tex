@@ -13,7 +13,7 @@ Our proof makes extensive use of the general-purpose framework that we have esta
 
 In an ordered list, each insertion and deletion operation must identify the position at which the modification should take place.
 In a non-replicated setting, the position is commonly expressed as an index into the list.
-However, the index of a list element may change if other elements are concurrently inserted or deleted earlier in the list; this is the problem at the heart of Operational Transformation (see Section~\ref{sect.related.ot}).
+However, the index of a list element may change if other elements are concurrently inserted or deleted earlier in the list; this is the problem at the heart of Operational Transformation (see Section~\ref{sect.related.ot.crdts}).
 Instead of using indexes, the RGA algorithm assigns a unique, immutable identifier to each list element.
 
 Insertion operations place the new element \emph{after} an existing list element with a given ID, or at the head of the list if no ID is given.
