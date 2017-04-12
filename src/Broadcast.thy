@@ -17,8 +17,8 @@ locale executions =
 
 definition (in executions) user_step :: "('nodeid \<Rightarrow> 'state \<times> 'msg set) \<Rightarrow> ('nodeid \<Rightarrow> 'state \<times> 'msg set)" where
   "user_step conf \<equiv>
-     let sender = SOME node::'nodeid. True in
-     let (state, msgs) = conf sender in
+     let sender = SOME node::'nodeid. True;
+         (state, msgs) = conf sender in
      if valid_msg state \<noteq> {} then
        let msg = SOME msg. msg \<in> valid_msg state in
          conf(sender := (send_msg msg state, insert msg msgs))
@@ -26,12 +26,12 @@ definition (in executions) user_step :: "('nodeid \<Rightarrow> 'state \<times> 
 
 definition (in executions) network_step :: "('nodeid \<Rightarrow> 'state \<times> 'msg set) \<Rightarrow> ('nodeid \<Rightarrow> 'state \<times> 'msg set)" where
   "network_step conf \<equiv>
-     let sender = SOME node::'nodeid. True in
-     let recipient = SOME node::'nodeid. node \<noteq> sender in
+     let sender = SOME node::'nodeid. True;
+         recipient = SOME node::'nodeid. node \<noteq> sender in
      if snd (conf sender) \<noteq> {} then
-       let msg = SOME msg. msg \<in> snd (conf sender) in
-       let (state, msgs) = conf recipient in
-         conf(recipient := (recv_msg msg state, msgs))
+       let msg = SOME msg. msg \<in> snd (conf sender);
+           (state, msgs) = conf recipient
+       in conf(recipient := (recv_msg msg state, msgs))
      else conf"
 
 inductive (in executions) execution :: "('nodeid \<Rightarrow> 'state \<times> 'msg set) \<Rightarrow> bool" where
