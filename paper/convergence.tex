@@ -124,7 +124,7 @@ We capture the combined requirements in the $\isa{strong-eventual-consistency}$ 
   \ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ no{\isacharunderscore}failure{\isacharcolon}\ {\isasymlbrakk}\ {\isachardoublequoteopen}op{\isacharunderscore}history{\isacharparenleft}xs{\isacharat}{\isacharbrackleft}x{\isacharbrackright}{\isacharparenright};\ apply{\isacharunderscore}operations\ xs\ initial{\isacharunderscore}state\ {\isacharequal}\ Some\ state\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ {\isasymlangle}x{\isasymrangle}\ state\ {\isasymnoteq}\ None{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.35em}
-\noindent Here, $\isa{op-history}$ is an abstract predicate describing any valid operation history of some replication algorithm.
+\noindent Here, $\isa{op-history}$ is an abstract predicate describing any valid operation history of some replication algorithm, encapsulating the assumptions of the $\isa{convergence}$ theorem ($\isa{concurrent-ops-commute}$, $\isa{distinct}$, and $\isa{hb-consistent}$).
 This locale serves as a concise summary of the properties that we require in order to achieve SEC, and from these assumptions and the theorem above we easily obtain the two safety properties of SEC as theorems:
 \vspace{0.35em}
 \begin{isabellebody}
@@ -138,6 +138,10 @@ This locale serves as a concise summary of the properties that we require in ord
 \ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}op{\isacharunderscore}history\ xs{\isachardoublequoteclose}\ \ \ \isakeyword{shows}\ \ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ initial{\isacharunderscore}state\ {\isasymnoteq}\ None{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.35em}
+
 Thus, in order to prove SEC for some replication algorithm, we only need to show that the five assumptions of the $\isa{strong-eventual-consistency}$ locale are satisfied.
 As we shall see in Section~\ref{sect.network}, the first three assumptions are satisfied by our network model, and do not require any algorithm-specific proofs.
 For individual algorithms we only need to prove the $\isa{commutativity}$ and $\isa{no-failure}$ properties, and we show how to do this in Sections~\ref{sect.rga} and~\ref{sect.simple.crdts}.
+
+Note that the $\isa{trunc-history}$ assumption requires that every prefix of a valid operation history is also valid.
+This means that the convergence theorem holds at every step of the execution, not only at some unspecified time in the future (``eventually''), making SEC stronger than eventual consistency.
