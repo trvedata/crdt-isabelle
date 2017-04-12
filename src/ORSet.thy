@@ -1,3 +1,13 @@
+(* Victor B. F. Gomes, University of Cambridge
+   Martin Kleppmann, University of Cambridge
+   Dominic P. Mulligan, University of Cambridge
+*)
+
+section\<open>Observed-Remove Set\<close>
+ 
+text\<open>The ORSet is a well-known CRDT for implementing replicated sets, supporting two operations:
+     the \emph{insertion} and \emph{deletion} of an arbitrary element in the shared set.\<close>
+
 theory
   ORSet
 imports

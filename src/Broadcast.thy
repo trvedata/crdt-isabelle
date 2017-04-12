@@ -1,11 +1,11 @@
+section\<open>Implementation of Causal Broadcast Protocol\<close>
+
 theory
   Broadcast
 imports
   Network
   Util
 begin
-
-section\<open>Implementation of Causal Broadcast Protocol\<close>
 
 subsection\<open>Non-determinism of users and networks\<close>
 
@@ -111,7 +111,7 @@ definition (in cbcast_protocol) history :: "nat \<Rightarrow> (nat, 'a) message 
   "history \<equiv> state_hist \<circ> fst \<circ> config"
 
 
-subsection\<open>Proof that this protocol satisfies the causal broadcast axioms\<close>
+subsection\<open>Proof that this protocol satisfies the causal axiom\<close>
 
 lemma (in cbcast_protocol) history_to_exec:
   shows "history i = state_hist (fst (config i))"

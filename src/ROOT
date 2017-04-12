@@ -4,6 +4,10 @@ session "src" = "HOL" +
     "~~/src/Tools/Adhoc_Overloading"
     "~~/src/HOL/Library/Monad_Syntax"
   theories
-    RGA ORSet Counter
+    Network
+    Broadcast
+    RGA
+    Counter
+    ORSet
   document_files
     "root.tex"

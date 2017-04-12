@@ -1,3 +1,13 @@
+(* Victor B. F. Gomes, University of Cambridge
+   Martin Kleppmann, University of Cambridge
+   Dominic P. Mulligan, University of Cambridge
+*)
+
+section\<open>Replicated Growable Array\<close>
+
+text\<open>The RGA, introduced by \cite{Roh:2011dw}, is a replicated ordered list (sequence) datatype
+     that supports \emph{insert} and \emph{delete} operations.\<close>
+  
 theory
   Ordered_List
 imports
@@ -6,7 +16,13 @@ begin
 
 type_synonym ('id, 'v) elt = "'id \<times> 'v \<times> bool"
 
-section\<open>Definitions of insert and delete\<close>
+subsection\<open>Insert and delete operations\<close>
+ 
+text\<open>Insertion operations place the new element \emph{after} an existing list element with a given ID, or at the head of the list if no ID is given.
+Deletion operations refer to the ID of the list element that is to be deleted.
+However, it is not safe for a deletion operation to completely remove a list element, because then a concurrent insertion after the deleted element would not be able to locate the insertion position.
+Instead, the list retains so-called \emph{tombstones}: a deletion operation merely sets a flag on a list element to mark it as deleted, but the element actually remains in the list.
+A separate garbage collection process can be used to eventually purge tombstones \cite{Roh:2011dw}, but we do not consider tombstone removal here.\<close>
 
 hide_const insert
 
@@ -34,7 +50,7 @@ fun delete :: "('id::{linorder}, 'v) elt list \<Rightarrow> 'id \<Rightarrow> ('
       else
         delete xs i \<bind> (\<lambda>t. Some ((i',v,flag)#t)))"
 
-section\<open>Well-definedness of insert and delete\<close>
+subsection\<open>Well-definedness of insert and delete\<close>
 
 lemma insert_no_failure:
   assumes "i = None \<or> (\<exists>i'. i = Some i' \<and> i' \<in> fst ` set xs)"
@@ -71,7 +87,7 @@ lemma index_not_in_delete_None [simp]:
   shows   "delete xs i = None"
 using assms by(induction xs, auto)
 
-section\<open>Preservation of indices\<close>
+subsection\<open>Preservation of element indices\<close>
 
 lemma insert_body_preserve_indices [simp]:
   shows  "fst ` set (insert_body xs e) = fst ` set xs \<union> {fst e}"
@@ -92,7 +108,7 @@ lemma delete_preserve_indices:
   shows   "fst ` set xs = fst ` set ys"
 using assms by(induction xs arbitrary: ys, simp) (case_tac a; auto split: if_split_asm bind_splits)
 
-section\<open>Commutativity of insert and delete\<close>
+subsection\<open>Commutativity of concurrent operations\<close>
 
 lemma insert_body_commutes:
   assumes "fst e1 \<noteq> fst e2"
@@ -192,7 +208,7 @@ lemma insert_delete_commute:
   shows   "insert xs e i1 \<bind> (\<lambda>ys. delete ys i2) = delete xs i2 \<bind> (\<lambda>ys. insert ys e i1)"
 using assms by(induction xs; cases e; cases i1, auto split: bind_splits if_split_asm simp add: insert_body_delete_commute)
 
-section\<open>Alternative definition of insert\<close>
+subsection\<open>Alternative definition of insert\<close>
 
 fun insert' :: "('id::{linorder}, 'v) elt list \<Rightarrow> ('id, 'v) elt \<Rightarrow> 'id option \<rightharpoonup> ('id::{linorder}, 'v) elt list" where
   "insert' [] e     None     = Some [e]" |
@@ -226,8 +242,6 @@ by(induction xs, auto)
 lemma insert_insert':
   shows "insert xs e i = insert' xs e i"
 by(induction xs; cases e; cases i, auto split: option.split simp add: insert_body_insert')
-
-section \<open>Insertion behaves as you expect it to behave\<close>
 
 lemma insert_body_stop_iteration:
   assumes "fst e > fst x"

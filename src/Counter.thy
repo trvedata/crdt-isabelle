@@ -1,3 +1,13 @@
+(* Victor B. F. Gomes, University of Cambridge
+   Martin Kleppmann, University of Cambridge
+   Dominic P. Mulligan, University of Cambridge
+*)
+
+section\<open>Increment-Decrement Counter\<close>
+  
+text\<open>The Increment-Decrement Counter is perhaps the simplest CRDT, and a paradigmatic example of a
+    replicated data structure with commutative operations.\<close>
+
 theory
   Counter
 imports

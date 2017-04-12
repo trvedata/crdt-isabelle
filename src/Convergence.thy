@@ -35,7 +35,7 @@ locale happens_before = preorder hb_weak hb
 begin
 
 (*************************************************************************)
-subsection\<open>Concurrent Operations\<close>
+subsection\<open>Concurrent operations\<close>
 (*************************************************************************)
   
 text\<open>We say that two operations $x$ and $y$ are \emph{concurrent}, written
@@ -86,7 +86,7 @@ lemma concurrent_set_Cons_Snoc [simp]:
   by (auto simp: concurrent_set_def)
 
 (*************************************************************************)
-subsection\<open>Happens-Before Consistency\<close>
+subsection\<open>Happens-before consistency\<close>
 (*************************************************************************)
 
 text\<open>The purpose of the happens-before relation is to require that some operations must be applied
@@ -212,7 +212,7 @@ lemma hb_consistent_append_porder:
 using assms by (induction ys arbitrary: xs rule: rev_induct) force+
 
 (*************************************************************************)
-subsection\<open>Apply Operations\<close>
+subsection\<open>Apply operations\<close>
 (*************************************************************************)
 
 text\<open>We can now define a function \isa{apply-operations} that composes an arbitrary list of operations
@@ -230,7 +230,7 @@ lemma apply_operations_Snoc [simp]:
   by(auto simp add: apply_operations_def kleisli_def)
 
 (*************************************************************************)
-subsection\<open>Concurrent Operations Commute\<close>
+subsection\<open>Concurrent operations commute\<close>
 (*************************************************************************)
 
 text\<open>We say that two operations $\isa{x}$ and $\isa{y}$ \emph{commute} whenever
@@ -288,7 +288,7 @@ using assms proof(induction suffix arbitrary: rule: rev_induct, force)
 qed
 
 (*************************************************************************)
-subsection\<open>Abstract Convergence Theorem\<close>
+subsection\<open>Abstract convergence theorem\<close>
 (*************************************************************************)
   
 text\<open>We can now state and prove our main theorem, $\isa{convergence}$.
@@ -340,7 +340,7 @@ corollary convergence_ext:
   using convergence assms by metis
 end
 
-section\<open>Convergence and Progress\<close>
+subsection\<open>Convergence and progress\<close>
   
 text\<open>Besides convergence, another required property of SEC is \emph{progress}: if a valid operation
      was issued on one node, then applying that operation on other nodes must also succeed---that is,

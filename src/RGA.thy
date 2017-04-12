@@ -1,3 +1,10 @@
+(* Victor B. F. Gomes, University of Cambridge
+   Martin Kleppmann, University of Cambridge
+   Dominic P. Mulligan, University of Cambridge
+*)
+
+subsection\<open>Network\<close>
+
 theory
   RGA
 imports
@@ -409,6 +416,8 @@ corollary (in rga) rga_convergence:
 using assms by(auto simp add: apply_operations_def intro: hb.convergence_ext concurrent_operations_commute
                 node_deliver_messages_distinct hb_consistent_prefix)
 
+subsection\<open>Strong eventual consistency\<close>
+              
 context rga begin
 
 sublocale sec: strong_eventual_consistency weak_hb hb interp_msg
@@ -422,8 +431,6 @@ sublocale sec: strong_eventual_consistency weak_hb hb interp_msg
   done
 
 end
-  
-section\<open>Interpretations\<close>
   
 interpretation trivial_rga_implementation: rga "\<lambda>x. []"
   by (standard, auto simp add: trivial_node_histories.history_order_def trivial_node_histories.prefix_of_node_history_def)

@@ -3,7 +3,7 @@
    Dominic P. Mulligan, University of Cambridge
 *)
 
-section\<open>Technical lemmas\<close>
+section\<open>Technical Lemmas\<close>
 
 text\<open>This section contains a list of helper definitions and lemmas about sets, lists and
      the option monad.\<close>

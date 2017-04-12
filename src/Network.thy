@@ -1,5 +1,15 @@
-section\<open>Model of the network\<close>
+(* Victor B. F. Gomes, University of Cambridge
+   Martin Kleppmann, University of Cambridge
+   Dominic P. Mulligan, University of Cambridge
+*)
 
+section\<open>Axiomatic network models\<close>
+
+text\<open>In this section we develop a formal definition of an \emph{asynchronous unreliable causal broadcast network}.
+     We choose this model because it satisfies the causal delivery requirements of many operation-based
+     CRDTs~\cite{Almeida:2015fc,Baquero:2014ed}. Moreover, it is suitable for use in decentralised settings,
+     as motivated in the introduction, since it does not require waiting for communication with
+     a central server or a quorum of nodes.\<close>
 
 theory
   Network
@@ -8,6 +18,13 @@ imports
 begin
 
 subsection\<open>Node histories\<close>
+  
+text\<open>We model a distributed system as an unbounded number of communicating nodes.
+     We assume nothing about the communication pattern of nodes---we assume only that each node is
+     uniquely identified by a natural number, and that the flow of execution at each node consists
+     of a finite, totally ordered sequence of execution steps (events).
+     We call that sequence of events at node $i$ the \emph{history} of that node.
+     For convenience, we assume that every event or execution step is unique within a node's history.\<close>
 
 locale node_histories = 
   fixes history :: "nat \<Rightarrow> 'evt list"
@@ -140,7 +157,10 @@ lemma (in node_histories) events_in_local_order:
   shows "e1 \<sqsubset>\<^sup>i e2"
 using assms split_list unfolding history_order_def prefix_of_node_history_def by fastforce
 
-subsection\<open>Networks\<close>
+subsection\<open>Asynchronous broadcast networks\<close>
+  
+text\<open>We define a new locale $\isa{network}$ containing three axioms that define how broadcast
+     and deliver events may interact, with these axioms defining the properties of our network model.\<close>
 
 datatype 'msg event
   = Broadcast 'msg
@@ -149,10 +169,28 @@ datatype 'msg event
 locale network = node_histories history for history :: "nat \<Rightarrow> 'msg event list" +
   fixes msg_id :: "'msg \<Rightarrow> 'msgid"
   (* Broadcast/Deliver interaction *)
-  assumes delivery_has_a_cause: "Deliver m \<in> set (history i) \<Longrightarrow> \<exists>j. Broadcast m \<in> set (history j)"
-      and deliver_locally: "Broadcast m \<in> set (history i) \<Longrightarrow> Broadcast m \<sqsubset>\<^sup>i Deliver m"
-      and msg_id_unique: "Broadcast m1 \<in> set (history i) \<Longrightarrow> Broadcast m2 \<in> set (history j) \<Longrightarrow> msg_id m1 = msg_id m2 \<Longrightarrow> i = j \<and> m1 = m2"
+  assumes delivery_has_a_cause: "\<lbrakk> Deliver m \<in> set (history i) \<rbrakk> \<Longrightarrow>
+                                    \<exists>j. Broadcast m \<in> set (history j)"
+      and deliver_locally: "\<lbrakk> Broadcast m \<in> set (history i) \<rbrakk> \<Longrightarrow>
+                                    Broadcast m \<sqsubset>\<^sup>i Deliver m"
+      and msg_id_unique: "\<lbrakk> Broadcast m1 \<in> set (history i);
+                            Broadcast m2 \<in> set (history j);
+                            msg_id m1 = msg_id m2 \<rbrakk> \<Longrightarrow> i = j \<and> m1 = m2"
 
+text\<open>
+The axioms can be understood as follows:
+\begin{description}
+    \item[delivery-has-a-cause:] If some message $\isa{m}$ was delivered at some node, then there exists some node on which $\isa{m}$ was broadcast.
+        With this axiom, we assert that messages are not created ``out of thin air'' by the network itself, and that the only source of messages are the nodes.
+    \item[deliver-locally:] If a node broadcasts some message $\isa{m}$, then the same node must subsequently also deliver $\isa{m}$ to itself.
+        Since $\isa{m}$ does not actually travel over the network, this local delivery is always possible, even if the network is interrupted.
+        Local delivery may seem redundant, since the effect of the delivery could also be implemented by the broadcast event itself; however, it is standard practice in the description of broadcast protocols that the sender of a message also sends it to itself, since this property simplifies the definition of algorithms built on top of the broadcast abstraction \cite{Cachin:2011wt}.
+    \item[msg-id-unique:] We do not assume that the message type $\isacharprime\isa{msg}$ has any particular structure; we only assume the existence of a function $\isa{msg-id} \mathbin{\isacharcolon\isacharcolon} \isacharprime\isa{msg} \mathbin{\isasymRightarrow} \isacharprime\isa{msgid}$ that maps every message to some globally unique identifier of type $\isacharprime\isa{msgid}$.
+        We assert this uniqueness by stating that if $\isa{m1}$ and $\isa{m2}$ are any two messages broadcast by any two nodes, and their $\isa{msg-id}$s are the same, then they were in fact broadcast by the same node and the two messages are identical. 
+        In practice, these globally unique IDs can by implemented using unique node identifiers, sequence numbers or timestamps.
+\end{description}
+\<close>
+  
 lemma (in network) broadcast_before_delivery:
   assumes "Deliver m \<in> set (history i)"
   shows "\<exists>j. Broadcast m \<sqsubset>\<^sup>j Deliver m"
@@ -163,6 +201,14 @@ lemma (in network) broadcasts_unique:
     and "Broadcast m \<in> set (history i)"
   shows "Broadcast m \<notin> set (history j)"
   using assms msg_id_unique by blast
+    
+text\<open>Based on the well-known definition by \cite{Lamport:1978jq}, we say that
+    $\isa{m1}\prec\isa{m2}$ if any of the following is true:
+    \begin{enumerate}
+      \item $\isa{m1}$ and $\isa{m2}$ were broadcast by the same node, and $\isa{m1}$ was broadcast before $\isa{m2}$.
+      \item The node that broadcast $\isa{m2}$ had delivered $\isa{m1}$ before it broadcast $\isa{m2}$.
+      \item There exists some operation $\isa{m3}$ such that $\isa{m1} \prec \isa{m3}$ and $\isa{m3} \prec \isa{m2}$.
+    \end{enumerate}\<close>
 
 inductive (in network) hb :: "'msg \<Rightarrow> 'msg \<Rightarrow> bool" where
   "\<lbrakk> Broadcast m1 \<sqsubset>\<^sup>i Broadcast m2 \<rbrakk> \<Longrightarrow> hb m1 m2" |
@@ -190,8 +236,9 @@ lemma (in network) hb_broadcast_exists1:
   apply(induction rule: hb.induct)
   apply(meson insert_subset node_histories.local_order_carrier_closed node_histories_axioms)
   apply(meson delivery_has_a_cause insert_subset local_order_carrier_closed)
-  by simp
-
+  apply simp
+done
+    
 lemma (in network) hb_broadcast_exists2:
   assumes "hb m1 m2"
   shows "\<exists>i. Broadcast m2 \<in> set (history i)"
@@ -199,7 +246,10 @@ lemma (in network) hb_broadcast_exists2:
   apply(induction rule: hb.induct)
   apply(meson insert_subset node_histories.local_order_carrier_closed node_histories_axioms)
   apply(meson delivery_has_a_cause insert_subset local_order_carrier_closed)
-  by simp
+  apply simp
+done
+    
+subsection\<open>Causal networks\<close>
 
 lemma (in causal_network) hb_has_a_reason:
   assumes "hb m1 m2"
@@ -246,15 +296,13 @@ lemma (in causal_network) hb_irrefl:
         node_total_order_irrefl)
   apply(subgoal_tac "\<exists>i. Broadcast m3 \<in> set (history i)")
   apply(subgoal_tac "\<exists>j. Broadcast m2 \<in> set (history j)")
-  defer
-  apply(simp add: hb_broadcast_exists2)
-  apply(simp add: hb_broadcast_exists2)
-  apply(clarsimp)
+  apply clarsimp
   apply(subgoal_tac "Deliver m2 \<in> set (history j) \<and> Deliver m3 \<in> set (history i)")
   apply(meson causal_delivery hb.intros(3) insert_subset local_order_carrier_closed
         network.broadcast_before_delivery network_axioms node_total_order_irrefl)
-  apply(meson deliver_locally insert_subset local_order_carrier_closed)
-  done
+    apply(meson deliver_locally insert_subset local_order_carrier_closed)
+  apply(simp add: hb_broadcast_exists2)+
+done
 
 lemma (in causal_network) hb_broadcast_broadcast_order:
   assumes "hb m1 m2"
@@ -270,12 +318,10 @@ lemma (in causal_network) hb_broadcast_broadcast_order:
   apply(case_tac "Broadcast m2 \<in> set (history i)")
   using node_total_order_trans apply blast
   apply(subgoal_tac "Deliver m2 \<in> set (history i)")
-  defer
-  using hb_has_a_reason apply blast
   apply(subgoal_tac "m1 \<noteq> m2 \<and> m2 \<noteq> m3")
   apply(metis event.inject(1) hb.intros(1) hb_irrefl network.hb.intros(3) network_axioms
         node_order_is_total hb_irrefl)
-  apply blast
+  using hb_has_a_reason apply blast+
 done
 
 lemma (in causal_network) hb_antisym:
@@ -343,7 +389,7 @@ lemma (in network) prefix_msg_in_history:
       and "m \<in> set (node_deliver_messages es)"
     shows "Deliver m \<in> set (history i)"
 using assms
-  apply(auto simp: node_deliver_messages_def map_filter_def split: event.split_asm)
+  apply(clarsimp simp: node_deliver_messages_def map_filter_def split: event.split_asm)
   using prefix_to_carriers apply auto
 done
 
@@ -351,10 +397,8 @@ lemma (in network) prefix_contains_msg:
   assumes "es prefix of i"
       and "m \<in> set (node_deliver_messages es)"
     shows "Deliver m \<in> set es"
-using assms
-  apply(auto simp: node_deliver_messages_def map_filter_def split: event.split_asm)
-done
-
+  using assms by(auto simp: node_deliver_messages_def map_filter_def split: event.split_asm)
+    
 lemma (in network) node_deliver_messages_distinct:
   assumes "xs prefix of i"
   shows "distinct (node_deliver_messages xs)"
@@ -561,7 +605,7 @@ lemma (in network_with_constrained_ops) deliver_in_prefix_is_valid:
   apply(simp add: prefix_elem_to_carriers)
 done
 
-section\<open>Example instantiations and interpretations\<close>
+subsection\<open>Dummy network models\<close>
 
 interpretation trivial_node_histories: node_histories "\<lambda>m. []"
   by standard auto
