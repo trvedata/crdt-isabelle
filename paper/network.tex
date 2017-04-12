@@ -36,13 +36,11 @@ Note that we make no assumption about the number of nodes in the system, which a
 A node that does not exist is simply modelled as an empty list of events.
 
 A node's history is finite, and at the end of a node's history we assume that a node has either failed or successfully terminated.
-In this model, a node failure is permanent, and is modelled by the absence of any further events in its history.
-There is no explicit failure event, and the failure of one node cannot be detected by other nodes.
+We treat node failure as permanent, and model it by the absence of any further events in its history.
 This \emph{crash-stop} abstraction is commonly used by distributed algorithms \cite{Cachin:2011wt}.
 
-Within the $\isa{node{\isacharunderscore}histories}$ locale we may define when one event \emph{comes before} another at one particular node.
-We write $\isa{x} \sqsubset^\isa{i} \isa{y}$ whenever event $\isa{x}$ comes before event $\isa{y}$ in the history of node $\isa{i}$.
-More formally, $\isa{x} \sqsubset^\isa{i} \isa{y}$ whenever there exist (possibly empty) lists $\isa{xs}$, $\isa{ys}$, and $\isa{zs}$ such that $\isa{xs}\mathbin{@}[\isa{x}]\mathbin{@}\isa{ys}\mathbin{@}[\isa{y}]\mathbin{@}\isa{zs} = \isa{history\ i}$.
+In the $\isa{node{\isacharunderscore}histories}$ locale we may write $\isa{x} \sqsubset^\isa{i} \isa{y}$ when event $\isa{x}$ \emph{comes before} event $\isa{y}$ in the history of node $\isa{i}$.
+More formally, $\isa{x} \sqsubset^\isa{i} \isa{y}$ whenever there exist lists $\isa{xs}$, $\isa{ys}$, and $\isa{zs}$ such that $\isa{xs}\mathbin{@}[\isa{x}]\mathbin{@}\isa{ys}\mathbin{@}[\isa{y}]\mathbin{@}\isa{zs} = \isa{history\ i}$.
 
 \subsection{An asynchronous broadcast network}\label{sect.network.broadcast}
 
@@ -76,8 +74,8 @@ The axioms can be understood as follows:
         With this axiom, we assert that messages are not created ``out of thin air'' by the network itself, and that the only source of messages are the nodes.
     \item[deliver-locally:] If a node broadcasts some message $\isa{m}$, then the same node must subsequently also deliver $\isa{m}$ to itself.
         Since $\isa{m}$ does not actually travel over the network, this local delivery is always possible, even if the network is interrupted.
-        Local delivery may seem redundant, since the effect of the delivery could also be implemented by the broadcast event itself; however, it is standard practice in the description of broadcast protocols that the sender of a message also sends it to itself, since this property simplifies the definition of algorithms built on top of the broadcast abstraction \cite{Cachin:2011wt}.
-    \item[msg-id-unique:] We do not assume that the message type $\isacharprime\isa{msg}$ has any particular structure; we only assume the existence of a function $\isa{msg-id} \mathbin{\isacharcolon\isacharcolon} \isacharprime\isa{msg} \mathbin{\isasymRightarrow} \isacharprime\isa{msgid}$ that maps every message to some globally unique identifier of type $\isacharprime\isa{msgid}$.
+        Local delivery may seem redundant, since its effect could also occur in the broadcast event, but it is convenient for algorithms that use the broadcast abstraction \cite{Cachin:2011wt}.
+    \item[msg-id-unique:] We do not require the message type $\isacharprime\isa{msg}$ to have any particular structure; we only assume the existence of a function $\isa{msg-id} \mathbin{\isacharcolon\isacharcolon} \isacharprime\isa{msg} \mathbin{\isasymRightarrow} \isacharprime\isa{msgid}$ that maps every message to some globally unique identifier of type $\isacharprime\isa{msgid}$.
         We assert this uniqueness by stating that if $\isa{m1}$ and $\isa{m2}$ are any two messages broadcast by any two nodes, and their $\isa{msg-id}$s are the same, then they were in fact broadcast by the same node and the two messages are identical. 
         In practice, these globally unique IDs can by implemented using unique node identifiers, sequence numbers or timestamps.
 \end{description}
@@ -85,9 +83,9 @@ The axioms can be understood as follows:
 In addition, the $\isa{network}$ locale inherits the $\isa{histories-distinct}$ axiom from the parent locale $\isa{node-histories}$.
 Many other properties that we require can be deduced as lemmas from these axioms.
 For example, we can prove that for every message message that is delivered by some node, there is exactly one broadcast event (on the same or some other node) that created the message.
-Also, due to the $\isa{histories-distinct}$ axiom we know that the same message is not delivered more than once to each node---an aspect that can easily be implemented in practical systems by having each node keep track of message IDs it has received, and suppressing any duplicates.
+Also, due to the $\isa{histories-distinct}$ axiom we know that the same message is not delivered more than once to each node---an aspect that can be implemented in practical systems by having each node keep track of message IDs it has received, and suppressing any duplicates.
 
-Note, however, that we are not making any assumptions about the reliability or the ordering of messages.
+Note that we make no assumptions about the reliability or the ordering of messages.
 If one node broadcasts a message, it \emph{may} be delivered by other nodes, but we do not state if or when that will happen.
 Messages may be arbitrarily delayed, reordered, or even lost entirely.
 It is even acceptable for a node to never deliver any messages besides those it broadcasts itself, modelling a node that is permanently disconnected from the network.
@@ -120,7 +118,6 @@ This verbal definition translates directly into Isabelle syntax:
 Given this definition, we define a restricted variant of our broadcast network model by extending the $\isa{network}$ locale.
 In addition to the existing $\isa{network}$ axioms, we require that if there are any happens-before dependencies between messages, they must be delivered in that order.
 Concurrent messages may be delivered in any order.
-We express this requirement as follows:
 \vspace{0.35em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{locale} causal{\isacharunderscore}network\ {\isacharequal}\ network\ {\isacharplus}\isanewline
@@ -164,9 +161,9 @@ We can then define the state of some node by using our definition of $\isa{apply
 \end{isabellebody}
 \vspace{0.35em}
 
-So far we have no restriction of what operations may be broadcast, except that they must be of some type $\isacharprime\isa{oper}$.
+So far we have no restriction on the operations that may be broadcast, except that they must be of some type $\isacharprime\isa{oper}$.
 This suffices for some replication algorithms, but many have additional requirements regarding the contents of messages that cannot be expressed in Isabelle's type system.
-As a general-purpose mechanism for describing such requirements, the locale $\isa{network-with-constrained-ops}$ allows a replication algorithm to define a predicate $\isa{valid-msg}$ that specifies whether a node is allowed to broadcast some message when in a particular state:
+As a general-purpose mechanism for describing such requirements, the locale $\isa{network-with-constrained-ops}$ allows a replication algorithm to define a predicate $\isa{valid-msg}$ to specify whether a node is allowed to broadcast some message when in a particular state:
 \vspace{0.35em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{locale}\ network{\isacharunderscore}with{\isacharunderscore}constrained{\isacharunderscore}ops\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharplus}\isanewline

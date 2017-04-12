@@ -1,9 +1,8 @@
 \section{Abstract convergence}
 \label{sect.abstract.convergence}
 
-Strong eventual consistency requires \emph{convergence} of all copies of shared state stored on nodes in the distributed system.
-It guarantees that whenever two nodes have received the same set of updates to shared state---possibly in a different order---their view of the shared state is always identical.
-This definition constrains the values that read operations may return at any time, making it a stronger property than eventual consistency.
+Strong eventual consistency (SEC) requires \emph{convergence} of all copies of the shared state: whenever two nodes have received the same set of updates, they must be in the same state.
+This definition constrains the values that read operations may return at any time, making SEC a stronger property than eventual consistency.
 By accessing only their local copy of the shared state, nodes can execute read and write operations without waiting for network communication.
 Nodes exchange updates asynchronously when a network connection is available.  
 
@@ -14,8 +13,8 @@ We then provide concrete implementations of that abstract model in later section
 \subsection{The happens-before relation and causality}\label{sect.happens.before}
 
 The simplest way of achieving convergence is to require all operations to be commutative, but this definition is too strong to be useful for many datatypes.
-For example, in a list data structure, an element may first be added and then subsequently removed again.
-Although it is possible to make such additions and removals unconditionally commutative, doing so yields counterintuitive semantics \cite{Bieniusa:2012wu,Bieniusa:2012gt}.
+For example, in a set, an element may first be added and then subsequently removed again.
+Although it is possible to make such additions and removals unconditionally commutative, doing so yields counter-intuitive semantics \cite{Bieniusa:2012wu,Bieniusa:2012gt}.
 Instead, a better approach is to require only \emph{concurrent} operations to commute with each other.
 Two operations are concurrent if neither ``knew about'' the other at the time when they were generated.
 If one operation happened before another---for example, if the removal of an element from a set knew about the prior addition of that element from the set---then it is reasonable to assume that all nodes will apply the operations in that order (first the addition, then the removal).
@@ -76,7 +75,7 @@ We first map $\isa{interp}$ across the list to obtain a state transformer for ea
 \vspace{0.35em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{definition} apply{\isacharunderscore}operations\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ list\ {\isasymRightarrow}\ {\isacharprime}state\ {\isasymRightarrow}\ {\isacharprime}state\ option{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ es\ {\isasymequiv}\ foldl\ {\isacharparenleft}op\ {\isasymrhd}{\isacharparenright}\ Some\ {\isacharparenleft}map\ interp\ es{\isacharparenright}{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ ops\ {\isasymequiv}\ foldl\ {\isacharparenleft}op\ {\isasymrhd}{\isacharparenright}\ Some\ {\isacharparenleft}map\ interp\ ops{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.35em}
 \noindent The result is a state transformer that applies the interpretation of each of the operations in the list, in left-to-right order, to some initial state.
@@ -106,14 +105,14 @@ This theorem states that two hb-consistent lists of distinct operations, which a
 \noindent
 A fully mechanised proof of this theorem can be found in the supplementary material of this paper.
 Although this theorem may seem ``obvious'' at first glance---commutativity allows the operation order to be permuted---it is more subtle than it seems.
-The difficulty arises because operations may succeed when applied to some state, but fail when applied to another state (for example, deleting an element that does not exist in the state).
+The difficulty arises because operations may succeed when applied to some state, but fail when applied to another state (for example, attempting to delete an element that does not exist in the state).
 We find it interesting that it is nevertheless sufficient for the definition of $\isa{concurrent-ops-commute}$ to be expressed only in terms of the Kleisli arrow composition, and without explicitly referring to the state.
 
 \subsection{Formalising Strong Eventual Consistency}\label{sect.abstract.sec.spec}
 
-Besides convergence, another required property of SEC is \emph{progress}: if a valid operation was issued on one node, then applying that operation on other nodes must also succeed---that is, the execution must not become stuck in an error state.
-Although the type signature of the interpretation function allows operations to fail, we need to prove that in all $\isa{hb-consistent}$ network behaviours such failure never actually occurs.
-We capture the combined requirements in the $\isa{strong-eventual-consistency}$ locale, which extends $\isa{happens-before}$:
+Besides convergence, another required property of SEC is \emph{progress}: if a valid operation was issued on one node, then another node that applies the operation must not become stuck in an error state.
+Although the type signature of the interpretation function allows operations to fail, we need to prove that such a failure never occurs in any $\isa{hb-consistent}$ network behaviour.
+We capture this requirement in the $\isa{strong-eventual-consistency}$ locale:
 \vspace{0.35em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{locale}\ strong{\isacharunderscore}eventual{\isacharunderscore}consistency\ {\isacharequal}\ happens{\isacharunderscore}before\ {\isacharplus}\ \isakeyword{fixes}\ op{\isacharunderscore}history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ list\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{and}\ initial{\isacharunderscore}state\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}state{\isachardoublequoteclose}\isanewline
