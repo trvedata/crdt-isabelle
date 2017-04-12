@@ -155,13 +155,15 @@ Hence we show that in all cases where operations do not commute, one operation h
 Conversely, whenever operations are concurrent, we show that they commute:
 \vspace{0.35em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{theorem}\ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ i{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \isacommand{theorem}\ concurrent{\isacharunderscore}operations{\isacharunderscore}commute{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ i{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.35em}
 Furthermore, although the type signature of the interpretation function allows an operation to fail by returning $\isa{None}$, we can prove that this failure case is never reached in any execution of the network:
 \vspace{0.35em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{theorem}\ {\isachardoublequoteopen}hb.apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ i{\isacharparenright}{\isacharparenright}\ {\isasymnoteq}\ None{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \isacommand{theorem}\ apply{\isacharunderscore}operations{\isacharunderscore}never{\isacharunderscore}fails{\isacharcolon}\isanewline
+\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb.apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ i{\isacharparenright}{\isacharparenright}\ {\isasymnoteq}\ None{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.35em}
 It is now easy to show that the $\isa{rga}$ locale satisfies all of the requirements of the abstract $\isa{strong-eventual-consistency}$ specification (Section~\ref{sect.abstract.sec.spec}), which demonstrates formally that RGA provides SEC.

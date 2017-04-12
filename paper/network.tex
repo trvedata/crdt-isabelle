@@ -176,5 +176,5 @@ As a general-purpose mechanism for describing such requirements, the locale $\is
 \end{isabellebody}
 \vspace{0.35em}
 
-$\isa{broadcast-only-valid-msgs}$ is our final axiom, and it simply requires that if a node broadcasts some message, it must be a valid operation according to the $\isa{valid-op}$ predicate.
+$\isa{broadcast-only-valid-msgs}$ is our final axiom, and it simply requires that if a node broadcasts some message, it must be valid according to the $\isa{valid-msg}$ predicate.
 Since the choice of messages to broadcast is under the control of the replication algorithm, and the algorithm defines this predicate, this assumption is reasonable.
