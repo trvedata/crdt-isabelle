@@ -1,3 +1,13 @@
+(* Victor B. F. Gomes, University of Cambridge
+   Martin Kleppmann, University of Cambridge
+   Dominic P. Mulligan, University of Cambridge
+*)
+
+section\<open>Technical lemmas\<close>
+
+text\<open>This section contains a list of helper definitions and lemmas about sets, lists and
+     the option monad.\<close>
+
 theory
   Util
 imports
@@ -5,7 +15,7 @@ imports
   "~~/src/HOL/Library/Monad_Syntax"
 begin
 
-section\<open>Kleisli arrow composition for the option monad\<close>
+subsection\<open>Kleisli arrow composition\<close>
 
 definition kleisli :: "('b \<Rightarrow> 'b option) \<Rightarrow> ('b \<Rightarrow> 'b option) \<Rightarrow> ('b \<Rightarrow> 'b option)" (infixr "\<rhd>" 65) where
   "f \<rhd> g \<equiv> \<lambda>x. (f x \<bind> (\<lambda>y. g y))"
@@ -19,7 +29,7 @@ lemma kleisli_assoc:
   shows "(z \<rhd> x) \<rhd> y = z \<rhd> (x \<rhd> y)"
 by(auto simp add: kleisli_def)
 
-section\<open>Technical set lemmas\<close>
+subsection\<open>Lemmas about sets\<close>
 
 lemma distinct_set_notin [dest]:
   assumes "distinct (x#xs)"
@@ -38,6 +48,13 @@ lemma set_equality_technical:
       and "y \<in> set xs"
   shows "{x} \<union> (set xs - {y}) = set ys"
 using assms by (induction xs) auto
+    
+lemma set_elem_nth:
+  assumes "x \<in> set xs"
+  shows   "\<exists>m. m < length xs \<and> xs ! m = x"
+  using assms by(induction xs, simp) (meson in_set_conv_nth)
+    
+subsection\<open>Lemmas about list\<close>
 
 lemma list_nil_or_snoc:
   shows "xs = [] \<or> (\<exists>y ys. xs = ys@[y])"
@@ -65,13 +82,6 @@ using assms
   apply(metis distinct.simps(2) hd_append2 list.sel(1) list.sel(3) list.simps(3) tl_append2)
 done
 
-lemma set_elem_nth:
-  assumes "x \<in> set xs"
-  shows   "\<exists>m. m < length xs \<and> xs ! m = x"
-using assms by(induction xs, simp) (meson in_set_conv_nth)
-
-section\<open>Technical list lemmas\<close>
-
 lemma list_head_unaffected:
   assumes "hd (x @ [y, z]) = v"
     shows "hd (x @ [y   ]) = v"
@@ -93,13 +103,10 @@ lemma list_two_at_end:
   assumes "length xs > 1"
   shows "\<exists>xs' x y. xs = xs' @ [x, y]"
   using assms apply(induction xs rule: rev_induct, simp)
-  apply(case_tac "length xs = 1")
-  apply(simp)
+  apply(case_tac "length xs = 1", simp)
   apply(rule_tac x="[]" in exI, rule_tac x="hd xs" in exI)
-  apply(simp add: list_head_length_one)
-  apply(simp)
-  apply(rule_tac x="butlast xs" in exI, rule_tac x="last xs" in exI)
-  apply simp
+  apply(simp_all add: list_head_length_one)
+  apply(rule_tac x="butlast xs" in exI, rule_tac x="last xs" in exI, simp)
 done
 
 lemma list_nth_split_technical:
@@ -126,8 +133,8 @@ using assms
   apply(erule_tac x="list" in meta_allE, erule_tac x="m-1" in meta_allE)
   apply(subgoal_tac "m-1 < length list", subgoal_tac "n<m-1", clarsimp)
   apply(rule_tac x="a#xs" in exI, rule_tac x="ys" in exI, rule_tac x="zs" in exI)
-  apply auto
-  done
+  apply force+
+done
 
 lemma list_split_two_elems:
   assumes "distinct cs"
@@ -137,40 +144,26 @@ lemma list_split_two_elems:
     shows "\<exists>pre mid suf. cs = pre @ x # mid @ y # suf \<or> cs = pre @ y # mid @ x # suf"
   using assms
   apply(subgoal_tac "\<exists>xi. xi < length cs \<and> x = cs ! xi")
-  defer
-  using set_elem_nth apply fastforce
   apply(subgoal_tac "\<exists>yi. yi < length cs \<and> y = cs ! yi")
-  defer
-  using set_elem_nth apply fastforce
   apply clarsimp
   apply(subgoal_tac "xi \<noteq> yi")
-  defer
-  apply blast
   apply(case_tac "xi < yi")
   apply(metis list_nth_split One_nat_def less_Suc_eq linorder_neqE_nat not_less_zero)
   apply(subgoal_tac "yi < xi")
   apply(metis list_nth_split One_nat_def less_Suc_eq linorder_neqE_nat not_less_zero)
-  using linorder_neqE_nat apply blast
+  using set_elem_nth linorder_neqE_nat apply fastforce+
 done
 
 lemma split_list_unique_prefix:
   assumes "x \<in> set xs"
   shows "\<exists>pre suf. xs = pre @ x # suf \<and> (\<forall>y \<in> set pre. x \<noteq> y)"
 using assms
-  apply(induction xs)
-  apply clarsimp
+  apply(induction xs; clarsimp)
   apply(case_tac "a = x")
-  apply(rule_tac x="[]" in exI)
-  apply(rule_tac x="xs" in exI)
-  apply force
-  apply(subgoal_tac "x \<in> set xs")
-  apply clarsimp
+  apply(rule_tac x="[]" in exI, force)
+  apply(subgoal_tac "x \<in> set xs", clarsimp)
   apply(rule_tac x="a # pre" in exI)
-  apply(rule conjI)
-  apply(rule_tac x="suf" in exI)
-  apply force
-  apply auto[1]
-  apply simp
+  apply force+
 done
 
 lemma map_filter_append:

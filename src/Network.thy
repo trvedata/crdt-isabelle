@@ -1,10 +1,11 @@
+section\<open>Model of the network\<close>
+
+
 theory
   Network
 imports
   Convergence
 begin
-
-section\<open>Model of the network\<close>
 
 subsection\<open>Node histories\<close>
 
