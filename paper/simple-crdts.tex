@@ -87,7 +87,7 @@ We express this as follows:
 \ \ \ \ \ \ \ \ \ \ \ \ \ in\ \ Some\ {\isacharparenleft}state\ {\isacharparenleft}{\isacharparenleft}op{\isacharunderscore}elem\ oper{\isacharparenright}\ {\isacharcolon}{\isacharequal}\ after{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.25em}
-
+Here, $\isa{state}{\isacharparenleft}{\isacharparenleft}op{\isacharunderscore}elem\ oper{\isacharparenright}\ {\isacharcolon}{\isacharequal}\ \isa{after}{\isacharparenright}$ is Isabelle's syntax for pointwise function update.
 A remove operation effectively undoes the prior additions of that element of the set, while leaving any concurrent or later additions of the same element unaffected.
 When an element $e$ is concurrently added and removed, the identifier of the addition operation will not be in the identifier set of the removal operation.
 As a result, the final state after interpreting these two operations will contain the element $e$.
