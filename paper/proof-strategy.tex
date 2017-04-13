@@ -1,4 +1,4 @@
-\subsection{High-level proof strategy}
+\section{High-level proof strategy}
 \label{sect.high-level.proof.strategy}
 
 Since our formalisation of distributed algorithms goes into greater depth than prior work on strong eventual consistency, it is important to have a structure that keeps the proofs manageable.
@@ -10,7 +10,7 @@ This locale structure is illustrated in Figure~\ref{fig.proof.structure} and exp
 \centering
 \input{proof-structure}
 \caption{The main locales (modules) of our proof, and the relationships between them.
-Solid arrows indicate a more specialised locale that extends a more general locale (like subclassing in OOP).
+Solid arrows indicate a more specialised locale that extends a more general locale (like extending interfaces in OOP).
 Dashed arrows indicate a sublocale that satisfies the assumptions of the superlocale (like implementing an interface in OOP).
 }\label{fig.proof.structure}
 \end{figure}

@@ -618,5 +618,8 @@ interpretation trivial_causal_network: causal_network "\<lambda>m. []" id
 
 interpretation trivial_network_with_ops: network_with_ops "\<lambda>m. []" "(\<lambda>x y. Some y)" 0
   by standard auto
+    
+interpretation trivial_network_with_constrained_ops: network_with_constrained_ops "\<lambda>m. []" "(\<lambda>x y. Some y)" 0 "\<lambda>x y. True"
+  by standard (simp add: trivial_node_histories.prefix_of_node_history_def)
 
 end
