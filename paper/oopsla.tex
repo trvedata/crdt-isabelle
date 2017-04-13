@@ -253,7 +253,7 @@ Our network model, the SEC specification, and a library of lemmas form a framewo
 
 As a case study in applying our framework, we formalised three operation-based CRDTs---the Replicated Growable Array, the Observed-Remove Set, and an increment-decrement Counter.
 For each algorithm we proved that its assumptions are satisfied in all possible network behaviours, and that it satisfies the preconditions of our abstract SEC specification, obtaining a guarantee that each of our three CRDT implementations converge.
-These convergence theorems were obtained using only a thin layer of CRDT-specific code.
+Moreover, these convergence theorems were obtained using only a thin layer of CRDT-specific code, using a fixed pattern of proof in all three cases.
 Since informal reasoning about convergent replication algorithms has been shown to difficult and error-prone, as exemplified by various failed proofs (Section~\ref{sect.related.verification}) and the ``a bit of a mystery'' RGA \cite{Attiya:2016kh}, we believe that their formal verification is particularly important.
 
 Our work has been motivated by the desire to support a wider range of strong eventual consistency algorithms in distributed systems.
