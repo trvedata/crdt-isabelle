@@ -84,5 +84,8 @@ assumptions are guaranteed to hold in all behaviours of our network model. The n
 is specified by a small set of axioms that are not specific to any particular CRDT, and whose
 correctness can be robustly defended (see Section~\ref{sect.network}).
 
-\citet{Burckhardt:2014ft} present a similar framework for reasoning about replicated datatypes, but
-do not support mechanised proofs at present.
+\citet{Burckhardt:2014ft} present a framework for specifying and reasoning about replicated datatypes, but do not support mechanised proofs at present, and use different techniques to those described in this paper.
+
+More generally, applying verification techniques to distributed systems is an active area of research, reflecting the difficulty of correctly implementing distributed systems.
+Several examples of applying interactive theorem proving~\cite{DBLP:conf/pldi/WilcoxWPTWEA15,DBLP:journals/afp/DebratM12,DBLP:conf/sss/Charron-BostDM11}, model checking~\cite{DBLP:conf/asm/AzmyMW16,DBLP:journals/entcs/JohnsonLLV04}, and formal specification~\cite{DBLP:journals/ijaacs/TounsiMM16,DBLP:conf/asm/AndriamiarinaMS14,DBLP:conf/wetice/TounsiMM13} techniques to the design and implementation of distributed systems, algorithms, and protocols are attested in the literature.
+This work is loosely related to our own.
