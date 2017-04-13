@@ -31,13 +31,13 @@ The termination proofs in this work are generated automatically by Isabelle itse
 
 Inductive relations are defined with the $\mathbf{inductive}$ keyword.
 For example, the definition
-\vspace{0.275em}
+\vspace{0.25em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{inductive} only-fives\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ list\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}only-fives\ {\isacharbrackleft}{\isacharbrackright}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
 \ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}{\isasymlbrakk}\ only-fives\ xs\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ only-fives {\isacharparenleft}5\#xs{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
-\vspace{0.275em}
+\vspace{0.25em}
 \noindent
 introduces a new constant $\isa{only-fives}$ of type $\isa{nat list} \Rightarrow \isa{bool}$.
 The two clauses in the body of the definition enumerate the conditions under which $\isa{only-fives}\ \isa{xs}$ is true, for arbitrary $\isa{xs}$: firstly, $\isa{only-fives}$ is true for the empty list; and secondly, if you know that $\isa{only-fives}\ \isa{xs}$ is true for some $\isa{xs}$, then you can deduce that $\isa{only-fives}\ (5\#\isa{xs})$ (i.e., $\isa{xs}$ prefixed with the number 5) is also true.
@@ -47,13 +47,13 @@ In short, the clauses above state that $\isa{only-fives}\ \isa{xs}$ holds exactl
 Lemmas, theorems, and corollaries can be asserted using the $\isacommand{lemma}$, $\isacommand{theorem}$, and $\isacommand{corollary}$ keywords, respectively.
 There is no semantic difference between these keywords in Isabelle.
 For example,
-\vspace{0.275em}
+\vspace{0.25em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{theorem} only-fives-concat{\isacharcolon}\isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ only-fives\ xs \isakeyword{and}\ only-fives\ ys \isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ only-fives (xs \isacharat ys)
 \end{isabellebody}
-\vspace{0.275em}
+\vspace{0.25em}
 \noindent
 conjectures that if $\isa{xs}$ and $\isa{ys}$ are both lists of fives, then their concatenation $xs \mathbin{\isacharat} ys$ is also a list of fives.
 Isabelle then requires that this claim be proved by using one of its proof methods, for example by induction.
@@ -65,13 +65,13 @@ The theorem is assigned a name, here $\isa{only-fives-concat}$, so that it may b
 Lastly, we use \emph{locales}---or local theories~\cite{DBLP:conf/tphol/KammullerWP99,DBLP:conf/types/HaftmannW08}---extensively to structure the proof, as shown in Figure~\ref{fig.proof.structure}.
 In programming terms, Isabelle's locales may be thought of as an interface with associated laws that implementations must obey.
 In particular, a declaration of the form
-\vspace{0.275em}
+\vspace{0.25em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{locale} semigroup = \isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ f\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a{\isachardoublequoteclose}\ {\isasymRightarrow}\ {\isacharprime}a{\isachardoublequoteclose} \isanewline
 \ \ \ \ \ \ \ \ \ \ \isakeyword{assumes} {\isachardoublequoteopen}f\ x\ (f\ y\ z)\ =\ f\ (f\ x\ y)\ z{\isachardoublequoteclose}
 \end{isabellebody}
-\vspace{0.275em}
+\vspace{0.25em}
 \noindent
 introduces a locale, with a fixed, typed constant $\isa{f}$, and a law asserting that $\isa{f}$ is associative.
 Functions and constants may now be defined, and theorems conjectured and proved, within the context of the $\isa{semigoup}$ locale, i.e. definitions may be made ``generic'' in a semigroup.

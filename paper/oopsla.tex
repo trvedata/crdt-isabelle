@@ -28,8 +28,8 @@
 \startPage{1}
 \setcopyright{none}
 
-\widowpenalty=1000
-\clubpenalty=1000
+\widowpenalty=2000
+\clubpenalty=2000
 
 \begin{document}
 \title{Verifying Strong Eventual Consistency in Distributed Systems}
@@ -235,8 +235,8 @@ Next, we must prove that those assumptions are always satisfied by any concurren
 Finally, a CRDT must demonstrate that applying an operation never fails, provided that the operation was constructed according to the definition of the algorithm.
 
 When these proof obligations have been met, we are able to conclude that the algorithm satisfies our abstract specification $\isa{strong-eventual-consistency}$, from which we obtain convergence and progress theorems for the replicated datatype.
-The abstract specification is independent from any particular network model or replication algorithm, and we assert that it constitutes a general but precise definition of strong eventual consistency.
-As this recurring proof pattern demonstrates, we have not only isolated a series of reusable lemmas and models of networks, but also identified a reusable proof strategy that algorithm designers can use to obtain a convergence theorem for their operation-based CRDT.
+The abstract specification is independent of any particular network model or replication algorithm, and we assert that it constitutes a general but precise definition of strong eventual consistency.
+As this recurring pattern demonstrates, we have not only isolated reusable lemmas and models of networks, but also a proof strategy that algorithm designers can use to obtain a convergence theorem for their operation-based CRDT.
 
 By line count, over half (around 1000 lines) of our development---the network model, convergence proof, and so on---is independent from any particular CRDT and is reusable in future proofs.
 In particular, we use: around 620 lines for our network model, around 380 lines for the abstract convergence proof, 775 lines for the RGA proof, around 270 lines for the ORSet proof, and around 55 lines for the Counter proof.
