@@ -251,9 +251,10 @@ In our work, we made no axiomatic assumptions related to any individual algorith
 In addition, we isolated a formal specification of SEC, and showed that any algorithm that meets the preconditions of this specification must converge.
 Our network model, the SEC specification, and a library of lemmas form a framework with which one can prove convergence for concrete CRDT implementations.
 
-As a case study in applying our framework, we formalised three operation-based CRDTs---the Replicated Growable Array, the Observed-Remove Set, and an increment-decrement Counter---and proved that they do indeed guarantee the SEC properties under all possible valid behaviours of our network model.
+As a case study in applying our framework, we formalised three operation-based CRDTs---the Replicated Growable Array, the Observed-Remove Set, and an increment-decrement Counter.
+For each algorithm we proved that its assumptions are satisfied in all possible network behaviours, and that it satisfies the preconditions of our abstract SEC specification, obtaining a guarantee that each of our three CRDT implementations converge.
+These convergence theorems were obtained using only a thin layer of CRDT-specific code.
 Since informal reasoning about convergent replication algorithms has been shown to difficult and error-prone, as exemplified by various failed proofs (Section~\ref{sect.related.verification}) and the ``a bit of a mystery'' RGA \cite{Attiya:2016kh}, we believe that their formal verification is particularly important.
-For each algorithm we then proved that its assumptions are satisfied in all possible network behaviours, and that it satisfies the preconditions of our abstract SEC specification, obtaining convergence theorems for each of the three CRDT implementations.
 
 Our work has been motivated by the desire to support a wider range of strong eventual consistency algorithms in distributed systems.
 Operational Transformation algorithms based on the $\mathit{TP}_1$ property alone are widely used in systems such as Google Docs, but these algorithms require clients to communicate all changes via a single central server.
