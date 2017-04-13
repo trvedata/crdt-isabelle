@@ -12,6 +12,7 @@ theory
   Counter
 imports
   Network
+  "~~/src/HOL/Library/Code_Target_Numeral"
 begin
 
 datatype operation = Increment | Decrement
@@ -19,6 +20,8 @@ datatype operation = Increment | Decrement
 fun counter_op :: "operation \<Rightarrow> int \<rightharpoonup> int" where
   "counter_op Increment x = Some (x + 1)" |
   "counter_op Decrement x = Some (x - 1)"
+  
+export_code Increment counter_op in OCaml file counter.ml
 
 locale counter = network_with_ops _ counter_op 0
 

@@ -19,6 +19,8 @@ datatype ('id, 'v) operation =
 fun interpret_opers :: "('id::linorder, 'v) operation \<Rightarrow> ('id, 'v) elt list \<rightharpoonup> ('id, 'v) elt list" ("\<langle>_\<rangle>" [0] 1000) where
   "interpret_opers (Insert e n) xs  = insert xs e n" |
   "interpret_opers (Delete n)   xs  = delete xs n"
+  
+export_code Insert interpret_opers in OCaml file rga.ml
 
 definition element_ids :: "('id, 'v) elt list \<Rightarrow> 'id set" where
  "element_ids list \<equiv> set (map fst list)"
