@@ -143,17 +143,18 @@ We also assume the existence of an interpretation function (see Section~\ref{sec
 \end{isabellebody}
 \vspace{0.275em}
 We have proved that the happens-before relation $\prec$ defined in the network is a strict partial order, so it meets the requirements of the $\isa{happens-before}$ locale.
-Moreover, we can prove that the sequence of message deliveries at any node is consistent with $\prec$, that is, it satisfies the definition of $\isa{hb-consistent}$ given in Section~\ref{sect.happens.before}:
+The lemmas and definitions of this locale are therefore available to use with the happens-before relation $\prec$, and we indicate these specialised theorems and definitions by prefixing their names with $\isa{hb}$.
+Moreover, we can prove that the sequence of message deliveries at any node is consistent with $\prec$, that is, it satisfies the definition of $\isa{hb-consistent}$ given in Section~\ref{sect.happens.before} (note $\isa{hb}{\isacharunderscore}\isa{consistent}$ is now prefixed):
 \vspace{0.275em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{theorem}\ \ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ i{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \isacommand{theorem}\ \ {\isachardoublequoteopen}hb.hb{\isacharunderscore}consistent\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ i{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.275em}
 \noindent
 where $\isa{node-deliver-messages}$ is a function that filters the history of events at some node to return only messages that were delivered, in the order they were delivered.
 Now, whenever a message is delivered at some node, we can take the operation $\isacharprime\isa{oper}$ from the message, and use its interpretation to update the state at that node.
 Broadcast events do not change the state, but since every message must be delivered locally at the node where it was broadcast, the state change nevertheless takes effect locally.
-We can then define the state of some node by using our definition of $\isa{apply-operations}$ from Section~\ref{sect.ops.interpretation} (here renamed to $\isa{hb.apply-operations}$):
+We can then define the state of some node by using our definition of $\isa{apply-operations}$ from Section~\ref{sect.ops.interpretation}:
 \vspace{0.275em}
 \begin{isabellebody}
 \ \ \ \ \ \ \ \ \isacommand{definition}\ apply{\isacharunderscore}operations\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}msgid\ {\isasymtimes}\ {\isacharprime}oper{\isacharparenright}\ event\ list\ {\isasymRightarrow}\ {\isacharprime}state\ option{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
