@@ -210,6 +210,8 @@ Intuitively, this theorem can be viewed as the ``essence'' of why strong eventua
 The convergence theorems for our three concrete CRDTs are obtained as direct corollaries of this theorem.
 \end{itemize}
 
+Anonymised Isabelle theory files have been submitted as supplementary material accompanying this paper, and will eventually be made publicly available.
+
 \input{proof-strategy}
 \input{isabelle}
 \input{convergence}
@@ -218,16 +220,8 @@ The convergence theorems for our three concrete CRDTs are obtained as direct cor
 \input{simple-crdts}
 \input{relwork}
 
-\section{Conclusion}
-\label{sect.conclusion}
-
-In this paper we adopted a ``foundational'' approach to proving the correctness of a class of strong eventual consistency algorithms: Conflict-free Replicated Datatypes (CRDTs).
-In our work, we made no axiomatic assumptions related to any individual algorithm; instead, we constructed a formal, realistic model of a computer network that may delay, drop, or reorder messages sent between computers.
-For each algorithm we then proved that its assumptions are satisfied in all possible network behaviours, and deduced that it satisfies an abstract specification of strong eventual consistency (SEC).
-The network model, the SEC specification, and the associated library of lemmas form a framework with which one can prove convergence for concrete CRDT implementations.
-
-As evidence of the reusability of our framework, we formalised three operation-based CRDT algorithms---the Replicated Growable Array (RGA), the Observed-Remove Set, and a Counter---and proved that they do indeed guarantee the SEC properties under all possible valid behaviours of our network model.
-Since informal reasoning about convergent replication algorithms has been shown to difficult and error-prone, as exemplified by various failed proofs (Section~\ref{sect.related.verification}) and the ``a bit of a mystery'' RGA \cite{Attiya:2016kh}, we believe that their formal verification is particularly important.
+\section{Discussion}
+\label{sect.discussion}
 
 The convergence proofs for all of our CRDT implementations follow the same structure.
 First we define the type of local state at each node, and the types of operations that may be invoked to modify the state.
@@ -241,13 +235,24 @@ When these proof obligations have been met, we are able to conclude that the alg
 The abstract specification is independent from any particular network model or replication algorithm, and we assert that it constitutes a general but precise definition of strong eventual consistency.
 As this recurring proof pattern demonstrates, we have not only isolated a series of reusable lemmas and models of networks, but also identified a reusable proof strategy that algorithm designers can use to obtain a convergence theorem for their operation-based CRDT.
 
-Anonymised Isabelle theory files have been submitted as supplementary material accompanying this paper.
-Line counts for our source code are: around 580 lines for our network model, around 330 lines for the abstract convergence proof, around 750 lines for the RGA proof, around 270 lines for the ORSet proof, and around 50 lines for the Counter proof.
-Additional shared code consists of around 180 lines of source.
 By line count, over half (around 1000 lines) of our development---the network model, convergence proof, and so on---is independent from any particular CRDT and is reusable in future proofs.
-We note here that full definitions and proofs of correctness for our three CRDT implementations are pleasingly short: all three are shown to be convergent in less than 800 lines of Isabelle source using the proof strategy described above.
+In particular, we use: around 620 lines for our network model, around 380 lines for the abstract convergence proof, 775 lines for the RGA proof, around 270 lines for the ORSet proof, and around 55 lines for the Counter proof.
+Additional shared code consists of around 170 lines of source.
+We note here that full definitions and proofs of correctness for our three CRDT implementations are pleasingly short: all three are shown to be convergent in less than 800 lines of Isabelle source using the proof strategy described above. 
 
-Our work was motivated by the desire to support a wider range of strong eventual consistency algorithms in distributed systems.
+\section{Conclusion}
+\label{sect.conclusion}
+
+In this paper we adopted a ``foundational'' approach to proving the correctness of a class of SEC algorithms: Conflict-free Replicated Datatypes (CRDTs).
+In our work, we made no axiomatic assumptions related to any individual algorithm; instead, we constructed a formal, realistic model of a computer network that may delay, drop, or reorder messages sent between computers---a model well known within the distributed systems community, with defensible axioms.
+In addition, we isolated a formal specification of SEC, and showed that any algorithm that meets the preconditions of this specification must converge.
+Our network model, the SEC specification, and a library of lemmas form a framework with which one can prove convergence for concrete CRDT implementations.
+
+As a case study in applying our framework, we formalised three operation-based CRDTs---the Replicated Growable Array, the Observed-Remove Set, and an increment-decrement Counter---and proved that they do indeed guarantee the SEC properties under all possible valid behaviours of our network model.
+Since informal reasoning about convergent replication algorithms has been shown to difficult and error-prone, as exemplified by various failed proofs (Section~\ref{sect.related.verification}) and the ``a bit of a mystery'' RGA \cite{Attiya:2016kh}, we believe that their formal verification is particularly important.
+For each algorithm we then proved that its assumptions are satisfied in all possible network behaviours, and that it satisfies the preconditions of our abstract SEC specification, obtaining convergence theorems for each of the three CRDT implementations.
+
+Our work has been motivated by the desire to support a wider range of strong eventual consistency algorithms in distributed systems.
 Operational Transformation algorithms based on the $\mathit{TP}_1$ property alone are widely used in systems such as Google Docs, but these algorithms require clients to communicate all changes via a single central server.
 On the other hand, state-based CRDTs are used in systems such as Riak.
 Both of these approaches are limiting.
