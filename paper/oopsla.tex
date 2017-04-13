@@ -202,8 +202,8 @@ To our knowledge, this is the first machine-checked verification of SEC algorith
 The framework is modular and reusable, making it easy to formulate proofs for new algorithms.
 \item
 We provide the first mechanised proofs of correctness for the Replicated Growable Array (RGA), the operation-based Observed-Remove Set, and the operation-based counter CRDT.
-RGA is an especially subtle algorithm: \citet{Attiya:2016kh} wrote, ``the reason why RGA actually works has been a bit of a mystery'', making its formal verification particularly important, whilst the ORSet is supported as a primitive by the Lasp dataflow language~\cite{DBLP:conf/ppdp/MeiklejohnR15} for synchronisation-free programming.
-These mechanised proofs demonstrate that our framework is highly reusable: we were able to quickly develop proofs of convergence for the set and counter CRDTs with little CRDT-specific code, by using a fixed proof pattern that applies to all of our CRDTs.
+RGA is an especially subtle algorithm: \citet{Attiya:2016kh} wrote, ``the reason why RGA actually works has been a bit of a mystery'', making its formal verification of interest, whilst the ORSet is supported as a primitive by the Lasp language~\cite{DBLP:conf/ppdp/MeiklejohnR15} for synchronisation-free programming, with an implemention also exported by the Akka framework~\cite{akka}.
+These proofs demonstrate that our framework is highly reusable: we were able to quickly develop proofs of convergence for the set and counter CRDTs with little CRDT-specific code, using a fixed proof pattern that applies to all of our CRDTs.
 \item
 As part of our proof framework, we identify an abstract convergence theorem, a property of order relations, from which we can deduce correctness theorems for concrete SEC algorithms.
 Intuitively, this theorem can be viewed as the ``essence'' of why strong eventual consistency algorithms converge.
