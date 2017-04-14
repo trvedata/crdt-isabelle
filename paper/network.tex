@@ -130,6 +130,7 @@ It is still possible for some message never to be delivered.
 Causal delivery is typically implemented in network protocols using vector timestamps \cite{Schwarz:1994gl,Fidge:1988tv,Raynal:1996jl}.
 As these protocols are widely known and well understood, we elide any further discussion.
 
+\vspace{-0.1em}
 \subsection{Using operations in the network}\label{sect.network.ops}
 
 We can now include the convergence theorem into our network model by further extending the $\isa{causal-network}$ locale.
@@ -143,10 +144,6 @@ We also assume the existence of an interpretation function (see Section~\ref{sec
 \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ initial{\isacharunderscore}state\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}state{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.25em}
-Note that the axioms of $\isa{network}{\isacharunderscore}\isa{with}{\isacharunderscore}\isa{constrained}{\isacharunderscore}\isa{ops}$, and by extension the axioms of all locales that it extends, are consistent in the sense that that we are unable to prove $\isa{False}$ by assuming the axioms.
-This can be demonstrated by building a trivial model of $\isa{network}{\isacharunderscore}\isa{with}{\isacharunderscore}\isa{constrained}{\isacharunderscore}\isa{ops}$, and all superlocales, within Isabelle and showing that it satisfies all of the locale's axioms.
-We elide the construction of these models.
-
 We have proved that the happens-before relation $\prec$ defined in the network is a strict partial order, so it meets the requirements of the $\isa{happens-before}$ locale.
 The lemmas and definitions of this locale are therefore available to use with the happens-before relation $\prec$, and we indicate these specialised theorems and definitions by prefixing their names with $\isa{hb}$.
 Moreover, we can prove that the sequence of message deliveries at any node is consistent with $\prec$, that is, it satisfies the definition of $\isa{hb-consistent}$ given in Section~\ref{sect.happens.before} (note $\isa{hb}{\isacharunderscore}\isa{consistent}$ is now prefixed):
@@ -181,3 +178,7 @@ As a general-purpose mechanism for describing such requirements, the locale $\is
 
 $\isa{broadcast-only-valid-msgs}$ is our final axiom, and it simply requires that if a node broadcasts some message, it must be valid according to the $\isa{valid-msg}$ predicate.
 Since the choice of messages to broadcast is under the control of the replication algorithm, and the algorithm defines this predicate, this assumption is reasonable.
+
+Note that the axioms of $\isa{network}{\isacharunderscore}\isa{with}{\isacharunderscore}\isa{constrained}{\isacharunderscore}\isa{ops}$, and by extension the axioms of all locales that it extends, are consistent in the sense that that we are unable to prove $\isa{False}$ by assuming the axioms.
+This is demonstrated by building a trivial model of $\isa{network}{\isacharunderscore}\isa{with}{\isacharunderscore}\isa{constrained}{\isacharunderscore}\isa{ops}$, and all superlocales, within Isabelle and showing that it satisfies all of the locale's axioms.
+We elide these models here.
