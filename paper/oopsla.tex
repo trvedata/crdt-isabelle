@@ -229,7 +229,7 @@ Anonymised Isabelle theory files have been submitted as supplementary material a
 The convergence proofs for all of our CRDT implementations follow the same structure.
 First we define the type of local state at each node, and the types of operations that may be invoked to modify the state.
 When one node invokes an operation, it is broadcast to other nodes using our network model, implemented as a specialisation of the $\isa{network}{\isacharunderscore}\isa{with}{\isacharunderscore}(\isa{constrained}{\isacharunderscore})\isa{ops}$ locale.
-An interpretation function function is called whenever a message containing an operation is delivered to a node, and it transforms that node's local state to incorporate the operation.
+An interpretation function is called whenever a message containing an operation is delivered to a node, and it transforms that node's local state to incorporate the operation.
 To demonstrate convergence, we must show that all operations commute with themselves and with each other, subject to certain assumptions.
 Next, we must prove that those assumptions are always satisfied by any concurrent operations in the network.
 Finally, a CRDT must demonstrate that applying an operation never fails, provided that the operation was constructed according to the definition of the algorithm.
