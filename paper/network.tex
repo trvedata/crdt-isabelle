@@ -83,7 +83,7 @@ The axioms can be understood as follows:
 
 In addition, the $\isa{network}$ locale inherits the $\isa{histories-distinct}$ axiom from the parent locale $\isa{node-histories}$.
 Many other properties that we require can be deduced as lemmas from these axioms.
-For example, we can prove that for every message message that is delivered by some node, there is exactly one broadcast event (on the same or some other node) that created the message.
+For example, we can prove that for every message that is delivered by some node, there is exactly one broadcast event (on the same or some other node) that created the message.
 Also, due to the $\isa{histories-distinct}$ axiom we know that the same message is not delivered more than once to each node---an aspect that can be implemented in practical systems by having each node keep track of message IDs it has received, and suppressing any duplicates.
 
 Note that we make no assumptions about the reliability or the ordering of messages.
