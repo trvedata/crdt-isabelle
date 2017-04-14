@@ -238,10 +238,13 @@ When these proof obligations have been met, we are able to conclude that the alg
 The abstract specification is independent of any particular network model or replication algorithm, and we assert that it constitutes a general but precise definition of strong eventual consistency.
 As this recurring pattern demonstrates, we have not only isolated reusable lemmas and models of networks, but also a proof strategy that algorithm designers can use to obtain a convergence theorem for their operation-based CRDT.
 
-By line count, over half (around 1000 lines) of our development---the network model, convergence proof, and so on---is independent from any particular CRDT and is reusable in future proofs.
+Over half of our development---the network model, convergence proof, and lemmas---is independent of any particular CRDT and is reusable in future proofs.
 In particular, we use: around 620 lines for our network model, around 380 lines for the abstract convergence proof, 775 lines for the RGA proof, around 270 lines for the ORSet proof, and around 55 lines for the Counter proof.
 Additional shared code consists of around 170 lines of source.
-We note here that full definitions and proofs of correctness for our three CRDT implementations are pleasingly short: all three are shown to be convergent in less than 800 lines of Isabelle source using the proof strategy described above. 
+Definitions and proofs of correctness for our three CRDT implementations are pleasingly short: all three are shown to be convergent in fewer than 800 lines of source, using the proof strategy described above. 
+
+Lastly, we note that all three of our CRDT implementations are ``executable'' in the sense that we can use Isabelle's code extraction mechanism to obtain OCaml (or Scala, Haskell, and Standard ML) versions of our CRDTs.
+In experiments, we have used an OCaml extraction of one of our CRDTs---the increment-decrement Counter---sitting above a simple two-node network, communicating over a TCP link between machines, to show that our implementations are usable in practice.
 
 \section{Conclusion}
 \label{sect.conclusion}

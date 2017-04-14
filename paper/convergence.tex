@@ -108,6 +108,7 @@ Although this theorem may seem ``obvious'' at first glance---commutativity allow
 The difficulty arises because operations may succeed when applied to some state, but fail when applied to another state (for example, attempting to delete an element that does not exist in the state).
 We find it interesting that it is nevertheless sufficient for the definition of $\isa{concurrent-ops-commute}$ to be expressed only in terms of the Kleisli arrow composition, and without explicitly referring to the state.
 
+\vspace{-0.2em}
 \subsection{Formalising Strong Eventual Consistency}\label{sect.abstract.sec.spec}
 
 Besides convergence, another required property of SEC is \emph{progress}: if a valid operation was issued on one node, then another node that applies the operation must not become stuck in an error state.
