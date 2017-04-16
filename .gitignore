@@ -12,3 +12,5 @@ src/output
 *.snm
 *.toc
 *.vrb
+_build
+*.native
