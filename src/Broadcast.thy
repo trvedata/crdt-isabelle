@@ -179,6 +179,20 @@ lemma some_set_memb:
   shows "(SOME x. x \<in> y) \<in> y"
 by (rule someI_ex, simp add: assms ex_in_conv)
 
+lemma let_some_elim:
+  assumes "(let x = (SOME x. P x) in f x) = z"
+    and "\<exists>x. P x"
+    and "\<And>x. P x \<Longrightarrow> f x = z \<Longrightarrow> R"
+  shows R
+  using assms by (metis someI)
+
+lemma let_some_set_elim:
+  assumes "(let x = (SOME x'. x' \<in> y) in f x) = z"
+  and "y \<noteq> {}"
+  and "\<And>x. (x \<in> y \<and> f x = z) \<Longrightarrow> R"
+  shows R
+by (metis assms some_set_memb)
+
 lemma (in cbcast_protocol) user_step_effect:
   assumes "user_step before = after"
     and "before \<noteq> after"
@@ -307,17 +321,27 @@ lemma (in cbcast_protocol) broadcast_node_id:
     and "msg_id msg = (j, seq)"
   shows "i = j"
   using assms valid_execution apply(simp add: history_def)
-  apply(frule config_evolution_exists, erule exE)
   apply(drule event_creation, simp)
   apply((erule exE)+, (erule conjE)+, erule disjE)
-  apply(frule user_step_effect, simp)
-  apply(simp add: protocol_send_def, erule exE, erule conjE, erule exE, erule conjE)
-  apply(subgoal_tac "msg = msga", subgoal_tac "i = ia")
-  apply(subst (asm) valid_msgs_def)
-  apply(subst (asm) next_msgid_def)
-  apply(subgoal_tac "es = [Broadcast msga, Deliver msga]")
-  oops
-
+  apply(subgoal_tac "msg_id msg = next_msgid i (fst (before i))")
+  apply(simp add: next_msgid_def)
+  apply(simp add: user_step_def)
+  apply(erule let_some_elim, simp+)
+  apply(simp add: case_prod_beta split: if_split_asm)
+  apply(erule let_some_elim, blast)
+  apply(case_tac "node=i", case_tac "msga=msg")
+  apply(clarsimp simp add: valid_msgs_def)
+  apply(metis event.distinct(1) event.inject(1) fst_conv fun_upd_same nat.simps(3)
+    protocol_send_def same_append_eq set_ConsD trivial_network.broadcasts_unique)
+  apply auto[1]
+  apply(simp add: network_step_def)
+  apply(erule let_some_elim, simp, erule let_some_elim, presburger)
+  apply(simp add: case_prod_beta protocol_recv_def split: if_split_asm)
+  apply(erule let_some_elim, blast)
+  apply(simp split: if_split_asm)
+  apply(case_tac "nodea=i", case_tac "msga=msg")
+  apply auto
+done
 
 context cbcast_protocol begin
 sublocale causal: causal_network history msg_id
