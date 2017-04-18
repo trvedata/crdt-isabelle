@@ -3,7 +3,6 @@
 
 In a system where different nodes may concurrently perform updates without coordinating with each other, strong eventual consistency requires a conflict resolution algorithm to reconcile concurrent updates. 
 In some cases, a trivial algorithm is used, for example:
-
 \begin{description}
 \item[User-defined conflict resolution:] Some systems store all conflicting versions of the data,
 and either leave it for manual resolution by a user, or invoke a user-defined merge function.
@@ -16,7 +15,6 @@ When there is a conflict, the system picks the version with the highest timestam
 versions. Apache Cassandra takes this approach, for example \cite{KingsburyCassandra}.
 Although LWW achieves convergence, it does so at the cost of losing user input, which is often unacceptable.
 \end{description}
-
 However, there are also algorithms that achieve convergence automatically, without discarding updates.
 In Section~\ref{sect.related.ot.crdts} we summarise two main lines of work, CRDTs and OT, which have the same fundamental goal of conflict resolution and convergence, but which take different approaches towards achieving it.
 In Section~\ref{sect.related.verification} we discuss existing work on formal verification of those algorithms.
@@ -25,7 +23,7 @@ In Section~\ref{sect.related.verification} we discuss existing work on formal ve
 \subsection{Operational Transformation (OT) and Conflict-free Replicated Data Types (CRDTs)}\label{sect.related.ot.crdts}
 
 Algorithms for achieving strong eventual consistency have been studied extensively in the context of collaborative editing and groupware.
-The \emph{operational transformation} (OT) approach was developed to allow several users to concurrently modify a document (most commonly text), applying edits immediately to their local copy, propagating them asynchronously to other users, and automatically resolving any conflicts such that all nodes converge towards the same state.
+The \emph{operational transformation} (OT) approach was developed to allow several users to concurrently modify a document, applying edits immediately to their local copy, propagating them asynchronously to other users, and automatically resolving any conflicts such that all nodes converge towards the same state.
 
 OT algorithms for text documents include dOPT \cite{Ellis:1989ue}, Jupiter \cite{Nichols:1995fd}, adOPTed \cite{Ressel:1996wx}, GOT \cite{Sun:1998un}, GOTO \cite{Sun:1998vf}, SOCT2 \cite{Suleiman:1997gl,Suleiman:1998eu}, SOCT3/4 \cite{Vidot:2000ch}, IMOR \cite{Imine:2003ks}, SDT \cite{Li:2004er,Li:2008hw}, and TTF \cite{Oster:2006tr}.
 The approach has also been generalised to other data structures such as XML trees \cite{Ignat:2003jy,Davis:2002iv,Jungnickel:2015ua} and vector graphics documents \cite{Sun:2002jb}.
@@ -38,7 +36,7 @@ However, as discussed in the introduction, we are interested in replication algo
 In Section~\ref{sect.related.verification} we show that, although OT algorithms have been successful in conjunction with a central server, they have had a poor track record in decentralised settings.
 
 Instead, \emph{conflict-free replicated data types} (CRDTs) have been developed to achieve SEC in decentralised systems.
-As we have seen in this paper, CRDTs make operations commutative by design by attaching additional metadata to the data structure.
+As we have noted, CRDTs make operations commutative by design by attaching additional metadata to the data structure.
 To propagate changes between nodes, a CRDT either captures every update as an operation and broadcasts it to other nodes (an \emph{operation-based} CRDT), or periodically broadcasts its entire node state (a \emph{state-based} CRDT).
 Operation-based CRDTs require operations to commute; state-based CRDTs require a merge function over a join-semilattice, allowing two states to be combined such that the result reflects changes made in both nodes \cite{Shapiro:2011wy,Shapiro:2011un}.
 State-based CRDTs have been deployed commercially in the Riak database \cite{Brown:2014hs}, but in this work we focus on operation-based algorithms, because all known CRDTs for text editing and ordered lists are operation-based.
@@ -90,4 +88,3 @@ correctness can be robustly defended (see Section~\ref{sect.network}).
 
 More generally, applying verification techniques to distributed systems is an active area of research, reflecting the difficulty of correctly implementing distributed systems.
 Several examples of applying interactive theorem proving~\cite{DBLP:conf/pldi/WilcoxWPTWEA15,DBLP:journals/afp/DebratM12,DBLP:conf/sss/Charron-BostDM11}, model checking~\cite{DBLP:conf/asm/AzmyMW16,DBLP:journals/entcs/JohnsonLLV04}, and formal specification~\cite{DBLP:journals/ijaacs/TounsiMM16,DBLP:conf/asm/AndriamiarinaMS14,DBLP:conf/wetice/TounsiMM13} techniques to the design and implementation of distributed systems, algorithms, and protocols are attested in the literature.
-This work is loosely related to our own.

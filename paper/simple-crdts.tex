@@ -1,4 +1,4 @@
-\vspace{-0.6em}
+\vspace{-0.5em}
 \section{Two other CRDTs: Counter and Set}
 \label{sect.simple.crdts}
 
@@ -168,8 +168,7 @@ Then we prove that the set of identifiers in the node state is a subset of \isa{
 \noindent Now that we have proved that the assumption of $\isa{add-rem-commute}$ holds for all concurrent operations, we can deduce that all concurrent operations commute:
 \vspace{0.25em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{theorem}\ concurrent{\isacharunderscore}operations{\isacharunderscore}commute{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ \ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ i{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \isacommand{theorem}\ concurrent{\isacharunderscore}operations{\isacharunderscore}commute{\isacharcolon}\ \isakeyword{shows}\ \ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ i{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.25em}
 
