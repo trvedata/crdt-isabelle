@@ -84,9 +84,38 @@ let rec insert (_A1, _A2)
 
 end;; (*struct Ordered_List*)
 
+module List : sig
+  val member : 'a HOL.equal -> 'a list -> 'a -> bool
+  val map : ('a -> 'b) -> 'a list -> 'b list
+end = struct
+
+let rec member _A x0 y = match x0, y with [], y -> false
+                    | x :: xs, y -> HOL.eq _A x y || member _A xs y;;
+
+let rec map f x1 = match f, x1 with f, [] -> []
+              | f, x21 :: x22 -> f x21 :: map f x22;;
+
+end;; (*struct List*)
+
+module Set : sig
+  type 'a set = Set of 'a list | Coset of 'a list
+  val member : 'a HOL.equal -> 'a -> 'a set -> bool
+end = struct
+
+type 'a set = Set of 'a list | Coset of 'a list;;
+
+let rec member _A
+  x xa1 = match x, xa1 with x, Coset xs -> not (List.member _A xs x)
+    | x, Set xs -> List.member _A xs x;;
+
+end;; (*struct Set*)
+
 module RGA : sig
   type ('a, 'b) operation = Insert of ('a * ('b * bool)) * 'a option |
     Delete of 'a
+  val valid_rga_msg :
+    'a HOL.equal * 'a Orderings.linorder ->
+      ('a * ('b * bool)) list -> 'a * ('a, 'b) operation -> bool
   val interpret_opers :
     'a HOL.equal * 'a Orderings.linorder ->
       ('a, 'b) operation ->
@@ -95,6 +124,16 @@ end = struct
 
 type ('a, 'b) operation = Insert of ('a * ('b * bool)) * 'a option |
   Delete of 'a;;
+
+let rec element_ids lista = Set.Set (List.map Product_Type.fst lista);;
+
+let rec valid_rga_msg (_A1, _A2)
+  lista msg =
+    (match msg with (i, Insert (e, None)) -> HOL.eq _A1 (Product_Type.fst e) i
+      | (i, Insert (e, Some pos)) ->
+        HOL.eq _A1 (Product_Type.fst e) i &&
+          Set.member _A1 pos (element_ids lista)
+      | (_, Delete pos) -> Set.member _A1 pos (element_ids lista));;
 
 let rec interpret_opers (_A1, _A2)
   x0 xs = match x0, xs with

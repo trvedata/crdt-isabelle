@@ -10,6 +10,7 @@ theory
 imports
   Network
   Ordered_List
+  "~~/src/HOL/Library/Code_Target_Numeral"
 begin
   
 datatype ('id, 'v) operation =
@@ -19,8 +20,6 @@ datatype ('id, 'v) operation =
 fun interpret_opers :: "('id::linorder, 'v) operation \<Rightarrow> ('id, 'v) elt list \<rightharpoonup> ('id, 'v) elt list" ("\<langle>_\<rangle>" [0] 1000) where
   "interpret_opers (Insert e n) xs  = insert xs e n" |
   "interpret_opers (Delete n)   xs  = delete xs n"
-  
-export_code Insert interpret_opers in OCaml file "ocaml/rga.ml"
 
 definition element_ids :: "('id, 'v) elt list \<Rightarrow> 'id set" where
  "element_ids list \<equiv> set (map fst list)"
@@ -30,12 +29,16 @@ definition valid_rga_msg :: "('id, 'v) elt list \<Rightarrow> 'id \<times> ('id:
     (i, Insert e  None     ) \<Rightarrow> fst e = i |
     (i, Insert e (Some pos)) \<Rightarrow> fst e = i \<and> pos \<in> element_ids list |
     (i, Delete         pos ) \<Rightarrow> pos \<in> element_ids list"
+ 
+export_code Insert interpret_opers valid_rga_msg in OCaml file "ocaml/rga.ml"
 
 (* Replicated Growable Array Network *)
 locale rga = network_with_constrained_ops _ interpret_opers "[]" valid_rga_msg
 
+  (* XXX: no longer used?
 locale id_consistent_rga_network = rga +
   assumes ids_consistent: "hb (id1, op1) (id2, op2) \<Longrightarrow> id1 < id2"
+*)
 
 definition indices :: "('id \<times> ('id, 'v) operation) event list \<Rightarrow> 'id list" where
   "indices xs \<equiv>
@@ -436,8 +439,5 @@ end
   
 interpretation trivial_rga_implementation: rga "\<lambda>x. []"
   by (standard, auto simp add: trivial_node_histories.history_order_def trivial_node_histories.prefix_of_node_history_def)
-
-interpretation non_trivial_rga_implementation: rga "\<lambda>m. if m = 0 then [Broadcast (0, Insert (0, 0, False) None), Deliver (0, Insert (0, 0, False) None)] else []"
-oops
 
 end
