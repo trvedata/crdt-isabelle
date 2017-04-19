@@ -34,10 +34,12 @@ definition (in executions) network_step :: "('nodeid \<Rightarrow> 'state \<time
        in conf(recipient := (recv_msg recipient msg state, msgs))
      else conf"
 
+definition (in executions) take_step :: "('nodeid \<Rightarrow> 'state \<times> 'msg set) \<Rightarrow> ('nodeid \<Rightarrow> 'state \<times> 'msg set)" where
+  "take_step \<equiv> SOME step. step \<in> {user_step, network_step}"
+
 inductive (in executions) execution :: "('nodeid \<Rightarrow> 'state \<times> 'msg set) \<Rightarrow> bool" where
   "execution (\<lambda>n. (initial n, {}))" |
-  "\<lbrakk> execution conf; user_step    conf = conf' \<rbrakk> \<Longrightarrow> execution conf'" |
-  "\<lbrakk> execution conf; network_step conf = conf' \<rbrakk> \<Longrightarrow> execution conf'"
+  "\<lbrakk> execution conf; take_step conf = conf' \<rbrakk> \<Longrightarrow> execution conf'"
 
 (* I think this definition is equivalent, but makes the non-deterministic choices less explicit:
 inductive (in executions) execution :: "('nodeid \<Rightarrow> 'state \<times> 'msg set) \<Rightarrow> bool" where
@@ -161,43 +163,24 @@ lemma (in cbcast_protocol) config_evolution_exists:
   apply(rule conjI)
   using execution.intros(2) last_in_set apply blast
   apply(rule allI)+
-  apply(clarsimp)
+  apply(subgoal_tac "take_step \<in> {user_step, network_step}") defer
+  apply(rule choose_set_memb, simp, simp add: take_step_def)
+  apply(simp, erule disjE, clarsimp)
   apply(case_tac suf, force)
   apply(metis (no_types, lifting) butlast.simps(2) butlast_append butlast_snoc list.simps(3))
-  apply(erule exE)
-  apply(rule_tac x="confs@[conf']" in exI, clarsimp)
-  apply(rule conjI)
-  using execution.intros(3) last_in_set apply blast
-  apply(rule allI)+
-  apply(clarsimp)
-  apply(case_tac suf, force)
+  apply(clarsimp, case_tac suf, force)
   apply(metis (no_types, lifting) butlast.simps(2) butlast_append butlast_snoc list.simps(3))
 done
 
-lemma unpack_let:
-  assumes "(let x = y in f x) = z"
-  and "\<And>x. x = y \<Longrightarrow> f x = z \<Longrightarrow> R"
-  shows R
-using assms by auto
-
-lemma some_set_memb:
-  assumes "y \<noteq> {}"
-  shows "(SOME x. x \<in> y) \<in> y"
-by (rule someI_ex, simp add: assms ex_in_conv)
-
-lemma let_some_elim:
-  assumes "(let x = (SOME x. P x) in f x) = z"
-    and "\<exists>x. P x"
-    and "\<And>x. P x \<Longrightarrow> f x = z \<Longrightarrow> R"
-  shows R
-  using assms by (metis someI)
-
-lemma let_some_set_elim:
-  assumes "(let x = (SOME x'. x' \<in> y) in f x) = z"
-  and "y \<noteq> {}"
-  and "\<And>x. (x \<in> y \<and> f x = z) \<Longrightarrow> R"
-  shows R
-by (metis assms some_set_memb)
+lemma (in cbcast_protocol) config_evolution_fold:
+  assumes "execution conf"
+  shows "\<exists>steps. conf = fold (op \<circ>) steps id (\<lambda>n. ([], {}))"
+  using assms unfolding config_evolution_def
+  apply(induction rule: execution.induct)
+  apply(rule_tac x="[]" in exI, simp)
+  apply(erule exE)
+  apply(rule_tac x="steps@[take_step]" in exI, simp)
+done
 
 lemma (in cbcast_protocol) user_step_effect:
   assumes "user_step before = after"
@@ -299,6 +282,9 @@ lemma (in cbcast_protocol) event_creation:
   using assms
   apply(induction rule: execution.induct, simp)
   apply(case_tac "conf=conf'", simp)
+  apply(subgoal_tac "take_step \<in> {user_step, network_step}") defer
+  apply(rule choose_set_memb, simp, simp add: take_step_def)
+  apply(simp, erule disjE, simp)
   apply(frule user_step_effect, assumption, (erule exE)+, (erule conjE)+)
   apply(subst (asm) protocol_send_def)
   apply(case_tac "i=ia")
@@ -308,7 +294,7 @@ lemma (in cbcast_protocol) event_creation:
   apply(subgoal_tac "evt \<in> set (fst (conf i))", simp)
   apply(subgoal_tac "fst (conf ia) @ [Broadcast msg, Deliver msg] = fst (conf' ia)")
   apply(metis UnE empty_set list.simps(15) set_append, simp, simp)
-  apply(case_tac "conf=conf'", simp)
+  apply(case_tac "conf=conf'", simp, simp)
   apply(frule network_step_effect, assumption, (erule exE)+, (erule conjE)+)
   apply(subst (asm) protocol_recv_def)
   apply(case_tac "i = recipient")

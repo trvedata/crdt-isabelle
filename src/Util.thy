@@ -53,7 +53,40 @@ lemma set_elem_nth:
   assumes "x \<in> set xs"
   shows   "\<exists>m. m < length xs \<and> xs ! m = x"
   using assms by(induction xs, simp) (meson in_set_conv_nth)
-    
+
+subsection\<open>Lemmas about nondeterministic choice and let\<close>
+
+lemma unpack_let:
+  assumes "(let x = y in f x) = z"
+  and "\<And>x. x = y \<Longrightarrow> f x = z \<Longrightarrow> R"
+  shows R
+using assms by auto
+
+lemma some_set_memb:
+  assumes "y \<noteq> {}"
+  shows "(SOME x. x \<in> y) \<in> y"
+by (rule someI_ex, simp add: assms ex_in_conv)
+
+lemma choose_set_memb:
+  assumes "y \<noteq> {}"
+  and "x = (SOME x. x \<in> y)"
+  shows "x \<in> y"
+using assms by (simp add: some_set_memb)
+
+lemma let_some_elim:
+  assumes "(let x = (SOME x. P x) in f x) = z"
+    and "\<exists>x. P x"
+    and "\<And>x. P x \<Longrightarrow> f x = z \<Longrightarrow> R"
+  shows R
+  using assms by (metis someI)
+
+lemma let_some_set_elim:
+  assumes "(let x = (SOME x'. x' \<in> y) in f x) = z"
+  and "y \<noteq> {}"
+  and "\<And>x. (x \<in> y \<and> f x = z) \<Longrightarrow> R"
+  shows R
+by (metis assms some_set_memb)
+
 subsection\<open>Lemmas about list\<close>
 
 lemma list_nil_or_snoc:
