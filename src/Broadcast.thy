@@ -107,6 +107,12 @@ locale cbcast_protocol = cbcast_protocol_base "valid_msgs valid_ops" +
 definition (in cbcast_protocol) history :: "nat \<Rightarrow> (nat, 'a) message event list" where
   "history i \<equiv> fst (config i)"
 
+definition (in cbcast_protocol) broadcasts :: "nat \<Rightarrow> (nat, 'a) message list" where
+  "broadcasts i \<equiv> List.map_filter (\<lambda>e. case e of Broadcast m \<Rightarrow> Some m | _ \<Rightarrow> None) (history i)"
+
+definition (in cbcast_protocol) deliveries :: "nat \<Rightarrow> (nat, 'a) message list" where
+  "deliveries i \<equiv> List.map_filter (\<lambda>e. case e of Deliver m \<Rightarrow> Some m | _ \<Rightarrow> None) (history i)"
+
 
 subsection\<open>Proof that this protocol satisfies the causal axiom\<close>
 
@@ -314,6 +320,21 @@ lemma (in cbcast_protocol) event_creation:
   apply(subgoal_tac "fst (conf recipient) @ [Deliver msg] = fst (conf' recipient)")
   apply(metis UnE empty_iff empty_set set_ConsD set_append)
   apply simp+
+done
+
+lemma broadcast_in_set:
+  assumes "broadcasts hist = pre @ [msg] @ suf"
+    shows "Broadcast msg \<in> set hist"
+  using assms apply -
+  apply(induction hist arbitrary: pre suf rule: rev_induct)
+  apply(simp add: broadcasts_def List.map_filter_def)
+  apply(case_tac x, case_tac "x1=msg", simp)
+  apply(erule_tac x=pre in meta_allE)
+  apply(erule_tac x="butlast suf" in meta_allE)
+  apply(simp add: broadcasts_def List.map_filter_def)
+  apply(metis (no_types, lifting) butlast.simps(2) butlast_append butlast_snoc last_ConsL last_appendR list.simps(3))
+  apply(erule_tac x=pre in meta_allE, erule_tac x=suf in meta_allE)
+  apply(simp add: broadcasts_def List.map_filter_def)
 done
 
 lemma (in cbcast_protocol) broadcast_node_id:
