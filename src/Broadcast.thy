@@ -126,8 +126,8 @@ definition (in cbcast_protocol) config_evolution :: "'a configuration \<Rightarr
      (\<forall>x \<in> set cs. execution x) \<and>
      (\<forall>pre x y suf. cs = pre@x#y#suf \<longrightarrow> user_step x = y \<or> network_step x = y)"
 
-definition (in cbcast_protocol) forall_execs :: "('a configuration \<Rightarrow> 'a configuration \<Rightarrow> bool) \<Rightarrow> bool" where
-  "forall_execs P \<equiv> \<exists>cs. config_evolution config cs \<and>
+definition (in cbcast_protocol) forall_execs :: "'a configuration list \<Rightarrow> ('a configuration \<Rightarrow> 'a configuration \<Rightarrow> bool) \<Rightarrow> bool" where
+  "forall_execs cs P \<equiv> config_evolution config cs \<longrightarrow>
      (\<forall>pre x y suf. cs = pre@x#y#suf \<longrightarrow> P x y)"
 
 lemma (in cbcast_protocol) config_evolution_drop_last:
@@ -216,14 +216,11 @@ lemma (in cbcast_protocol) network_step_effect:
 done
 
 lemma (in cbcast_protocol) history_append:
-  shows "forall_execs (\<lambda>x y.
+  shows "forall_execs confs (\<lambda>x y. (user_step x = y \<or> network_step x = y) \<and>
       (\<exists>i es. fst (x i) @ es = fst (y i) \<and> (\<forall>j::nat. i\<noteq>j \<longrightarrow> fst (x j) = fst (y j))))"
   apply(unfold forall_execs_def)
-  apply(insert valid_execution)
-  apply(drule config_evolution_exists, erule exE)
+  apply(clarsimp)
   apply(simp add: config_evolution_def)
-  apply(rule_tac x=confs in exI, simp)
-  apply(rule allI)+
   apply(erule conjE)+
   apply(erule_tac x=pre in allE, erule_tac x=x in allE, erule_tac x=y in allE)
   apply(subgoal_tac "user_step x = y \<or> network_step x = y \<Longrightarrow>
@@ -272,6 +269,32 @@ lemma (in cbcast_protocol) history_append_simp:
   assumes "conf' = conf(i := (fst (conf i) @ xs, insert msg (snd (conf i))))"
   shows "fst (conf i) @ xs = fst (conf' i)"
 using assms by simp
+
+lemma (in cbcast_protocol) history_fold:
+  assumes "execution conf"
+  shows "\<exists>steps. conf = fold (op \<circ>) (map fst steps) id (\<lambda>n. ([], {})) \<and>
+         fst (conf i) = foldl (op @) [] (map snd steps)"
+  using assms
+  apply(induction rule: execution.induct)
+  apply(rule_tac x="[]" in exI, simp)
+  apply(erule exE)
+  apply(case_tac "conf=conf'", rule_tac x="steps" in exI, clarsimp)
+  apply(subgoal_tac "take_step \<in> {user_step, network_step}") defer
+  apply(rule choose_set_memb, simp, simp add: take_step_def)
+  apply(simp, erule disjE, simp)
+  apply(frule user_step_effect, assumption, (erule exE)+, (erule conjE)+)
+  apply(subst (asm) protocol_send_def)
+  apply(case_tac "i=ia")
+  apply(rule_tac x="steps@[(take_step, [Broadcast msg, Deliver msg])]" in exI, simp)
+  apply(rule_tac x="steps@[(take_step, [])]" in exI, simp)
+  apply(simp, frule network_step_effect, assumption, (erule exE)+, (erule conjE)+)
+  apply(subst (asm) protocol_recv_def)
+  apply(case_tac "i = recipient")
+  apply(case_tac "causally_ready (fst (conf recipient)) msg")
+  apply(rule_tac x="steps@[(take_step, [Deliver msg])]" in exI, simp)
+  apply(rule_tac x="steps@[(take_step, [])]" in exI, simp)
+  apply(rule_tac x="steps@[(take_step, [])]" in exI, simp)
+done
 
 lemma (in cbcast_protocol) event_creation:
   assumes "execution conf"
@@ -349,6 +372,53 @@ lemma (in cbcast_protocol) broadcast_node_id:
   apply(case_tac "nodea=i", case_tac "msga=msg")
   apply auto
 done
+
+lemma (in cbcast_protocol) broadcast_origin:
+  assumes "history i = pre @ [Broadcast msg] @ suf"
+    and "config_evolution config confs"
+  shows "\<exists>before after msgs. msgs = valid_msgs valid_ops i (fst (before i)) \<and> msgs \<noteq> {} \<and> msg \<in> msgs \<and>
+           after = before(i := (fst (before i) @ [Broadcast msg, Deliver msg], insert msg (snd (before i))))"
+  using assms apply(simp add: history_def)
+  apply(insert history_append, erule_tac x=confs in meta_allE)
+  apply(induction confs arbitrary: pre suf rule: rev_induct)
+  apply(simp add: config_evolution_def)
+  apply(case_tac "xs=[]", simp add: config_evolution_def, force)
+  apply(simp add: forall_execs_def)
+  apply(erule_tac x="butlast xs" in allE)
+  apply(erule_tac x="last xs" in allE)
+  apply(erule_tac x="x" in allE)
+  apply(subgoal_tac "\<exists>suf. xs @ [x] = butlast xs @ last xs # x # suf") defer
+  apply(metis (no_types, lifting) append_butlast_last_id append_eq_append_conv2
+    butlast.simps(2) last_ConsL last_ConsR list.simps(3))
+  apply(simp, erule exE, (erule conjE, erule exE)+)
+  apply(case_tac "i=ia")
+  apply(case_tac "Broadcast msg \<in> set(es)")
+  apply(rule_tac x="last xs" in exI, clarsimp)
+  apply(erule disjE)
+  apply(simp add: user_step_def)
+  apply(erule let_some_elim, simp+)
+  apply(simp add: case_prod_beta split: if_split_asm)
+  apply(erule let_some_elim, blast)
+  apply(case_tac "node=i", case_tac "msga=msg", blast)
+  apply(metis (no_types, lifting) event.distinct(1) event.inject(1) fst_conv fun_upd_same
+    nat.simps(3) protocol_send_def same_append_eq set_ConsD trivial_network.broadcasts_unique)
+  apply(metis (no_types, lifting) append_self_conv ex_in_conv fun_upd_def set_empty)
+  apply(simp add: network_step_def)
+  apply(erule let_some_elim, simp, erule let_some_elim, presburger)
+  apply(simp add: case_prod_beta protocol_recv_def split: if_split_asm)
+  apply(erule let_some_elim, blast)
+  apply(simp split: if_split_asm)
+  apply(case_tac "nodea=i", case_tac "msga=msg")
+  apply auto[1]
+  apply auto[1]
+  apply(metis (no_types, lifting) append_self_conv fst_conv fun_upd_same not_Cons_self2)
+
+  oops
+
+lemma (in cbcast_protocol) broadcast_msg_id:
+  assumes "history i = pre @ [Broadcast msg] @ suf"
+    shows "msg_id msg = (i, Suc (length (Broadcast.broadcasts pre)))"
+  oops
 
 context cbcast_protocol begin
 sublocale causal: causal_network history msg_id
