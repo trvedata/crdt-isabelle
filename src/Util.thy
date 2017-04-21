@@ -203,4 +203,14 @@ lemma map_filter_append:
   shows "List.map_filter P (xs @ ys) = List.map_filter P xs @ List.map_filter P ys"
 by(auto simp add: List.map_filter_def)
 
+definition drop_final :: "nat \<Rightarrow> 'a list \<Rightarrow> 'a list" where
+  "drop_final n xs \<equiv> rev (drop n (rev xs))"
+
+lemma drop_final_append:
+  assumes "ys = pre @ x # sufy"
+  and "ys = xs @ sufx"
+  and "x \<notin> set sufx"
+  shows "xs = pre @ x # drop_final (length sufx) sufy"
+  oops
+
 end
