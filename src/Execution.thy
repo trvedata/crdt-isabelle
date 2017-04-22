@@ -193,42 +193,6 @@ lemma (in executions) history_append_simp:
   shows "fst (conf i) @ xs = fst (conf' i)"
 using assms by simp
 
-lemma (in executions) event_origin:
-  assumes "execution conf"
-    and "evt \<in> set (fst (snd conf i))"
-  shows "\<exists>before after es. evt \<in> set es \<and> before \<noteq> after \<and>
-    (send_step before = after \<or> recv_step before = after) \<and>
-    fst (snd before i) @ es = fst (snd after i)"
-  using assms
-  apply(induction rule: execution.induct, simp add: initial_conf_def)
-  apply(case_tac "conf=conf'", simp)
-  apply(subgoal_tac "take_step \<in> {send_step, recv_step}") defer
-  apply(rule choose_set_memb, simp, simp add: take_step_def)
-  apply(simp, erule disjE, simp)
-  apply(insert send_step_def, erule_tac x=conf in meta_allE)[1]
-  apply(simp add: case_prod_beta)
-  apply(erule unpack_let)+
-  apply(simp add: case_prod_beta split: if_split_asm)
-  apply(erule unpack_let)
-  apply(case_tac "i=sender")
-  apply(case_tac "evt \<in> set (fst (send_msg i (snd conf i) msg))")
-  apply(rule_tac x="fst conf" in exI, rule_tac x="snd conf" in exI)
-  apply(rule_tac x="fst conf'" in exI, rule_tac x="snd conf'" in exI)
-  apply(rule_tac x="fst (send_msg i (snd conf i) msg)" in exI, force)
-  apply(subgoal_tac "evt \<in> set (fst (snd conf i))", simp)
-  apply(subgoal_tac "fst (snd conf i) @ fst (send_msg i (snd conf i) msg) = fst (snd conf' i)")
-  apply(force, force, force)
-  apply(insert recv_step_def, erule_tac x=conf in meta_allE)
-  apply(simp add: case_prod_beta split: if_split_asm)
-  apply(erule unpack_let)+
-  apply(case_tac "i = recipient")
-  apply(case_tac "evt \<in> set (fst (recv_msg i (snd conf i) msg))")
-  apply(rule_tac x="fst conf" in exI, rule_tac x="snd conf" in exI)
-  apply(rule_tac x="fst conf'" in exI, rule_tac x="snd conf'" in exI)
-  apply(rule_tac x="fst (recv_msg i (snd conf i) msg)" in exI)
-  apply force+
-done
-
 lemma (in executions) config_evolution_append:
   assumes "config_evolution conf (cs1 @ step # cs2)"
   shows "\<exists>suf. fst (snd step i) @ suf = fst (snd conf i)"
@@ -269,21 +233,18 @@ lemma (in executions) config_evolution_append:
   apply(rule_tac x="[]" in exI, simp)
 done
 
-lemma (in executions) message_origin:
+lemma (in executions) evolution_threshold:
   assumes "config_evolution conf confs"
-    and "msg \<in> fst conf"
-  shows "\<exists>before after sender valid evts state.
-           valid = valid_msg sender (snd before sender) \<and> valid \<noteq> {} \<and> msg \<in> valid \<and>
-           (evts, state) = send_msg sender (snd before sender) msg \<and>
-           after = (insert msg (fst before),
-             (snd before)(sender := (fst (snd before sender) @ evts, state)))"
-  using assms apply -
+    and "P conf" and "\<not> P initial_conf"
+  shows "\<exists>pre before after suf. (\<not> P before) \<and> (P after) \<and>
+    confs = pre @ [before, after] @ suf \<and> before \<noteq> after \<and>
+    (send_step before = after \<or> recv_step before = after)"
+  using assms
   apply(induction confs arbitrary: conf rule: rev_induct)
   apply(simp add: config_evolution_def)
   apply(case_tac "xs=[]")
   using config_evolution_def initial_conf_def apply fastforce
   apply(erule_tac x="last xs" in meta_allE)
-  apply(simp)
   apply(insert config_evolution_def)
   apply(erule_tac x=conf in meta_allE, erule_tac x="xs@[x]" in meta_allE)
   apply(simp, (erule conjE)+)
@@ -295,32 +256,85 @@ lemma (in executions) message_origin:
   apply(subgoal_tac "\<exists>suf. xs @ [conf] = butlast xs @ last xs # conf # suf") defer
   apply(metis (no_types, lifting) append_butlast_last_id append_eq_append_conv2
     butlast.simps(2) last_ConsL last_ConsR list.simps(3))
-  apply(simp, erule disjE)
-  apply(insert send_step_def, erule_tac x="last xs" in meta_allE)[1]
+  apply simp
+  apply(case_tac "last xs = conf")
+  apply(metis append_Cons append_assoc config_evolution_butlast)
+  apply(case_tac "(\<not> P (last xs)) \<and> (P (conf))")
+  apply(rule_tac x="butlast xs" in exI)
+  apply(rule_tac x="fst (last xs)" in exI)
+  apply(rule_tac x="snd (last xs)" in exI, simp)
+  apply(rule_tac x="fst conf" in exI)
+  apply(rule_tac x="snd conf" in exI, force)
+  apply(metis append_Cons append_assoc config_evolution_butlast)
+done
+
+lemma (in executions) event_origin:
+  assumes "config_evolution conf confs"
+    and "evt \<in> set (fst (snd conf i))"
+  shows "\<exists>pre before after suf es.
+    config_evolution conf (pre @ [before, after] @ suf) \<and>
+    before \<noteq> after \<and> (send_step before = after \<or> recv_step before = after) \<and>
+    evt \<in> set es \<and> fst (snd before i) @ es = fst (snd after i)"
+  using assms apply -
+  apply(frule_tac P="\<lambda>c. evt \<in> set (fst (snd c i))" in evolution_threshold)
+  apply(simp, simp add: initial_conf_def, (erule exE)+, (erule conjE)+)
+  apply(erule disjE)
+  apply(insert send_step_def, erule_tac x=before in meta_allE)[1]
+  apply(simp add: case_prod_beta)
+  apply(erule unpack_let)+
+  apply(simp add: case_prod_beta split: if_split_asm)
+  apply(erule unpack_let)
+  apply(subgoal_tac "i = sender")
+  apply(rule_tac x="pre" in exI)
+  apply(rule_tac x="fst before" in exI, rule_tac x="snd before" in exI)
+  apply(rule_tac x="fst after" in exI, rule_tac x="snd after" in exI)
+  apply((rule conjI, force)+, force, force)
+  apply(insert recv_step_def, erule_tac x=before in meta_allE)
+  apply(simp add: case_prod_beta split: if_split_asm)
+  apply(erule unpack_let)+
+  apply(subgoal_tac "i = recipient")
+  apply(rule_tac x="pre" in exI)
+  apply(rule_tac x="fst before" in exI, rule_tac x="snd before" in exI)
+  apply(rule_tac x="fst after" in exI, rule_tac x="snd after" in exI)
+  apply((rule conjI, force)+, force, force)
+done
+
+lemma (in executions) message_origin:
+  assumes "config_evolution conf confs"
+    and "msg \<in> fst conf"
+  shows "\<exists>pre before after suf sender valid evts state.
+    config_evolution conf (pre @ [before, after] @ suf) \<and>
+    valid = valid_msg sender (snd before sender) \<and> valid \<noteq> {} \<and> msg \<in> valid \<and>
+    (evts, state) = send_msg sender (snd before sender) msg \<and>
+    after = (insert msg (fst before),
+    (snd before)(sender := (fst (snd before sender) @ evts, state)))"
+  using assms apply -
+  apply(frule_tac P="\<lambda>c. msg \<in> fst c" in evolution_threshold)
+  apply(simp, simp add: initial_conf_def, (erule exE)+, (erule conjE)+)
+  apply(erule disjE)
+  apply(insert send_step_def, erule_tac x="before" in meta_allE)[1]
   apply(simp add: case_prod_beta)
   apply(erule unpack_let)+
   apply(simp add: case_prod_beta split: if_split_asm)
   apply(erule unpack_let)
   apply(case_tac "msga=msg")
-  apply(rule_tac x="fst (last xs)" in exI)
-  apply(rule_tac x="snd (last xs)" in exI)
-  apply(rule_tac x="fst conf" in exI)
-  apply(rule_tac x="snd conf" in exI)
+  apply(rule_tac x="pre" in exI)
+  apply(rule_tac x="fst before" in exI, rule_tac x="snd before" in exI)
+  apply(rule_tac x="fst after" in exI, rule_tac x="snd after" in exI)
+  apply(rule conjI, force)
   apply(rule_tac x="sender" in exI)
   apply(rule conjI, simp)
   apply(rule conjI, simp add: some_set_memb)
-  apply(rule_tac x="fst (send_msg sender (snd (last xs) sender) msga)" in exI)
-  apply(rule_tac x="snd (send_msg sender (snd (last xs) sender) msga)" in exI)
+  apply(rule_tac x="fst (send_msg sender (snd before sender) msga)" in exI)
+  apply(rule_tac x="snd (send_msg sender (snd before sender) msga)" in exI)
   apply(rule conjI, simp)
   apply(rule conjI, force, force)
-  apply(subgoal_tac "config_evolution (last xs) xs", simp)
-  apply(subgoal_tac "msg \<in> fst (last xs)", simp, force)
-  apply(metis config_evolution_butlast empty_iff fst_conv initial_conf_def)
-  apply(metis config_evolution_butlast empty_iff fst_conv initial_conf_def)
-  apply(insert recv_step_def, erule_tac x="last xs" in meta_allE)
+  apply(subgoal_tac "config_evolution before (pre @ [before])", simp)
+  apply(subgoal_tac "msg \<in> fst before", simp, force, force)
+  apply(insert recv_step_def, erule_tac x="before" in meta_allE)
   apply(simp add: case_prod_beta split: if_split_asm)
   apply(erule unpack_let)+
-  apply(metis config_evolution_butlast fst_conv initial_conf_def)
+  apply force
 done
 
 end

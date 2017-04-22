@@ -83,16 +83,19 @@ subsection\<open>Proof that this protocol satisfies the causal network assumptio
 
 lemma (in cbcast_protocol) broadcast_origin:
   assumes "Broadcast msg \<in> set (history i)"
-  shows "\<exists>before after oper evts. before \<noteq> after \<and>
+  shows "\<exists>pre before after suf oper evts.
+    config_evolution config (pre @ [before, after] @ suf) \<and>
     oper \<in> valid_ops (snd before i) \<and>
     msg = \<lparr>msg_id   = next_msgid i (snd before i),
            msg_deps = causal_deps (snd before i),
            msg_op   = oper\<rparr> \<and>
     evts = fst (snd before i) @ [Broadcast msg, Deliver msg] \<and>
     after = (insert msg (fst before), (snd before)(i := (evts, ())))"
-  using assms valid_execution apply(simp add: history_def)
+  using assms valid_execution apply -
+  apply(drule config_evolution_exists, erule exE, simp add: history_def)
   apply(drule event_origin, simp)
-  apply((erule exE)+, (erule conjE)+, erule disjE)
+  apply((erule exE)+, (erule conjE)+)
+  apply(rule_tac x=pre in exI, erule disjE)
   apply(simp add: send_step_def case_prod_beta)
   apply(erule unpack_let)+
   apply(simp add: case_prod_beta protocol_send_def split: if_split_asm)
