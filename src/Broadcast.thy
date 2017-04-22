@@ -81,16 +81,18 @@ definition (in cbcast_protocol) deliveries :: "nat \<Rightarrow> (nat, 'op) mess
 
 subsection\<open>Proof that this protocol satisfies the causal network assumptions\<close>
 
-lemma (in cbcast_protocol) broadcast_node_id:
+lemma (in cbcast_protocol) broadcast_origin:
   assumes "Broadcast msg \<in> set (history i)"
-    and "msg_id msg = (j, seq)"
-  shows "i = j"
+  shows "\<exists>before after oper evts. before \<noteq> after \<and>
+    oper \<in> valid_ops (snd before i) \<and>
+    msg = \<lparr>msg_id   = next_msgid i (snd before i),
+           msg_deps = causal_deps (snd before i),
+           msg_op   = oper\<rparr> \<and>
+    evts = fst (snd before i) @ [Broadcast msg, Deliver msg] \<and>
+    after = (insert msg (fst before), (snd before)(i := (evts, ())))"
   using assms valid_execution apply(simp add: history_def)
   apply(drule event_origin, simp)
-  apply((erule exE)+, (erule conjE)+)
-  apply(subgoal_tac "msg_id msg = next_msgid i (snd before i)")
-  apply(simp add: next_msgid_def)
-  apply(erule disjE)
+  apply((erule exE)+, (erule conjE)+, erule disjE)
   apply(simp add: send_step_def case_prod_beta)
   apply(erule unpack_let)+
   apply(simp add: case_prod_beta protocol_send_def split: if_split_asm)
@@ -101,13 +103,32 @@ lemma (in cbcast_protocol) broadcast_node_id:
   apply(subgoal_tac "msga=msg") prefer 2 apply simp
   apply(subgoal_tac "msg \<in> valid_msgs valid_ops i (snd before i)")
   prefer 2 apply(simp add: some_set_memb)
-  apply(simp add: valid_msgs_def, force)
+  apply(rule_tac x="fst before" in exI, rule_tac x="snd before" in exI)
+  apply(rule_tac x="fst after" in exI, rule_tac x="snd after" in exI)
+  apply(rule conjI, force)
+  apply(rule_tac x="msg_op msg" in exI)
+  apply(subgoal_tac "valid_ops (snd before i) \<noteq> {}")
+  prefer 2 apply(simp add: valid_msgs_def)
+  apply(subgoal_tac "msg \<in> (\<lambda>oper.
+             \<lparr>msg_id   = next_msgid i (snd before i),
+              msg_deps = causal_deps (snd before i),
+              msg_op   = oper\<rparr>) ` valid_ops (snd before i)")
+  prefer 2 apply (simp add: valid_msgs_def)
+  apply(subgoal_tac "msg_op msg \<in> valid_ops (snd before i)")
+  prefer 2 apply force
+  apply((rule conjI, force)+, force)
   apply(simp add: recv_step_def protocol_recv_def case_prod_beta split: if_split_asm)
   apply(erule unpack_let)+
   apply(subgoal_tac "recipient=i")
   apply force+
 done
 
+lemma (in cbcast_protocol) broadcast_node_id:
+  assumes "Broadcast msg \<in> set (history i)"
+    and "msg_id msg = (j, seq)"
+  shows "i = j"
+  using assms broadcast_origin next_msgid_def
+  by (metis fst_conv select_convs(1))
 
 lemma (in cbcast_protocol) broadcast_msg_id:
   assumes "broadcasts i = pre @ [msg] @ suf"
