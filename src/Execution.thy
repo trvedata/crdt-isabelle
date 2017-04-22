@@ -84,6 +84,14 @@ lemma (in executions) config_evolution_drop_last2:
   using list_two_at_end apply blast
 done
 
+lemma (in executions) take_step_disj:
+  assumes "take_step conf = conf'"
+  shows "send_step conf = conf' \<or> recv_step conf = conf'"
+  using assms apply -
+  apply(subgoal_tac "take_step \<in> {send_step, recv_step}") defer
+  apply(rule choose_set_memb, simp, simp add: take_step_def, force)
+done
+
 lemma (in executions) config_evolution_exists:
   assumes "execution conf"
   shows "\<exists>confs. config_evolution conf confs"
@@ -96,9 +104,7 @@ lemma (in executions) config_evolution_exists:
   apply(rule conjI)
   using execution.intros(2) last_in_set apply blast
   apply(rule allI)+
-  apply(subgoal_tac "take_step \<in> {send_step, recv_step}") defer
-  apply(rule choose_set_memb, simp, simp add: take_step_def)
-  apply(simp, erule disjE, clarsimp)
+  apply(drule take_step_disj, erule disjE, clarsimp)
   apply(case_tac suf, force)
   apply(metis (no_types, lifting) butlast.simps(2) butlast_append butlast_snoc list.simps(3))
   apply(clarsimp, case_tac suf, force)
@@ -335,6 +341,59 @@ lemma (in executions) message_origin:
   apply(simp add: case_prod_beta split: if_split_asm)
   apply(erule unpack_let)+
   apply force
+done
+
+lemma (in executions) evolution_monotonic_prop:
+  assumes "config_evolution later (pre @ [earlier] @ suf)"
+    and "P earlier"
+    and "\<And>conf. P conf \<Longrightarrow> P (send_step conf) \<and> P (recv_step conf)"
+  shows "P later"
+  using assms
+  apply(induction suf arbitrary: later rule: rev_induct)
+  apply(simp add: config_evolution_def)
+  apply(erule_tac x="last (pre @ earlier # xs)" in meta_allE)+
+  apply(subgoal_tac "x=later") defer apply(simp add: config_evolution_def)
+  apply(subst (asm) config_evolution_def, (erule conjE)+)
+  apply(case_tac "xs=[]")
+  apply(erule_tac x=pre in allE, force)
+  apply(subgoal_tac "config_evolution (last xs) (pre @ [earlier] @ xs)")
+  using assms(3) apply simp
+  apply(erule_tac x="butlast (pre @ earlier # xs)" in allE)
+  apply(erule_tac x="fst (last xs)" in allE)
+  apply(erule_tac x="snd (last xs)" in allE)
+  apply(erule_tac x="fst later" in allE)
+  apply(erule_tac x="snd later" in allE)
+  apply(subgoal_tac "send_step (last xs) = later \<or> recv_step (last xs) = later")
+  apply blast
+  apply(subgoal_tac "pre @ earlier # xs @ [later] = butlast (pre @ earlier # xs) @ last xs # [later]")
+  apply(simp, simp add: butlast_append)
+  apply(subgoal_tac "config_evolution x (pre @ [earlier] @ xs @ [x])")
+  apply(insert config_evolution_drop_last)
+  apply(erule_tac x=x in meta_allE)
+  apply(erule_tac x="butlast (pre @ earlier # xs)" in meta_allE)
+  apply(erule_tac x="last xs" in meta_allE)
+  apply(simp add: butlast_append)
+  apply(metis append.assoc append_butlast_last_id butlast.simps(2) last_ConsL last_ConsR list.simps(3))
+  using config_evolution_def apply presburger
+done
+
+lemma (in executions) no_return_to_initial:
+  assumes "config_evolution later (pre @ [earlier] @ suf)"
+    and "earlier \<noteq> initial_conf"
+  shows "later \<noteq> initial_conf"
+  using assms apply -
+  apply(erule evolution_monotonic_prop)
+  apply(simp_all add: send_step_def recv_step_def case_prod_beta Let_unfold initial_conf_def)
+done
+
+lemma (in executions) message_set_monotonic:
+  assumes "config_evolution later (pre @ [earlier] @ suf)"
+    and "msg \<in> fst earlier"
+  shows "msg \<in> fst later"
+  using assms apply -
+  apply(erule evolution_monotonic_prop, simp)
+  apply(simp add: send_step_def recv_step_def case_prod_beta Let_unfold)
+  apply blast
 done
 
 end
