@@ -199,46 +199,6 @@ lemma (in executions) history_append_simp:
   shows "fst (conf i) @ xs = fst (conf' i)"
 using assms by simp
 
-lemma (in executions) config_evolution_append:
-  assumes "config_evolution conf (cs1 @ step # cs2)"
-  shows "\<exists>suf. fst (snd step i) @ suf = fst (snd conf i)"
-  using assms apply -
-  apply(induction cs2 arbitrary: conf rule: rev_induct)
-  apply(rule_tac x="[]" in exI)
-  apply(metis (mono_tags, lifting) config_evolution_def last_snoc self_append_conv)
-  apply(subgoal_tac "x=conf") defer
-  apply(metis (mono_tags, lifting) config_evolution_def last.simps last_append
-    list.distinct(1) snoc_eq_iff_butlast)
-  apply(insert config_evolution_drop_last2)
-  apply(erule_tac x="cs1 @ step # xs @ [conf]" in meta_allE)
-  apply(erule_tac x="last (step # xs)" in meta_allE)
-  apply(simp add: butlast_append)
-  apply(case_tac "xs=[]")
-  apply(insert history_append)
-  apply(erule_tac x=conf in meta_allE)
-  apply(erule_tac x="cs1 @ [step, conf]" in meta_allE)
-  apply(erule_tac x=cs1 in meta_allE)
-  apply(erule_tac x=step in meta_allE)
-  apply(erule_tac x=conf in meta_allE)
-  apply(subgoal_tac "\<exists>i es. fst (snd step i) @ es = fst (snd conf i) \<and>
-                (\<forall>j. i \<noteq> j \<longrightarrow> fst (snd step j) = fst (snd conf j))")
-  apply(erule exE)+
-  apply(case_tac "i=ia")
-  apply(rule_tac x="es" in exI, simp)
-  apply(rule_tac x="[]" in exI, simp, simp)
-  apply(erule_tac x="conf" in meta_allE)
-  apply(erule_tac x="cs1 @ step # xs @ [conf]" in meta_allE)
-  apply(erule_tac x="cs1 @ step # butlast xs" in meta_allE)
-  apply(erule_tac x="last xs" in meta_allE)
-  apply(erule_tac x="conf" in meta_allE)
-  apply(subgoal_tac "\<exists>suf. cs1 @ step # butlast xs @ last xs # conf # suf = cs1 @ step # xs @ [conf]")
-  apply(clarsimp)
-  apply(case_tac "i=ia")
-  apply(rule_tac x="suf@es" in exI, metis append.assoc)
-  apply(rule_tac x="suf" in exI, simp)
-  apply(rule_tac x="[]" in exI, simp)
-done
-
 lemma (in executions) evolution_threshold:
   assumes "config_evolution conf confs"
     and "P conf" and "\<not> P initial_conf"
@@ -394,6 +354,17 @@ lemma (in executions) message_set_monotonic:
   apply(erule evolution_monotonic_prop, simp)
   apply(simp add: send_step_def recv_step_def case_prod_beta Let_unfold)
   apply blast
+done
+
+lemma (in executions) node_history_monotonic:
+  assumes "config_evolution later (pre @ [earlier] @ suf)"
+  shows "\<exists>suf. fst (snd earlier i) @ suf = fst (snd later i)"
+  using assms apply -
+  apply(erule evolution_monotonic_prop, simp, erule exE, rule conjI)
+  apply(simp add: send_step_def case_prod_beta Let_unfold)
+  apply(metis append_assoc)
+  apply(simp add: recv_step_def case_prod_beta Let_unfold)
+  apply(metis append_assoc)
 done
 
 end

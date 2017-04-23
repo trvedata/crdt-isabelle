@@ -134,15 +134,28 @@ lemma (in cbcast_protocol) broadcast_node_id:
   by (metis fst_conv select_convs(1))
 
 lemma (in cbcast_protocol) broadcast_msg_eq:
-  shows "Broadcast msg \<in> set (history i) \<longleftrightarrow> msg \<in> all_messages"
+  shows "(\<exists>i. Broadcast msg \<in> set (history i)) \<longleftrightarrow> msg \<in> all_messages"
   apply(simp add: all_messages_def)
   apply(rule iffI)
-  apply(drule broadcast_origin, (erule exE)+, (erule conjE)+)
+  apply(erule exE, drule broadcast_origin, (erule exE)+, (erule conjE)+)
   apply(subgoal_tac "msg \<in> fst after")
   apply(insert message_set_monotonic)[1]
-  apply(erule_tac x=config in meta_allE)
+  apply(erule_tac x="config" in meta_allE)
   apply(erule_tac x="pre @ [before]" in meta_allE, simp, simp)
-  oops
+  apply(insert valid_execution, drule config_evolution_exists, erule exE)
+  apply(drule message_origin, simp, (erule exE)+, (erule conjE)+)
+  apply(rule_tac x=sender in exI)
+  apply(subgoal_tac "Broadcast msg \<in> set (fst (snd config sender))")
+  apply(simp add: history_def)
+  apply(subgoal_tac "\<exists>xs. fst (snd after sender) @ xs = fst (snd config sender)")
+  apply(simp add: protocol_send_def, metis in_set_conv_decomp)
+  apply(insert node_history_monotonic)[1]
+  apply(erule_tac x="config" in meta_allE)
+  apply(erule_tac x="pre @ [before]" in meta_allE)
+  apply(erule_tac x="after" in meta_allE)
+  apply(erule_tac x="suf" in meta_allE)
+  apply(erule_tac x="sender" in meta_allE, simp)
+done
 
 lemma (in cbcast_protocol) broadcast_msg_id:
   assumes "broadcasts i = pre @ [msg] @ suf"
