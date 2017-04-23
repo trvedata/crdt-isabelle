@@ -203,14 +203,36 @@ lemma map_filter_append:
   shows "List.map_filter P (xs @ ys) = List.map_filter P xs @ List.map_filter P ys"
 by(auto simp add: List.map_filter_def)
 
-definition drop_final :: "nat \<Rightarrow> 'a list \<Rightarrow> 'a list" where
-  "drop_final n xs \<equiv> rev (drop n (rev xs))"
-
 lemma drop_final_append:
-  assumes "ys = pre @ x # sufy"
-  and "ys = xs @ sufx"
-  and "x \<notin> set sufx"
-  shows "xs = pre @ x # drop_final (length sufx) sufy"
-  oops
+  assumes "xs = ys1 @ zs1"
+      and "xs = ys2 @ zs2"
+      and "length zs1 \<le> length zs2"
+    shows "\<exists>short. ys2 @ short = ys1"
+  using assms
+  apply(induction zs1 arbitrary: xs zs2 rule: rev_induct, force)
+  apply(subgoal_tac "zs2 \<noteq> []") defer apply force
+  apply(erule_tac x="butlast xsa" in meta_allE)
+  apply(erule_tac x="butlast zs2" in meta_allE)
+  apply(subgoal_tac "length xs \<le> length (butlast zs2)")
+  apply(metis append_assoc butlast_append butlast_snoc, simp)
+done
+
+lemma unique_first_occurrence:
+  assumes "xs = ys1 @ zs1"
+      and "xs = ys2 @ [hd zs1] @ zs2"
+      and "hd zs1 \<notin> set ys1"
+      and "hd zs1 \<notin> set ys2"
+      and "zs1 \<noteq> []"
+    shows "ys1 = ys2"
+  using assms
+  apply(induction zs1 arbitrary: xs zs2 rule: rev_induct, force)
+  apply(case_tac "zs2 = []", simp)
+  using hd_append2 hd_in_set apply force
+  apply(erule_tac x="butlast xsa" in meta_allE)
+  apply(erule_tac x="butlast zs2" in meta_allE)
+  apply(case_tac "xs = []", simp)
+  apply(metis butlast.simps(2) butlast_append butlast_snoc in_set_conv_decomp)
+  apply(metis append_Cons append_Nil2 butlast_append butlast_snoc hd_append2 in_set_conv_decomp)
+done
 
 end

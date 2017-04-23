@@ -367,4 +367,46 @@ lemma (in executions) node_history_monotonic:
   apply(metis append_assoc)
 done
 
+lemma (in executions) history_before_event:
+  assumes "config_evolution conf confs"
+      and "confs = pre @ [before, after] @ suf"
+      and "fst (snd before i) @ es = fst (snd after i)"
+      and "fst (snd conf i) = es1 @ [hd es] @ es2"
+      and "hd es \<notin> set es1"
+      and "hd es \<notin> set (fst (snd before i))"
+      and "es \<noteq> []"
+    shows "fst (snd before i) = es1"
+  using assms
+  apply(induction confs arbitrary: conf suf es2 rule: rev_induct)
+  apply(simp, case_tac "xs=[]", simp)
+  apply(erule_tac x="last xs" in meta_allE)
+  apply(case_tac "suf=[]")
+  apply(subgoal_tac "fst (snd after i) = es1 @ hd es # es2")
+  apply(metis Cons_eq_append_conv self_append_conv2 unique_first_occurrence)
+  apply(simp add: config_evolution_def)
+  apply(subgoal_tac "x=conf") defer
+  apply(metis config_evolution_def last_snoc)
+  apply(erule_tac x="butlast suf" in meta_allE)
+  apply(subst (asm) config_evolution_def, (erule conjE)+)
+  apply(erule_tac x="butlast xs" in allE, erule_tac x="last xs" in allE)
+  apply(erule_tac x="x" in allE, erule_tac x="[]" in allE)
+  apply(subgoal_tac "send_step (last xs) = x \<or> recv_step (last xs) = x") defer
+  apply(simp add: append_eq_append_conv2)
+  apply(erule disjE, simp add: send_step_def case_prod_beta)
+  apply(erule unpack_let)+
+  apply(simp add: case_prod_beta split: if_split_asm)
+  apply(erule unpack_let)
+  apply(case_tac "sender=i")
+  apply(subgoal_tac "fst (snd x i) = fst (snd (last xs) i) @ fst (send_msg i (snd (last xs) i) msg)")
+  prefer 2 apply force
+  
+  apply(insert drop_final_append)[1]
+  apply(erule_tac x="fst (snd conf i)" in meta_allE)
+
+  (*
+  apply(simp add: recv_step_def case_prod_beta split: if_split_asm)
+  apply(erule unpack_let)+
+  *)
+  oops
+
 end
