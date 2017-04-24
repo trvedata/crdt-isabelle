@@ -396,33 +396,35 @@ done
 
 lemma (in executions) event_origin:
   assumes "config_evolution conf confs"
-    and "evt \<in> set (fst (snd conf i))"
+    and "fst (snd conf i) = xs @ [evt] @ ys"
+    and "evt \<notin> set xs"
   shows "\<exists>pre before after suf es.
     config_evolution conf (pre @ [before, after] @ suf) \<and>
     before \<noteq> after \<and> (send_step before = after \<or> recv_step before = after) \<and>
-    evt \<in> set es \<and> fst (snd before i) @ es = fst (snd after i)"
+    evt \<in> set es \<and> fst (snd before i) @ es = fst (snd after i) \<and>
+    (evt = hd es \<longrightarrow> fst (snd before i) = xs)"
   using assms apply -
   apply(frule_tac P="\<lambda>c. evt \<in> set (fst (snd c i))" in evolution_threshold)
   apply(simp, simp add: initial_conf_def, (erule exE)+, (erule conjE)+)
+  apply(subgoal_tac "\<exists>es. fst (snd before i) @ es = fst (snd after i)")
+  apply(erule exE)
+  apply(subgoal_tac "evt \<in> set es") prefer 2 apply(metis UnE set_append)
+  apply(rule_tac x="pre" in exI)
+  apply(rule_tac x="before" in exI, rule_tac x="after" in exI)
+  apply(rule_tac x="suf" in exI, rule_tac x="es" in exI)
+  apply(rule conjI, force)+
+  apply(rule impI)
+  apply(subgoal_tac "\<exists>rest. fst (snd conf i) = xs @ [hd es] @ rest")
+  apply(rule history_before_event, force+)
   apply(erule disjE)
-  apply(insert send_step_def, erule_tac x=before in meta_allE)[1]
-  apply(simp add: case_prod_beta)
+  apply(simp add: send_step_def case_prod_beta)
   apply(erule unpack_let)+
   apply(simp add: case_prod_beta split: if_split_asm)
   apply(erule unpack_let)
-  apply(subgoal_tac "i = sender")
-  apply(rule_tac x="pre" in exI)
-  apply(rule_tac x="fst before" in exI, rule_tac x="snd before" in exI)
-  apply(rule_tac x="fst after" in exI, rule_tac x="snd after" in exI)
-  apply((rule conjI, force)+, force, force)
-  apply(insert recv_step_def, erule_tac x=before in meta_allE)
-  apply(simp add: case_prod_beta split: if_split_asm)
+  apply(case_tac "i = sender", force+)
+  apply(simp add: recv_step_def case_prod_beta split: if_split_asm)
   apply(erule unpack_let)+
-  apply(subgoal_tac "i = recipient")
-  apply(rule_tac x="pre" in exI)
-  apply(rule_tac x="fst before" in exI, rule_tac x="snd before" in exI)
-  apply(rule_tac x="fst after" in exI, rule_tac x="snd after" in exI)
-  apply((rule conjI, force)+, force, force)
+  apply(case_tac "i = recipient", force+)
 done
 
 lemma (in executions) message_origin:

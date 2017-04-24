@@ -260,4 +260,9 @@ lemma list_append_length:
   shows "length xs < length (xs @ ys)"
   using assms by simp
 
+lemma list_set_memb:
+  assumes "x \<in> set xs"
+  shows "\<exists>ys zs. xs = ys @ [x] @ zs"
+using assms by(induction xs rule: rev_induct, simp, case_tac "x=xa", force+)
+
 end

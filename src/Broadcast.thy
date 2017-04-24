@@ -82,7 +82,8 @@ definition (in cbcast_protocol) deliveries :: "nat \<Rightarrow> (nat, 'op) mess
 subsection\<open>Proof that this protocol satisfies the causal network assumptions\<close>
 
 lemma (in cbcast_protocol) broadcast_origin:
-  assumes "Broadcast msg \<in> set (history i)"
+  assumes "history i = xs @ Broadcast msg # ys"
+    and "Broadcast msg \<notin> set xs"
   shows "\<exists>pre before after suf oper evts.
     config_evolution config (pre @ [before, after] @ suf) \<and>
     oper \<in> valid_ops (snd before i) \<and>
@@ -90,10 +91,14 @@ lemma (in cbcast_protocol) broadcast_origin:
            msg_deps = causal_deps (snd before i),
            msg_op   = oper\<rparr> \<and>
     evts = fst (snd before i) @ [Broadcast msg, Deliver msg] \<and>
-    after = (insert msg (fst before), (snd before)(i := (evts, ())))"
+    after = (insert msg (fst before), (snd before)(i := (evts, ()))) \<and>
+    fst (snd before i) = xs"
   using assms valid_execution apply -
-  apply(drule config_evolution_exists, erule exE, simp add: history_def)
-  apply(drule event_origin, simp)
+  apply(frule config_evolution_exists, erule exE)
+  apply(subgoal_tac "Broadcast msg \<in> set (fst (snd config i))") defer
+  apply(simp add: history_def)
+  apply(frule_tac evt="Broadcast msg" and i=i and xs=xs and ys=ys in event_origin)
+  apply(simp add: history_def, simp)
   apply((erule exE)+, (erule conjE)+)
   apply(rule_tac x=pre in exI, erule disjE)
   apply(simp add: send_step_def case_prod_beta)
@@ -129,8 +134,11 @@ done
 lemma (in cbcast_protocol) broadcast_msg_eq:
   shows "(\<exists>i. Broadcast msg \<in> set (history i)) \<longleftrightarrow> msg \<in> all_messages"
   apply(simp add: all_messages_def)
-  apply(rule iffI)
-  apply(erule exE, drule broadcast_origin, (erule exE)+, (erule conjE)+)
+  apply(rule iffI, erule exE)
+  apply(subgoal_tac "\<exists>es1 es2. history i = es1 @ Broadcast msg # es2 \<and> Broadcast msg \<notin> set es1")
+  prefer 2 apply(meson split_list_first)
+  apply((erule exE)+, erule conjE)
+  apply(drule broadcast_origin, simp, (erule exE)+, (erule conjE)+)
   apply(subgoal_tac "msg \<in> fst after")
   apply(insert message_set_monotonic)[1]
   apply(erule_tac x="config" in meta_allE)
@@ -142,7 +150,7 @@ lemma (in cbcast_protocol) broadcast_msg_eq:
   apply(simp add: history_def)
   apply(subgoal_tac "\<exists>xs. fst (snd after sender) @ xs = fst (snd config sender)")
   apply(simp add: protocol_send_def, metis in_set_conv_decomp)
-  apply(insert node_history_monotonic)[1]
+  apply(insert history_monotonic)[1]
   apply(erule_tac x="config" in meta_allE)
   apply(erule_tac x="pre @ [before]" in meta_allE)
   apply(erule_tac x="after" in meta_allE)
@@ -150,10 +158,9 @@ lemma (in cbcast_protocol) broadcast_msg_eq:
   apply(erule_tac x="sender" in meta_allE, simp)
 done
 
-lemma map_filter_broadcast:
+lemma (in cbcast_protocol) map_filter_broadcast:
   assumes "msg \<in> set (List.map_filter
-                 (\<lambda>e. case e of Broadcast m \<Rightarrow> Some m | Deliver x \<Rightarrow> Map.empty x)
-                 hist)"
+           (\<lambda>e. case e of Broadcast m \<Rightarrow> Some m | _ \<Rightarrow> None) hist)"
   shows "Broadcast msg \<in> set hist"
   using assms apply(induction hist)
   apply(simp add: map_filter_simps(2))
@@ -172,25 +179,34 @@ lemma (in cbcast_protocol) broadcast_node_id:
   assumes "Broadcast msg \<in> set (history i)"
     and "msg_id msg = (j, seq)"
   shows "i = j"
-  using assms broadcast_origin next_msgid_def
-  by (metis fst_conv select_convs(1))
+  using assms apply -
+  apply(subgoal_tac "\<exists>es1 es2. history i = es1 @ Broadcast msg # es2 \<and> Broadcast msg \<notin> set es1")
+  prefer 2 apply(meson split_list_first)
+  apply((erule exE)+, erule conjE, drule broadcast_origin)
+  apply(simp, simp add: next_msgid_def)
+  apply(metis fst_conv select_convs(1))
+done
 
 lemma (in cbcast_protocol) broadcast_msgid_increase:
   assumes "history i = es1 @ [Broadcast m1] @ es2 @ [Broadcast m2] @ es3"
+    and "Broadcast m1 \<notin> set es1"
   shows "snd (msg_id m1) < snd (msg_id m2)"
   using assms apply -
-  apply(subgoal_tac "Broadcast m1 \<in> set (history i)") defer apply force
-  apply(drule broadcast_origin, (erule exE)+, (erule conjE)+)
-  apply(subgoal_tac "\<exists>suf. fst (snd after i) @ suf = fst (snd config i)") defer
-  apply(insert node_history_monotonic)[1]
+  apply(insert broadcast_origin, erule_tac x=i in meta_allE)
+  apply(erule_tac x=es1 in meta_allE, erule_tac x=m1 in meta_allE)
+  apply(erule_tac x="es2 @ [Broadcast m2] @ es3" in meta_allE)
+  apply(simp, ((erule exE)+, (erule conjE)+)+)
+  apply(subgoal_tac "\<exists>suf. fst (ba i) @ suf = fst (snd config i)") defer
+  apply(insert history_monotonic)[1]
   apply(erule_tac x="config" in meta_allE)
-  apply(erule_tac x="pre @ [before]" in meta_allE, erule_tac x="after" in meta_allE)
+  apply(erule_tac x="pre @ [(a, b)]" in meta_allE)
+  apply(erule_tac x="(aa, ba)" in meta_allE)
   apply(erule_tac x="suf" in meta_allE, erule_tac x="i" in meta_allE, simp)
   apply(erule exE)
   apply(subgoal_tac "sufa=es3") defer
   apply(simp add: history_def)
-  apply(subgoal_tac "Broadcast m2 \<in> set (history i)") defer apply force
-  apply(drule broadcast_origin, (erule exE)+, (erule conjE)+)
+  (*apply(subgoal_tac "Broadcast m2 \<in> set (history i)") defer apply force
+  apply(drule broadcast_origin, (erule exE)+, (erule conjE)+)*)
   oops
 
 lemma (in cbcast_protocol) broadcast_msg_id:
