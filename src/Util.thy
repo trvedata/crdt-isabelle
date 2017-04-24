@@ -203,28 +203,15 @@ lemma map_filter_append:
   shows "List.map_filter P (xs @ ys) = List.map_filter P xs @ List.map_filter P ys"
 by(auto simp add: List.map_filter_def)
 
-lemma drop_final_append:
-  assumes "xs = ys1 @ zs1"
-      and "xs = ys2 @ zs2"
-      and "length zs1 \<le> length zs2"
-    shows "\<exists>short. ys2 @ short = ys1"
-  using assms
-  apply(induction zs1 arbitrary: xs zs2 rule: rev_induct, force)
-  apply(subgoal_tac "zs2 \<noteq> []") defer apply force
-  apply(erule_tac x="butlast xsa" in meta_allE)
-  apply(erule_tac x="butlast zs2" in meta_allE)
-  apply(subgoal_tac "length xs \<le> length (butlast zs2)")
-  apply(metis append_assoc butlast_append butlast_snoc, simp)
-done
-
 lemma unique_first_occurrence:
   assumes "xs = ys1 @ zs1"
       and "xs = ys2 @ [hd zs1] @ zs2"
       and "hd zs1 \<notin> set ys1"
       and "hd zs1 \<notin> set ys2"
       and "zs1 \<noteq> []"
-    shows "ys1 = ys2"
-  using assms
+    shows "ys1 = ys2 \<and> zs1 = [hd zs1] @ zs2"
+  using assms apply -
+  apply(subgoal_tac "ys1 = ys2", simp)
   apply(induction zs1 arbitrary: xs zs2 rule: rev_induct, force)
   apply(case_tac "zs2 = []", simp)
   using hd_append2 hd_in_set apply force
@@ -233,6 +220,43 @@ lemma unique_first_occurrence:
   apply(case_tac "xs = []", simp)
   apply(metis butlast.simps(2) butlast_append butlast_snoc in_set_conv_decomp)
   apply(metis append_Cons append_Nil2 butlast_append butlast_snoc hd_append2 in_set_conv_decomp)
+done
+
+lemma first_occurrence_length:
+  assumes "xs = ys1 @ zs1"
+      and "xs = ys2 @ zs2"
+      and "hd zs1 \<notin> set ys1"
+      and "hd zs1 \<notin> set ys2"
+      and "zs1 \<noteq> []"
+    shows "length ys2 \<le> length ys1"
+  using assms
+  apply(induction zs1 arbitrary: xs zs2 rule: rev_induct, force)
+  apply(subgoal_tac "hd (xs @ [x]) \<in> set zs2 \<and> hd (xs @ [x]) \<in> set xsa") defer
+  apply(metis Un_iff hd_in_set set_append, erule conjE)
+  apply(case_tac "zs2 = []", simp)
+  apply(erule_tac x="butlast xsa" in meta_allE)
+  apply(erule_tac x="butlast zs2" in meta_allE)
+  apply(case_tac "xs = []", simp)
+  apply(metis in_set_conv_nth not_le nth_append nth_append_length)
+  apply(metis butlast_append butlast_snoc hd_append2)
+done
+
+lemma drop_final_append:
+  assumes "xs = ys1 @ zs1"
+      and "xs = ys2 @ zs2"
+      and "hd zs1 \<notin> set ys1"
+      and "hd zs1 \<notin> set ys2"
+      and "zs1 \<noteq> []"
+    shows "\<exists>es. ys2 @ es = ys1"
+  using assms
+  apply(induction zs1 arbitrary: xs zs2 rule: rev_induct, force)
+  apply(erule_tac x="butlast xsa" in meta_allE)
+  apply(erule_tac x="butlast zs2" in meta_allE)
+  apply(subgoal_tac "length ys2 \<le> length ys1")
+  apply(case_tac "butlast zs2 = []")
+  apply(metis append_eq_append_conv_if append_is_Nil_conv butlast_append butlast_snoc)
+  apply(metis append_self_conv butlast.simps(1) butlast_append butlast_snoc hd_append2)
+  using first_occurrence_length apply blast
 done
 
 end

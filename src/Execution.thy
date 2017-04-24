@@ -54,6 +54,9 @@ inductive (in executions) execution :: "('nodeid, 'msg, 'evt, 'state) system \<R
   "execution initial_conf" |
   "\<lbrakk> execution conf; take_step conf = conf' \<rbrakk> \<Longrightarrow> execution conf'"
 
+
+subsection\<open>Reasoning about how the system configuration evolves over time\<close>
+
 definition (in executions) config_evolution ::
   "('nodeid, 'msg, 'evt, 'state) system \<Rightarrow> ('nodeid, 'msg, 'evt, 'state) system list \<Rightarrow> bool" where
   "config_evolution c cs \<equiv>
@@ -379,14 +382,22 @@ lemma (in executions) history_before_event:
   using assms
   apply(induction confs arbitrary: conf suf es2 rule: rev_induct)
   apply(simp, case_tac "xs=[]", simp)
-  apply(erule_tac x="last xs" in meta_allE)
   apply(case_tac "suf=[]")
   apply(subgoal_tac "fst (snd after i) = es1 @ hd es # es2")
   apply(metis Cons_eq_append_conv self_append_conv2 unique_first_occurrence)
   apply(simp add: config_evolution_def)
   apply(subgoal_tac "x=conf") defer
   apply(metis config_evolution_def last_snoc)
+  apply(subgoal_tac "\<exists>esa. es1 @ hd es # esa = fst (snd (last xs) i)")
+  apply(erule exE)
+  apply(subgoal_tac "config_evolution (last xs) xs") prefer 2
+  apply(metis append_is_Nil_conv config_evolution_butlast fst_conv initial_conf_def
+    snd_conv snoc_eq_iff_butlast)
+  apply(erule_tac x="last xs" in meta_allE)
   apply(erule_tac x="butlast suf" in meta_allE)
+  apply(erule_tac x="esa" in meta_allE, simp)
+  apply(subgoal_tac "xs = pre @ before # after # butlast suf", simp)
+  apply(metis butlast.simps(2) butlast_append butlast_snoc list.simps(3))
   apply(subst (asm) config_evolution_def, (erule conjE)+)
   apply(erule_tac x="butlast xs" in allE, erule_tac x="last xs" in allE)
   apply(erule_tac x="x" in allE, erule_tac x="[]" in allE)
@@ -399,9 +410,17 @@ lemma (in executions) history_before_event:
   apply(case_tac "sender=i")
   apply(subgoal_tac "fst (snd x i) = fst (snd (last xs) i) @ fst (send_msg i (snd (last xs) i) msg)")
   prefer 2 apply force
-  
+  apply(case_tac "fst (send_msg i (snd (last xs) i) msg) = []")
+  apply(rule_tac x="es2" in exI, simp)
+  apply(subgoal_tac "hd (fst (send_msg i (snd (last xs) i) msg)) \<notin> set (fst (snd (last xs) i))")
+  apply(subgoal_tac "hd (fst (send_msg i (snd (last xs) i) msg)) \<notin> set (es1 @ [hd es])")
   apply(insert drop_final_append)[1]
-  apply(erule_tac x="fst (snd conf i)" in meta_allE)
+  apply(erule_tac x="fst (snd x i)" in meta_allE)
+  apply(erule_tac x="fst (snd (last xs) i)" in meta_allE)
+  apply(erule_tac x="fst (send_msg i (snd (last xs) i) msg)" in meta_allE)
+  apply(erule_tac x="es1 @ [hd es]" in meta_allE)
+  apply(erule_tac x="es2" in meta_allE, simp)
+  
 
   (*
   apply(simp add: recv_step_def case_prod_beta split: if_split_asm)
