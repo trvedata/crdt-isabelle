@@ -359,15 +359,22 @@ lemma (in executions) message_set_monotonic:
   apply blast
 done
 
-lemma (in executions) node_history_monotonic:
+lemma (in executions) history_monotonic:
   assumes "config_evolution later (pre @ [earlier] @ suf)"
   shows "\<exists>suf. fst (snd earlier i) @ suf = fst (snd later i)"
   using assms apply -
   apply(erule evolution_monotonic_prop, simp, erule exE, rule conjI)
-  apply(simp add: send_step_def case_prod_beta Let_unfold)
-  apply(metis append_assoc)
-  apply(simp add: recv_step_def case_prod_beta Let_unfold)
-  apply(metis append_assoc)
+  apply(simp_all add: send_step_def recv_step_def case_prod_beta Let_unfold)
+  apply(metis append_assoc)+
+done
+
+lemma (in executions) history_length:
+  assumes "config_evolution later (pre @ [earlier] @ suf)"
+  shows "length (fst (snd earlier i)) \<le> length (fst (snd later i))"
+  using assms apply -
+  apply(erule evolution_monotonic_prop, simp, rule conjI)
+  apply(simp_all add: send_step_def recv_step_def case_prod_beta Let_unfold)
+  using trans_le_add1 apply blast+
 done
 
 lemma (in executions) history_before_event:
@@ -388,19 +395,58 @@ lemma (in executions) history_before_event:
   apply(simp add: config_evolution_def)
   apply(subgoal_tac "x=conf") defer
   apply(metis config_evolution_def last_snoc)
-  apply(subgoal_tac "\<exists>esa. es1 @ hd es # esa = fst (snd (last xs) i)")
-  apply(erule exE)
   apply(subgoal_tac "config_evolution (last xs) xs") prefer 2
   apply(metis append_is_Nil_conv config_evolution_butlast fst_conv initial_conf_def
     snd_conv snoc_eq_iff_butlast)
   apply(erule_tac x="last xs" in meta_allE)
   apply(erule_tac x="butlast suf" in meta_allE)
-  apply(erule_tac x="esa" in meta_allE, simp)
+  apply(subgoal_tac "\<exists>esa. es1 @ hd es # esa = fst (snd (last xs) i)")
+  apply(erule exE, erule_tac x="esa" in meta_allE, simp)
   apply(subgoal_tac "xs = pre @ before # after # butlast suf", simp)
   apply(metis butlast.simps(2) butlast_append butlast_snoc list.simps(3))
   apply(subst (asm) config_evolution_def, (erule conjE)+)
   apply(erule_tac x="butlast xs" in allE, erule_tac x="last xs" in allE)
   apply(erule_tac x="x" in allE, erule_tac x="[]" in allE)
+  apply(erule_tac x="[]" in meta_allE)
+  apply(subgoal_tac "\<exists>evts. fst (snd (last xs) i) @ evts = fst (snd x i)")
+  apply(erule exE)
+  apply(subgoal_tac "length es1 < length (fst (snd (last xs) i))")
+  apply(insert drop_final_append)[1]
+  apply(erule_tac x="fst (snd x i)" in meta_allE)
+  apply(erule_tac x="fst (snd (last xs) i)" in meta_allE)
+  apply(erule_tac x="evts" in meta_allE)
+  apply(erule_tac x="es1 @ [hd es]" in meta_allE)
+  apply(erule_tac x="es2" in meta_allE, simp)
+  apply(subgoal_tac "length es1 \<le> length (fst (snd before i))")
+  apply(subgoal_tac "length (fst (snd before i)) < length (fst (snd after i))")
+  apply(subgoal_tac "length (fst (snd after i)) \<le> length (fst (snd (last xs) i))")
+  apply(force)
+  apply(insert history_length)[1]
+  apply(erule_tac x="last xs" in meta_allE)
+  apply(erule_tac x="pre @ [before]" in meta_allE)
+  apply(erule_tac x="after" in meta_allE)
+  apply(erule_tac x="butlast suf" in meta_allE)
+  apply(erule_tac x="i" in meta_allE, simp)
+  apply(metis butlast.simps(2) butlast_append butlast_snoc list.simps(3))
+  apply(metis list_append_length)
+  apply(subgoal_tac "\<exists>rest. fst (snd after i) @ rest = fst (snd conf i)")
+  apply(erule exE)
+  apply(insert first_occurrence_length)[1]
+  apply(erule_tac x="fst (snd conf i)" in meta_allE)
+  apply(erule_tac x="fst (snd before i)" in meta_allE)
+  apply(erule_tac x="es @ rest" in meta_allE)
+  apply(erule_tac x="es1" in meta_allE)
+  apply(erule_tac x="hd es # es2" in meta_allE)
+  apply(simp, metis append_eq_appendI)
+  apply(subgoal_tac "config_evolution (last xs) (pre @ before # after # butlast suf)")
+  apply(insert history_monotonic)[1]
+  apply(erule_tac x="last xs" in meta_allE)
+  apply(erule_tac x="pre @ [before]" in meta_allE)
+  apply(erule_tac x="after" in meta_allE)
+  apply(erule_tac x="butlast suf" in meta_allE)
+  apply(erule_tac x="i" in meta_allE)
+  apply(simp, metis append_assoc, simp)
+  apply(metis butlast.simps(2) butlast_append butlast_snoc list.distinct(1))
   apply(subgoal_tac "send_step (last xs) = x \<or> recv_step (last xs) = x") defer
   apply(simp add: append_eq_append_conv2)
   apply(erule disjE, simp add: send_step_def case_prod_beta)
@@ -408,24 +454,13 @@ lemma (in executions) history_before_event:
   apply(simp add: case_prod_beta split: if_split_asm)
   apply(erule unpack_let)
   apply(case_tac "sender=i")
-  apply(subgoal_tac "fst (snd x i) = fst (snd (last xs) i) @ fst (send_msg i (snd (last xs) i) msg)")
-  prefer 2 apply force
-  apply(case_tac "fst (send_msg i (snd (last xs) i) msg) = []")
-  apply(rule_tac x="es2" in exI, simp)
-  apply(subgoal_tac "hd (fst (send_msg i (snd (last xs) i) msg)) \<notin> set (fst (snd (last xs) i))")
-  apply(subgoal_tac "hd (fst (send_msg i (snd (last xs) i) msg)) \<notin> set (es1 @ [hd es])")
-  apply(insert drop_final_append)[1]
-  apply(erule_tac x="fst (snd x i)" in meta_allE)
-  apply(erule_tac x="fst (snd (last xs) i)" in meta_allE)
-  apply(erule_tac x="fst (send_msg i (snd (last xs) i) msg)" in meta_allE)
-  apply(erule_tac x="es1 @ [hd es]" in meta_allE)
-  apply(erule_tac x="es2" in meta_allE, simp)
-  
-
-  (*
+  apply(rule_tac x="fst (send_msg i (snd (last xs) i) msg)" in exI, force)
+  apply(rule_tac x="[]" in exI, force)
   apply(simp add: recv_step_def case_prod_beta split: if_split_asm)
   apply(erule unpack_let)+
-  *)
-  oops
+  apply(case_tac "recipient=i")
+  apply(rule_tac x="fst (recv_msg i (snd (last xs) i) msg)" in exI, force)
+  apply(rule_tac x="[]" in exI, force)
+done
 
 end

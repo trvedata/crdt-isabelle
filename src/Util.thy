@@ -244,19 +244,20 @@ done
 lemma drop_final_append:
   assumes "xs = ys1 @ zs1"
       and "xs = ys2 @ zs2"
-      and "hd zs1 \<notin> set ys1"
-      and "hd zs1 \<notin> set ys2"
-      and "zs1 \<noteq> []"
+      and "length ys2 \<le> length ys1"
     shows "\<exists>es. ys2 @ es = ys1"
   using assms
   apply(induction zs1 arbitrary: xs zs2 rule: rev_induct, force)
   apply(erule_tac x="butlast xsa" in meta_allE)
   apply(erule_tac x="butlast zs2" in meta_allE)
-  apply(subgoal_tac "length ys2 \<le> length ys1")
   apply(case_tac "butlast zs2 = []")
   apply(metis append_eq_append_conv_if append_is_Nil_conv butlast_append butlast_snoc)
-  apply(metis append_self_conv butlast.simps(1) butlast_append butlast_snoc hd_append2)
-  using first_occurrence_length apply blast
+  apply(metis append_self_conv butlast.simps(1) butlast_append butlast_snoc)
 done
+
+lemma list_append_length:
+  assumes "ys \<noteq> []"
+  shows "length xs < length (xs @ ys)"
+  using assms by simp
 
 end
