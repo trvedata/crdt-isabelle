@@ -169,6 +169,68 @@ using assms
   apply force+
 done
 
+lemma split_first_occurrence:
+  assumes "xs = as @ x # bs"
+      and "xs = cs @ x # ds"
+      and "x \<notin> set as" "x \<notin> set cs"
+    shows "as = cs \<and> bs = ds"
+  using assms
+  apply(induction xs arbitrary: as bs cs ds rule: rev_induct, simp)
+  apply(case_tac "x \<in> set xs")
+  apply(erule_tac x=as in meta_allE, erule_tac x="butlast bs" in meta_allE)
+  apply(erule_tac x=cs in meta_allE, erule_tac x="butlast ds" in meta_allE)
+  apply(simp, rule conjI)
+  apply(metis append_Nil2 butlast.simps(2) butlast_append list.simps(3))
+  apply(metis (no_types, lifting) append_Nil2 append_butlast_last_id
+    butlast.simps(2) butlast_append last.simps last_appendR list.simps(3))
+  apply(case_tac "x = xa")
+  apply(erule_tac x=as in meta_allE, erule_tac x="[]" in meta_allE)
+  apply(erule_tac x=cs in meta_allE, erule_tac x="[]" in meta_allE)
+  apply(metis append_Nil2 butlast.simps(2) butlast_append in_set_conv_decomp)
+  apply(subgoal_tac "x \<notin> set (xs @ [xa])")
+  apply(metis in_set_conv_decomp)
+  apply(metis butlast.simps(2) butlast_append butlast_snoc in_set_conv_decomp
+    last_snoc list.simps(3))
+done
+
+lemma list_first_index:
+  assumes "x \<in> set xs"
+  shows "\<exists>pre i suf. i < length xs \<and> xs!i = x \<and> xs = pre @ [xs!i] @ suf \<and>
+           x \<notin> set pre \<and> i = length pre"
+  using assms
+  apply(induction xs rule: rev_induct, simp)
+  apply(case_tac "x \<in> set xs")
+  apply(simp, (erule exE)+, (erule conjE)+, erule exE)
+  apply(rule_tac x=pre in exI)
+  apply(rule conjI)
+  using less_Suc_eq apply blast
+  apply(rule conjI, meson nth_append)
+  apply(rule conjI, rule_tac x="suf @ [xa]" in exI)
+  apply(metis append_Cons append_eq_appendI nth_append, simp)
+  apply(subgoal_tac "x=xa") prefer 2 apply simp
+  apply(rule_tac x=xs in exI, rule_tac x="length xs" in exI)
+  apply(rule_tac x="[]" in exI, simp)
+done
+
+lemma unique_prefix_length:
+  assumes "xs = pre @ xs!i # suf"
+    and "xs!i \<notin> set pre"
+    and "\<forall>j<i. xs!j \<noteq> xs!i"
+    and "i < length xs"
+  shows "i = length pre"
+  using assms
+  apply(induction xs arbitrary: pre suf rule: rev_induct, simp)
+  apply(case_tac "i < length xs")
+  apply(erule_tac x=pre in meta_allE, erule_tac x="butlast suf" in meta_allE)
+  apply(metis in_set_conv_nth nat_neq_iff nth_append nth_append_length)
+  apply(subgoal_tac "i = length xs") defer apply force
+  apply(subgoal_tac "x = (xs @ [x]) ! i") defer apply(metis nth_append_length)
+  apply(simp)
+  apply(case_tac "suf = []", simp)
+  apply(metis (no_types, lifting) One_nat_def add.assoc add_diff_cancel_right' butlast_snoc
+    length_append length_butlast list.size(4) nat_neq_iff not_add_less1 nth_append_length)
+done
+
 lemma list_split_two_elems:
   assumes "distinct cs"
       and "x \<in> set cs"
@@ -240,6 +302,36 @@ lemma first_occurrence_length:
   apply(metis in_set_conv_nth not_le nth_append nth_append_length)
   apply(metis butlast_append butlast_snoc hd_append2)
 done
+
+lemma first_occurrence_twice:
+  assumes "j < length xs" and "i < j"
+      and "xs = as @ [xs ! i] @ bs"
+      and "xs = cs @ [xs ! j] @ ds"
+      and "xs ! i \<notin> set as"
+      and "xs ! j \<notin> set cs"
+    shows "\<exists>ms. xs = as @ [xs ! i] @ ms @ [xs ! j] @ ds \<and>
+                bs = ms @ [xs ! j] @ ds \<and>
+                cs = as @ [xs ! i] @ ms \<and>
+                length as = i \<and> length cs = j"
+  using assms
+  apply(induction xs arbitrary: as bs cs ds rule: rev_induct, simp)
+  apply(case_tac "j < length xs")
+  apply(erule_tac x=as in meta_allE, erule_tac x="butlast bs" in meta_allE)
+  apply(erule_tac x=cs in meta_allE, erule_tac x="butlast ds" in meta_allE)
+  apply(subgoal_tac "(xs @ [x]) ! i = xs ! i \<and> (xs @ [x]) ! j = xs ! j")
+  prefer 2 apply(meson less_trans nth_append)
+  apply(subgoal_tac "xs = as @ (xs ! i) # butlast bs") prefer 2
+  apply(metis append_Cons append_Nil2 append_self_conv2 butlast.simps(2)
+    butlast_append less_trans list.simps(3) nth_mem)
+  apply(subgoal_tac "xs = cs @ (xs ! j) # butlast ds") prefer 2
+  apply(metis append_Cons append_Nil2 append_self_conv2 butlast.simps(2)
+    butlast_append list.simps(3) nth_mem)
+  apply(simp, erule exE, force)
+  apply(rule_tac x="butlast bs" in exI)
+    apply(subgoal_tac "j = length xs") prefer 2 apply simp
+    apply(subgoal_tac "ds = []") prefer 2
+   sledgehammer[no_smt_proofs]
+apply(rule conjI)
 
 lemma drop_final_append:
   assumes "xs = ys1 @ zs1"
