@@ -142,6 +142,11 @@ lemma list_two_at_end:
   apply(rule_tac x="butlast xs" in exI, rule_tac x="last xs" in exI, simp)
 done
 
+lemma nth_list_item:
+  assumes "xs = ys @ x # zs"
+  shows "xs ! length ys = x"
+  using assms by simp
+
 lemma list_nth_split_technical:
   assumes "m < length cs"
       and "cs \<noteq> []"

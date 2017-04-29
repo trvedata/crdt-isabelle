@@ -308,6 +308,19 @@ lemma (in executions) history_length:
   using trans_le_add1 apply blast+
 done
 
+lemma (in executions) evolution_invariant:
+  assumes "execution conf"
+    and "P initial_conf"
+    and "\<And>conf. P conf \<Longrightarrow> P (send_step conf) \<and> P (recv_step conf)"
+  shows "P conf"
+  using assms apply -
+  apply(drule config_evolution_exists, erule exE)
+  apply(rule_tac pre="[]" and earlier=initial_conf and suf="tl confs"
+    in evolution_monotonic_prop)
+  apply(metis append.left_neutral append_Cons config_evolution_def hd_Cons_tl)
+  apply auto
+done
+
 lemma (in executions) history_before_event:
   assumes "config_evolution conf confs"
       and "confs = pre @ [before, after] @ suf"

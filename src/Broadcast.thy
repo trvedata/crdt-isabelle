@@ -94,10 +94,11 @@ definition (in cbcast_protocol) deliveries :: "'nodeid \<Rightarrow> ('nodeid, '
 subsection\<open>Proof that this protocol satisfies the causal network assumptions\<close>
 
 lemma (in cbcast_protocol) broadcast_origin:
-  assumes "history i = xs @ Broadcast msg # ys"
+  assumes "execution conf"
+    and "fst (snd conf i) = xs @ Broadcast msg # ys"
     and "Broadcast msg \<notin> set xs"
   shows "\<exists>pre before after suf state oper evts.
-    config_evolution config (pre @ [before, after] @ suf) \<and>
+    config_evolution conf (pre @ [before, after] @ suf) \<and>
     snd (snd before i) = Some state \<and>
     oper \<in> valid_ops i state \<and>
     msg = \<lparr>msg_id   = next_msgid i (snd before i),
@@ -106,10 +107,9 @@ lemma (in cbcast_protocol) broadcast_origin:
     evts = fst (snd before i) @ [Broadcast msg, Deliver msg] \<and>
     after = (insert msg (fst before), (snd before)(i := (evts, interp (msg_op msg) state))) \<and>
     fst (snd before i) = xs"
-  using assms valid_execution apply -
+  using assms apply -
   apply(frule config_evolution_exists, erule exE)
-  apply(subgoal_tac "Broadcast msg \<in> set (fst (snd config i))") defer
-  apply(simp add: history_def)
+  apply(subgoal_tac "Broadcast msg \<in> set (fst (snd conf i))") defer apply(simp)
   apply(frule_tac evt="Broadcast msg" and i=i and xs=xs and ys=ys in event_origin)
   apply(simp add: history_def, simp)
   apply((erule exE)+, (erule conjE)+)
@@ -142,7 +142,7 @@ lemma (in cbcast_protocol) broadcast_origin:
   prefer 2 apply force
   apply((rule conjI, force)+, force)
   apply(simp add: recv_step_def protocol_recv_def case_prod_beta split: if_split_asm)
-    apply(erule unpack_let)+
+  apply(erule unpack_let)+
   apply(subgoal_tac "recipient=i")
   apply(case_tac "causally_ready (snd before recipient) msga")
   apply(case_tac "snd (snd before i) = None", force+)
@@ -150,12 +150,13 @@ done
 
 lemma (in cbcast_protocol) broadcast_msg_eq:
   shows "(\<exists>i. Broadcast msg \<in> set (history i)) \<longleftrightarrow> msg \<in> all_messages"
+  using valid_execution apply -
   apply(simp add: all_messages_def)
   apply(rule iffI, erule exE)
   apply(subgoal_tac "\<exists>es1 es2. history i = es1 @ Broadcast msg # es2 \<and> Broadcast msg \<notin> set es1")
   prefer 2 apply(meson split_list_first)
-  apply((erule exE)+, erule conjE)
-  apply(drule broadcast_origin, simp, (erule exE)+, (erule conjE)+)
+  apply((erule exE)+, erule conjE, simp add: history_def)
+  apply(drule_tac broadcast_origin, simp, simp, (erule exE)+, (erule conjE)+)
   apply(subgoal_tac "msg \<in> fst after")
   apply(insert message_set_monotonic)[1]
   apply(erule_tac x="config" in meta_allE)
@@ -198,30 +199,136 @@ done
 lemma (in cbcast_protocol) broadcast_node_id:
   assumes "Broadcast msg \<in> set (history i)"
   shows "fst (msg_id msg) = i"
-  using assms apply -
+  using assms valid_execution apply -
   apply(subgoal_tac "\<exists>es1 es2. history i = es1 @ Broadcast msg # es2 \<and> Broadcast msg \<notin> set es1")
   prefer 2 apply(meson split_list_first)
-  apply((erule exE)+, erule conjE, drule broadcast_origin)
-  apply(simp, simp add: next_msgid_def)
+  apply((erule exE)+, erule conjE, simp add: history_def)
+  apply(drule broadcast_origin, simp, simp, simp add: next_msgid_def)
   apply(metis fst_conv select_convs(1))
 done
 
-lemma (in cbcast_protocol) broadcast_msg_id:
-  assumes "history i = pre @ [Broadcast msg] @ suf"
-      and "Broadcast msg \<notin> set pre"
-    shows "msg_id msg = (i, Suc (length (filter_bcast pre)))"
-  using assms valid_execution apply simp
+lemma (in cbcast_protocol) broadcast_msg_id_first:
+  assumes "execution conf"
+    and "fst (snd conf i) = pre @ Broadcast msg # suf"
+    and "Broadcast msg \<notin> set pre"
+  shows "msg_id msg = (i, Suc (length (filter_bcast pre)))"
+  using assms apply -
   apply(frule config_evolution_exists, erule exE)
-  apply(subgoal_tac "Broadcast msg \<in> set (history i)") defer
+  apply(subgoal_tac "Broadcast msg \<in> set (fst (snd conf i))") defer
   using map_filter_broadcast apply force
-  apply(drule broadcast_origin, simp, (erule exE)+)
+  apply(drule broadcast_origin, simp, simp, (erule exE)+)
   apply(simp add: next_msgid_def)
+done
+
+lemma (in cbcast_protocol) history_invariant:
+  assumes "execution conf"
+    and "P ({}, \<lambda>n. ([], Some initial_state)) []"
+    and "\<And>conf conf' hist. P conf hist \<Longrightarrow> P conf' hist"
+    and "\<And>conf conf' hist msg oper. P conf hist \<Longrightarrow>
+       hist = fst (snd conf i) \<Longrightarrow>
+       msg_id msg = next_msgid i (snd conf i) \<Longrightarrow>
+       msg_deps msg = causal_deps (snd conf i) \<Longrightarrow>
+       P conf' (hist @ [Broadcast msg, Deliver msg])"
+    and "\<And>conf conf' hist msg oper. P conf hist \<Longrightarrow>
+       hist = fst (snd conf i) \<Longrightarrow>
+       P conf' (hist @ [Deliver msg])"
+  shows "P conf (fst (snd conf i))"
+  using assms(1) apply -
+  apply(drule_tac P="\<lambda>conf. P conf (fst (snd conf i))" in evolution_invariant)
+  using assms(2) apply(simp add: initial_conf_def)
+  prefer 2 apply blast
+  apply(rule conjI)
+  apply(subgoal_tac "\<exists>conf'. send_step conf = conf'")
+  prefer 2 apply(simp, erule exE)
+  apply(subgoal_tac "P conf' (fst (snd conf' i))", simp)
+  apply(subst (asm) send_step_def)
+  apply(simp add: case_prod_beta)
+  apply(erule unpack_let)+
+  apply(simp add: case_prod_beta protocol_send_def split: if_split_asm)
+  apply(erule unpack_let)
+  apply(case_tac "sender=i")
+  apply(case_tac "\<exists>s. snd (snd conf i) = Some s", erule exE)
+  apply(insert assms(4))[1]
+  apply(subgoal_tac "msg \<in> (\<lambda>oper.
+             \<lparr>msg_id   = next_msgid i (snd conf i),
+              msg_deps = causal_deps (snd conf i),
+              msg_op   = oper\<rparr>) ` valid_ops i s", force)
+  apply(frule some_set_memb, simp add: valid_msgs_def)
+  apply(insert assms(3))[1]
+  apply(subgoal_tac "snd (snd conf i) = None")
+  apply(simp add: valid_msgs_def, blast)
+  apply(insert assms(3), force)[1]
+  apply(subgoal_tac "\<exists>conf'. recv_step conf = conf'")
+  prefer 2 apply(simp, erule exE)
+  apply(subgoal_tac "P conf' (fst (snd conf' i))", simp)
+  apply(subst (asm) recv_step_def)
+  apply(simp add: case_prod_beta protocol_recv_def split: if_split_asm)
+  apply(erule unpack_let)+
+  apply(simp split: if_split_asm)
+  apply(case_tac "snd (snd conf i) = None")
+  apply(insert assms(3))[1]
+  apply(erule_tac x="conf" in meta_allE)
+  apply(erule_tac x="fst (snd conf i)" in meta_allE)
+  apply(simp add: valid_msgs_def, force)
+  apply(case_tac "recipient=i")
+  apply(insert assms(5))[1]
+  apply(erule_tac x="conf" in meta_allE)
+  apply(erule_tac x="fst (snd conf i)" in meta_allE)
+  apply(simp add: valid_msgs_def, force)
+  using assms(3) apply force
+done
+
+lemma (in cbcast_protocol) broadcast_msg_id:
+  assumes "execution conf"
+    and "sent = filter_bcast (fst (snd conf i))"
+    and "idx < length sent"
+  shows "msg_id (sent ! idx) = (i, Suc idx)"
+  using assms apply -
+  apply(drule_tac i=i and conf=conf and P="\<lambda>conf hist.
+           idx < length (filter_bcast hist) \<longrightarrow>
+           msg_id ((filter_bcast hist) ! idx) = (i, Suc idx)"
+        in history_invariant)
+  apply(metis equals0D map_filter_broadcast nth_mem set_empty, simp)
+  prefer 2 apply(simp add: filter_bcast_def map_filter_def)
+  prefer 2 apply simp
+  apply(rule impI)
+  apply(subgoal_tac "filter_bcast (hist @ [Broadcast msg, Deliver msg]) =
+          (filter_bcast hist) @ [msg]")
+  defer apply(simp add: filter_bcast_def map_filter_def)
+  apply(case_tac "idx < length (filter_bcast hist)")
+  apply(simp add: nth_append)
+  apply(subgoal_tac "idx = length (filter_bcast hist)")
+  apply(auto simp add: next_msgid_def)
 done
 
 lemma bcast_append_length:
   shows "length (filter_bcast (xs @ ys)) =
      length (filter_bcast (xs)) + length (filter_bcast (ys))"
 by(simp add: filter_bcast_def map_filter_append)
+
+lemma (in cbcast_protocol) broadcast_id_unique:
+  assumes "history i = pre @ [Broadcast m1] @ mid @ [Broadcast m2] @ suf"
+  shows "msg_id m1 \<noteq> msg_id m2"
+  using assms valid_execution apply(simp add: history_def)
+  apply(subgoal_tac "filter_bcast (fst (snd config i)) =
+    filter_bcast pre @ m1 # filter_bcast mid @ m2 # filter_bcast suf")
+  defer apply(simp add: filter_bcast_def map_filter_def)
+  apply(subgoal_tac "length (filter_bcast pre) < length (filter_bcast (fst (snd config i)))")
+  defer apply simp
+  apply(subgoal_tac "filter_bcast (fst (snd config i)) ! length (filter_bcast pre) = m1")
+  defer apply simp
+  apply(subgoal_tac "msg_id m1 = (i, Suc (length (filter_bcast pre)))")
+  defer using broadcast_msg_id apply blast
+  apply(subgoal_tac "length (filter_bcast pre @ m1 # filter_bcast mid) <
+    length (filter_bcast (fst (snd config i)))")
+  defer apply simp
+  apply(subgoal_tac "filter_bcast (fst (snd config i)) !
+    length (filter_bcast pre @ m1 # filter_bcast mid) = m2")
+  defer apply(rule nth_list_item, simp)
+  apply(subgoal_tac "msg_id m2 = (i, Suc (length (filter_bcast pre @ m1 # filter_bcast mid)))")
+  apply force
+  using broadcast_msg_id apply blast
+done
 
 lemma (in cbcast_protocol) msg_id_distinct:
   assumes "Broadcast m1 \<in> set (history j)"
@@ -232,42 +339,28 @@ lemma (in cbcast_protocol) msg_id_distinct:
   apply(drule_tac x="Broadcast m1" in list_first_index)
   apply(drule_tac x="Broadcast m2" in list_first_index)
   apply((erule_tac exE)+, (erule_tac conjE)+)
-  apply(subgoal_tac "msg_id m1 = (j, Suc (length (filter_bcast pre)))")
-  prefer 2 apply(metis broadcast_msg_id)
-  apply(subgoal_tac "msg_id m2 = (j, Suc (length (filter_bcast prea)))")
-  prefer 2 apply(metis broadcast_msg_id)
-  apply(subgoal_tac "length (filter_bcast pre) = length (filter_bcast prea)")
-  prefer 2 apply simp
   apply(case_tac "i = ia", fastforce)
-  apply(case_tac "i < ia")
-  apply(subgoal_tac "\<exists>ms. prea = pre @ [Broadcast m1] @ ms", erule exE)
-  apply(subgoal_tac "length (filter_bcast prea) =
-    length (filter_bcast pre) + 1 + length (filter_bcast ms)", linarith)
-  apply(subgoal_tac "length (filter_bcast [Broadcast m1]) = 1")
-  prefer 2 apply(simp add: filter_bcast_def map_filter_def)
-  apply(metis (no_types, lifting) bcast_append_length add.assoc)
+  apply(subgoal_tac "msg_id m1 \<noteq> msg_id m2", blast)
   apply(subgoal_tac "pre = take i (history j)")
   prefer 2 apply(simp add: append_eq_conv_conj)
   apply(subgoal_tac "prea = take ia (history j)")
-    prefer 2 apply fastforce
+  prefer 2 apply fastforce
+  apply(case_tac "i < ia")
   apply(subgoal_tac "ia-i-1 \<ge> 0") prefer 2 apply blast
+  apply(subgoal_tac "\<exists>ms. prea = pre @ [Broadcast m1] @ ms", erule exE)
+  apply(subgoal_tac "history j = pre @ [Broadcast m1] @ ms @ [Broadcast m2] @ sufa")
+  using broadcast_id_unique apply(force, force)
   apply(rule_tac x="take (ia-i-1) suf" in exI)
   apply(metis append.left_neutral append_Cons diff_is_0_eq diffs0_imp_equal
     less_imp_le_nat take_Cons' take_all take_append)
+  apply(subgoal_tac "ia < i") prefer 2 apply force
+  apply(subgoal_tac "ia-i-1 \<ge> 0") prefer 2 apply blast
   apply(subgoal_tac "\<exists>ms. pre = prea @ [Broadcast m2] @ ms", erule exE)
-  apply(subgoal_tac "length (filter_bcast pre) =
-    length (filter_bcast prea) + 1 + length (filter_bcast ms)", linarith)
-  apply(subgoal_tac "length (filter_bcast [Broadcast m2]) = 1")
-  prefer 2 apply(simp add: filter_bcast_def map_filter_def)
-  apply(metis (no_types, lifting) bcast_append_length add.assoc)
-  apply(subgoal_tac "pre = take i (history j)")
-  prefer 2 apply(simp add: append_eq_conv_conj)
-  apply(subgoal_tac "prea = take ia (history j)")
-    prefer 2 apply fastforce
-  apply(subgoal_tac "i-ia-1 \<ge> 0") prefer 2 apply blast
+  apply(subgoal_tac "history j = prea @ [Broadcast m2] @ ms @ [Broadcast m1] @ suf")
+  using broadcast_id_unique apply(force, force)
   apply(rule_tac x="take (i-ia-1) sufa" in exI)
-  apply(metis One_nat_def Suc_diff_Suc append_Cons append_Nil diff_zero less_imp_le_nat
-    linorder_neqE_nat take_Suc_Cons take_all take_append zero_less_diff)
+  apply(metis append.left_neutral append_Cons diff_is_0_eq diffs0_imp_equal
+    less_imp_le_nat take_Cons' take_all take_append)
 done
 
 lemma (in cbcast_protocol) msg_id_unique:
