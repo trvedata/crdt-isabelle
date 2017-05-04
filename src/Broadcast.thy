@@ -25,6 +25,12 @@ definition filter_bcast :: "('nodeid, 'op) message event list \<Rightarrow> ('no
 definition filter_deliv :: "('nodeid, 'op) message event list \<Rightarrow> ('nodeid, 'op) message list" where
   "filter_deliv evts \<equiv> List.map_filter (\<lambda>e. case e of Deliver m \<Rightarrow> Some m | _ \<Rightarrow> None) evts"
 
+definition op_history :: "('nodeid, 'op) message event list \<Rightarrow> ('nodeid msgid \<times> 'op) event list" where
+  "op_history hist \<equiv> map (\<lambda>evt. case evt of
+      Broadcast msg \<Rightarrow> Broadcast (msg_id msg, msg_op msg) |
+      Deliver   msg \<Rightarrow> Deliver   (msg_id msg, msg_op msg)
+    ) hist"
+
 definition causal_deps :: "('nodeid, 'op, 'state) node_state \<Rightarrow> 'nodeid \<Rightarrow> nat" where
   "causal_deps state \<equiv> foldl
     (\<lambda>map msg. case msg_id msg of (node, seq) \<Rightarrow> map(node := seq))
@@ -89,6 +95,9 @@ definition (in cbcast_protocol) broadcasts :: "'nodeid \<Rightarrow> ('nodeid, '
 
 definition (in cbcast_protocol) deliveries :: "'nodeid \<Rightarrow> ('nodeid, 'op) message list" where
   "deliveries i \<equiv> List.map_filter (\<lambda>e. case e of Deliver m \<Rightarrow> Some m | _ \<Rightarrow> None) (history i)"
+
+definition (in cbcast_protocol) valid_op_msgs :: "'nodeid \<Rightarrow> 'state \<Rightarrow> ('nodeid msgid \<times> 'op) set" where
+  "valid_op_msgs node state \<equiv> undefined"
 
 
 subsection\<open>Proof that this protocol satisfies the causal network assumptions\<close>
@@ -180,20 +189,50 @@ lemma (in cbcast_protocol) broadcast_msg_eq:
   apply(erule_tac x="sender" in meta_allE, simp)
 done
 
-lemma (in cbcast_protocol) map_filter_broadcast:
-  assumes "msg \<in> set (filter_bcast hist)"
-  shows "Broadcast msg \<in> set hist"
-  using assms apply(induction hist)
+lemma (in cbcast_protocol) filter_bcast_events:
+  shows "msg \<in> set (filter_bcast hist) \<longleftrightarrow> Broadcast msg \<in> set hist"
+  apply(induction hist)
   apply(simp add: filter_bcast_def map_filter_simps(2))
   apply(case_tac a, case_tac "x1=msg")
-  apply(metis list.set_intros(1))
+  apply(rule iffI, metis list.set_intros(1))
   apply(simp_all add: filter_bcast_def map_filter_simps(1))
 done
 
 lemma (in cbcast_protocol) broadcasts_history_eq:
   shows "Broadcast msg \<in> set (history i) \<longleftrightarrow> msg \<in> set (broadcasts i)"
   apply(rule iffI, simp add: broadcasts_def map_filter_def, force)
-  apply(simp add: broadcasts_def filter_bcast_def map_filter_broadcast)
+  apply(metis broadcasts_def filter_bcast_def filter_bcast_events)
+done
+
+lemma op_history_append:
+  shows "op_history (h1 @ h2) = op_history h1 @ op_history h2"
+by(simp add: op_history_def)
+
+lemma op_history_broadcast:
+  shows "op_history [Broadcast msg] = [Broadcast (msg_id msg, msg_op msg)]"
+by(simp add: op_history_def)
+
+lemma op_history_deliver:
+  shows "op_history [Deliver msg] = [Deliver (msg_id msg, msg_op msg)]"
+by(simp add: op_history_def)
+
+lemma (in cbcast_protocol) op_history_filter_bcast:
+  assumes "Broadcast (idx, oper) \<in> set (op_history hist)"
+  shows "\<exists>msg. msg \<in> set (filter_bcast hist) \<and> msg_id msg = idx \<and> msg_op msg = oper"
+  apply(subgoal_tac "\<exists>msg. Broadcast msg \<in> set hist \<and> msg_id msg = idx \<and> msg_op msg = oper")
+  using filter_bcast_events apply blast
+  using assms apply(induction hist, simp add: op_history_def)
+  apply(case_tac a, case_tac "msg_id x1 = idx \<and> msg_op x1 = oper", force)
+  apply(subgoal_tac "Broadcast (idx, oper) \<in> set (op_history hist)", force)
+  apply(subgoal_tac "op_history [a] = [Broadcast (msg_id x1, msg_op x1)]")
+  apply(subgoal_tac "Broadcast (idx, oper) \<in> set (op_history [a] @ op_history hist)")
+  apply(force, metis append_Cons append_self_conv2 op_history_append)
+  apply(simp add: op_history_def)
+  apply(subgoal_tac "Broadcast (idx, oper) \<in> set (op_history hist)", force)
+  apply(subgoal_tac "op_history [a] = [Deliver (msg_id x2, msg_op x2)]")
+  apply(subgoal_tac "Broadcast (idx, oper) \<in> set (op_history [a] @ op_history hist)")
+  apply(force, metis append_Cons append_self_conv2 op_history_append)
+  apply(simp add: op_history_def)
 done
 
 lemma (in cbcast_protocol) broadcast_node_id:
@@ -215,7 +254,7 @@ lemma (in cbcast_protocol) broadcast_msg_id_first:
   using assms apply -
   apply(frule config_evolution_exists, erule exE)
   apply(subgoal_tac "Broadcast msg \<in> set (fst (snd conf i))") defer
-  using map_filter_broadcast apply force
+  using filter_bcast_events apply force
   apply(drule broadcast_origin, simp, simp, (erule exE)+)
   apply(simp add: next_msgid_def)
 done
@@ -225,12 +264,15 @@ lemma (in cbcast_protocol) history_invariant:
     and "P ({}, \<lambda>n. ([], Some initial_state)) []"
     and "\<And>conf conf' hist. P conf hist \<Longrightarrow> P conf' hist"
     and "\<And>conf conf' hist msg oper. P conf hist \<Longrightarrow>
+       execution conf \<Longrightarrow>
        hist = fst (snd conf i) \<Longrightarrow>
        msg_id msg = next_msgid i (snd conf i) \<Longrightarrow>
        msg_deps msg = causal_deps (snd conf i) \<Longrightarrow>
        P conf' (hist @ [Broadcast msg, Deliver msg])"
     and "\<And>conf conf' hist msg oper. P conf hist \<Longrightarrow>
+       execution conf \<Longrightarrow>
        hist = fst (snd conf i) \<Longrightarrow>
+       causally_ready (snd conf i) msg \<Longrightarrow>
        P conf' (hist @ [Deliver msg])"
   shows "P conf (fst (snd conf i))"
   using assms(1) apply -
@@ -288,7 +330,7 @@ lemma (in cbcast_protocol) broadcast_msg_id:
            idx < length (filter_bcast hist) \<longrightarrow>
            msg_id ((filter_bcast hist) ! idx) = (i, Suc idx)"
         in history_invariant)
-  apply(metis equals0D map_filter_broadcast nth_mem set_empty, simp)
+  apply(metis equals0D filter_bcast_events nth_mem set_empty, simp)
   prefer 2 apply(simp add: filter_bcast_def map_filter_def)
   prefer 2 apply simp
   apply(rule impI)
@@ -376,22 +418,101 @@ lemma (in cbcast_protocol) msg_id_unique:
   using broadcast_node_id apply fastforce+
 done
 
+(*
+inductive rev_distinct :: "'a list \<Rightarrow> bool" where
+  "rev_distinct []" |
+  "\<lbrakk> rev_distinct list; x \<notin> set list \<rbrakk> \<Longrightarrow> rev_distinct (list @ [x])"
+
+lemma rev_distinct_equiv:
+  shows "rev_distinct xs \<longleftrightarrow> distinct xs"
+  apply(rule iffI)
+  apply(induction xs rule: rev_induct, simp)
+  using rev_distinct.cases apply auto[1]
+  apply(induction xs rule: rev_induct)
+  apply(auto simp add: rev_distinct.intros)
+done
+*)
+
+lemma (in cbcast_protocol) broadcast_distinct:
+  assumes "execution conf"
+    and "msg_id msg = next_msgid i (snd conf i)"
+  shows "Broadcast (msg_id msg, msg_op msg) \<notin> set (op_history (fst (snd conf i)))"
+  using assms apply(simp add: next_msgid_def)
+  apply(subgoal_tac "\<forall>seq oper.
+    Broadcast ((i, seq), oper) \<in> set (op_history (fst (snd conf i))) \<longrightarrow>
+    seq \<le> length (filter_bcast (fst (snd conf i)))", force)
+  apply((rule allI)+, rule impI)
+  apply(subgoal_tac "\<exists>idx. idx < length (filter_bcast (fst (snd conf i))) \<and> 
+    msg_id (filter_bcast (fst (snd conf i)) ! idx) = (i, seq)")
+  apply(erule exE, erule conjE, simp add: broadcast_msg_id)
+  apply(subgoal_tac "\<exists>m \<in> set (filter_bcast (fst (snd conf i))). msg_id m = (i, seq)")
+  using set_elem_nth apply fastforce
+  apply(metis op_history_filter_bcast)
+done
+
+lemma (in cbcast_protocol) local_deliver_distinct:
+  assumes "execution conf"
+    and "msg_id msg = next_msgid i (snd conf i)"
+  shows "Deliver (msg_id msg, msg_op msg) \<notin> set (op_history (fst (snd conf i)))"
+  using assms apply -
+(*  apply(frule_tac i=i and P="\<lambda>conf hist. Deliver msg \<notin> set hist"
+        in history_invariant, simp_all) *)
+  sorry
+
+lemma (in cbcast_protocol) remote_deliver_distinct:
+  assumes "execution conf"
+    and "causally_ready (snd conf i) msg"
+  shows "Deliver (msg_id msg, msg_op msg) \<notin> set (op_history (fst (snd conf i)))"
+  sorry
+
+lemma (in cbcast_protocol) histories_distinct:
+  assumes "execution conf"
+  shows "distinct (op_history (fst (snd conf i)))"
+  using assms apply -
+  apply(drule_tac i=i and P="\<lambda>c hist. distinct (op_history hist)" in history_invariant)
+  apply(simp add: op_history_def, simp) prefer 3 apply assumption
+  apply(subgoal_tac "Broadcast (msg_id msg, msg_op msg) \<notin> set (op_history hist)")
+  prefer 2 using broadcast_distinct apply blast
+  apply(subgoal_tac "Deliver (msg_id msg, msg_op msg) \<notin> set (op_history hist)")
+  prefer 2 using local_deliver_distinct apply blast
+  apply(subgoal_tac "op_history (hist @ [Broadcast msg, Deliver msg]) =
+    op_history hist @ [Broadcast (msg_id msg, msg_op msg), Deliver (msg_id msg, msg_op msg)]")
+  apply(simp, metis (no_types, lifting) op_history_append op_history_broadcast op_history_deliver
+    append_butlast_last_id butlast.simps(2) last_ConsL last_ConsR list.simps(3))
+  apply(subgoal_tac "Deliver (msg_id msg, msg_op msg) \<notin> set (op_history hist)")
+  prefer 2 using remote_deliver_distinct apply blast
+  apply(subgoal_tac "op_history (hist @ [Deliver msg]) =
+    op_history hist @ [Deliver (msg_id msg, msg_op msg)]")
+  apply(simp, simp add: op_history_append op_history_deliver)
+done
+
+(*
+  assumes delivery_has_a_cause: "\<lbrakk> Deliver m \<in> set (history i) \<rbrakk> \<Longrightarrow>
+                                    \<exists>j. Broadcast m \<in> set (history j)"
+      and deliver_locally: "\<lbrakk> Broadcast m \<in> set (history i) \<rbrakk> \<Longrightarrow>
+                                    Broadcast m \<sqsubset>\<^sup>i Deliver m"
+
+lemma (in cbcast_protocol) causal_delivery:
+  assumes "Deliver m2 \<in> set (history j)"
+    and "hb m1 m2"
+  shows "Deliver m1 \<sqsubset>\<^sup>j Deliver m2"
+
+  assumes broadcast_only_valid_msgs: "pre @ [Broadcast m] prefix of i \<Longrightarrow>
+             \<exists>state. apply_operations pre = Some state \<and> valid_msg state m"
+*)
+
+(* This locale is separate from cbcast_protocol really only because
+   cbcast_protocol uses a abstract 'nodeid to identify nodes,
+   while the axiomatic network model uses nat. Could simplify this
+   by changing the network model to use 'nodeid as well. *)
 locale cbcast_with_ops = cbcast_protocol _ _ valid_ops
   for valid_ops :: "nat \<Rightarrow> 'state \<Rightarrow> 'op set"
 begin
-
-  definition op_history :: "nat \<Rightarrow> (nat msgid \<times> 'op) event list" where
-    "op_history i \<equiv> map (\<lambda>evt. case evt of
-        Broadcast msg \<Rightarrow> Broadcast (msg_id msg, msg_op msg) |
-        Deliver   msg \<Rightarrow> Deliver   (msg_id msg, msg_op msg)
-      ) (history i)"
-    
-  definition valid_op_msgs :: "nat \<Rightarrow> 'state \<Rightarrow> (nat msgid \<times> 'op) set" where
-    "valid_op_msgs node state \<equiv> undefined"
-
-  sublocale axiomatic: network_with_constrained_ops op_history interp initial_state valid_op_msgs
+  sublocale axiomatic: network_with_constrained_ops
+    "\<lambda>i. op_history (history i)" interp initial_state valid_op_msgs
   apply standard
-  prefer 4 apply(simp add: op_history_def msg_id_unique)
+  apply(simp add: valid_execution history_def histories_distinct)
+  prefer 3 apply(simp add: op_history_def msg_id_unique)
   oops
 end
 

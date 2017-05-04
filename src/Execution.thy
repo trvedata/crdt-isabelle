@@ -126,12 +126,12 @@ done
 
 lemma (in executions) config_evolution_butlast:
   assumes "config_evolution conf (confs@[conf])"
-    and "conf \<noteq> initial_conf"
+    and "confs \<noteq> []"
   shows "config_evolution (last confs) confs"
-  using assms unfolding config_evolution_def apply clarsimp
+  using assms apply -
+  apply(subst (asm) config_evolution_def, subst config_evolution_def)
   apply(rule conjI, force)
-  apply(rule conjI)
-  apply(metis (mono_tags, lifting) hd_append list.sel(1))
+  apply(rule conjI, simp)
   apply(clarsimp, blast)
 done
 
@@ -240,7 +240,7 @@ done
 lemma (in executions) evolution_monotonic_prop:
   assumes "config_evolution later (pre @ [earlier] @ suf)"
     and "P earlier"
-    and "\<And>conf. P conf \<Longrightarrow> P (send_step conf) \<and> P (recv_step conf)"
+    and "\<And>conf. P conf \<Longrightarrow> execution conf \<Longrightarrow> P (send_step conf) \<and> P (recv_step conf)"
   shows "P later"
   using assms
   apply(induction suf arbitrary: later rule: rev_induct)
@@ -258,7 +258,7 @@ lemma (in executions) evolution_monotonic_prop:
   apply(erule_tac x="fst later" in allE)
   apply(erule_tac x="snd later" in allE)
   apply(subgoal_tac "send_step (last xs) = later \<or> recv_step (last xs) = later")
-  apply blast
+  apply(metis config_evolution_def last_in_set)
   apply(subgoal_tac "pre @ earlier # xs @ [later] = butlast (pre @ earlier # xs) @ last xs # [later]")
   apply(simp, simp add: butlast_append)
   apply(subgoal_tac "config_evolution x (pre @ [earlier] @ xs @ [x])")
@@ -311,7 +311,8 @@ done
 lemma (in executions) evolution_invariant:
   assumes "execution conf"
     and "P initial_conf"
-    and "\<And>conf. P conf \<Longrightarrow> P (send_step conf) \<and> P (recv_step conf)"
+    and "\<And>conf. P conf \<Longrightarrow> execution conf \<Longrightarrow>
+           P (send_step conf) \<and> P (recv_step conf)"
   shows "P conf"
   using assms apply -
   apply(drule config_evolution_exists, erule exE)
@@ -340,8 +341,7 @@ lemma (in executions) history_before_event:
   apply(subgoal_tac "x=conf") defer
   apply(metis config_evolution_def last_snoc)
   apply(subgoal_tac "config_evolution (last xs) xs") prefer 2
-  apply(metis append_is_Nil_conv config_evolution_butlast fst_conv initial_conf_def
-    snd_conv snoc_eq_iff_butlast)
+  using config_evolution_butlast apply blast
   apply(erule_tac x="last xs" in meta_allE)
   apply(erule_tac x="butlast suf" in meta_allE)
   apply(subgoal_tac "\<exists>esa. es1 @ hd es # esa = fst (snd (last xs) i)")
