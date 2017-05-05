@@ -236,10 +236,11 @@ lemma (in cbcast_protocol) op_history_filter_bcast:
 done
 
 lemma (in cbcast_protocol) broadcast_node_id:
-  assumes "Broadcast msg \<in> set (history i)"
+  assumes "execution conf"
+    and "Broadcast msg \<in> set (fst (snd conf i))"
   shows "fst (msg_id msg) = i"
   using assms valid_execution apply -
-  apply(subgoal_tac "\<exists>es1 es2. history i = es1 @ Broadcast msg # es2 \<and> Broadcast msg \<notin> set es1")
+  apply(subgoal_tac "\<exists>es1 es2. fst (snd conf i) = es1 @ Broadcast msg # es2 \<and> Broadcast msg \<notin> set es1")
   prefer 2 apply(meson split_list_first)
   apply((erule exE)+, erule conjE, simp add: history_def)
   apply(drule broadcast_origin, simp, simp, simp add: next_msgid_def)
@@ -261,28 +262,32 @@ done
 
 lemma (in cbcast_protocol) history_invariant:
   assumes "execution conf"
-    and "P ({}, \<lambda>n. ([], Some initial_state)) []"
-    and "\<And>conf conf' hist. P conf hist \<Longrightarrow> P conf' hist"
-    and "\<And>conf conf' hist msg oper. P conf hist \<Longrightarrow>
-       execution conf \<Longrightarrow>
-       hist = fst (snd conf i) \<Longrightarrow>
-       msg_id msg = next_msgid i (snd conf i) \<Longrightarrow>
-       msg_deps msg = causal_deps (snd conf i) \<Longrightarrow>
-       P conf' (hist @ [Broadcast msg, Deliver msg])"
-    and "\<And>conf conf' hist msg oper. P conf hist \<Longrightarrow>
-       execution conf \<Longrightarrow>
-       hist = fst (snd conf i) \<Longrightarrow>
-       causally_ready (snd conf i) msg \<Longrightarrow>
-       P conf' (hist @ [Deliver msg])"
-  shows "P conf (fst (snd conf i))"
+    and "P ({}, \<lambda>n. ([], Some initial_state))"
+    and "\<And>before after. P before \<Longrightarrow>
+       fst (snd after i) = fst (snd before i) \<Longrightarrow>
+       P after"
+    and "\<And>before after msg. P before \<Longrightarrow>
+       execution before \<Longrightarrow>
+       msg_id msg = next_msgid i (snd before i) \<Longrightarrow>
+       msg_deps msg = causal_deps (snd before i) \<Longrightarrow>
+       fst (snd after i) = fst (snd before i) @ [Broadcast msg, Deliver msg] \<Longrightarrow>
+       (*\<exists>suf. fst (snd conf i) = fst (snd after i) @ suf \<Longrightarrow>*)
+       P after"
+    and "\<And>before after msg. P before \<Longrightarrow>
+       execution before \<Longrightarrow>
+       causally_ready (snd before i) msg \<Longrightarrow>
+       fst (snd after i) = fst (snd before i) @ [Deliver msg] \<Longrightarrow>
+       (*\<exists>suf. fst (snd conf i) = fst (snd after i) @ suf \<Longrightarrow>*)
+       P after"
+  shows "P conf"
   using assms(1) apply -
-  apply(drule_tac P="\<lambda>conf. P conf (fst (snd conf i))" in evolution_invariant)
+  apply(drule_tac P=P in evolution_invariant)
   using assms(2) apply(simp add: initial_conf_def)
   prefer 2 apply blast
   apply(rule conjI)
   apply(subgoal_tac "\<exists>conf'. send_step conf = conf'")
   prefer 2 apply(simp, erule exE)
-  apply(subgoal_tac "P conf' (fst (snd conf' i))", simp)
+  apply(subgoal_tac "P conf'", simp)
   apply(subst (asm) send_step_def)
   apply(simp add: case_prod_beta)
   apply(erule unpack_let)+
@@ -290,33 +295,30 @@ lemma (in cbcast_protocol) history_invariant:
   apply(erule unpack_let)
   apply(case_tac "sender=i")
   apply(case_tac "\<exists>s. snd (snd conf i) = Some s", erule exE)
-  apply(insert assms(4))[1]
   apply(subgoal_tac "msg \<in> (\<lambda>oper.
              \<lparr>msg_id   = next_msgid i (snd conf i),
               msg_deps = causal_deps (snd conf i),
-              msg_op   = oper\<rparr>) ` valid_ops i s", force)
+              msg_op   = oper\<rparr>) ` valid_ops i s")
+  prefer 2 apply(frule some_set_memb, simp add: valid_msgs_def)
+  apply(insert assms(4))[1]
+  apply(erule_tac x=conf in meta_allE)
+  apply(erule_tac x=msg in meta_allE)
+  apply(erule_tac x=conf' in meta_allE, force, simp add: valid_msgs_def)
   apply(frule some_set_memb, simp add: valid_msgs_def)
-  apply(insert assms(3))[1]
-  apply(subgoal_tac "snd (snd conf i) = None")
-  apply(simp add: valid_msgs_def, blast)
-  apply(insert assms(3), force)[1]
+  using assms(3) apply force
   apply(subgoal_tac "\<exists>conf'. recv_step conf = conf'")
   prefer 2 apply(simp, erule exE)
-  apply(subgoal_tac "P conf' (fst (snd conf' i))", simp)
+  apply(subgoal_tac "P conf'", simp)
   apply(subst (asm) recv_step_def)
   apply(simp add: case_prod_beta protocol_recv_def split: if_split_asm)
   apply(erule unpack_let)+
   apply(simp split: if_split_asm)
   apply(case_tac "snd (snd conf i) = None")
-  apply(insert assms(3))[1]
-  apply(erule_tac x="conf" in meta_allE)
-  apply(erule_tac x="fst (snd conf i)" in meta_allE)
-  apply(simp add: valid_msgs_def, force)
+  apply(subgoal_tac "fst (snd conf' i) = fst (snd conf i)")
+  using assms(3) apply(force, force)
   apply(case_tac "recipient=i")
-  apply(insert assms(5))[1]
-  apply(erule_tac x="conf" in meta_allE)
-  apply(erule_tac x="fst (snd conf i)" in meta_allE)
-  apply(simp add: valid_msgs_def, force)
+  apply(subgoal_tac "fst (snd conf' i) = fst (snd conf i) @ [Deliver msg]")
+  using assms(5) apply(force, force)
   using assms(3) apply force
 done
 
@@ -326,20 +328,20 @@ lemma (in cbcast_protocol) broadcast_msg_id:
     and "idx < length sent"
   shows "msg_id (sent ! idx) = (i, Suc idx)"
   using assms apply -
-  apply(drule_tac i=i and conf=conf and P="\<lambda>conf hist.
-           idx < length (filter_bcast hist) \<longrightarrow>
-           msg_id ((filter_bcast hist) ! idx) = (i, Suc idx)"
+  apply(drule_tac i=i and conf=conf and P="\<lambda>conf.
+           idx < length (filter_bcast (fst (snd conf i))) \<longrightarrow>
+           msg_id ((filter_bcast (fst (snd conf i))) ! idx) = (i, Suc idx)"
         in history_invariant)
-  apply(metis equals0D filter_bcast_events nth_mem set_empty, simp)
+  apply(metis ex_in_conv filter_bcast_events fstI nth_mem set_empty snd_conv, simp)
   prefer 2 apply(simp add: filter_bcast_def map_filter_def)
   prefer 2 apply simp
   apply(rule impI)
-  apply(subgoal_tac "filter_bcast (hist @ [Broadcast msg, Deliver msg]) =
-          (filter_bcast hist) @ [msg]")
+  apply(subgoal_tac "filter_bcast ((fst (snd before i)) @ [Broadcast msg, Deliver msg]) =
+          (filter_bcast (fst (snd before i))) @ [msg]")
   defer apply(simp add: filter_bcast_def map_filter_def)
-  apply(case_tac "idx < length (filter_bcast hist)")
+  apply(case_tac "idx < length (filter_bcast (fst (snd before i)))")
   apply(simp add: nth_append)
-  apply(subgoal_tac "idx = length (filter_bcast hist)")
+  apply(subgoal_tac "idx = length (filter_bcast (fst (snd before i)))")
   apply(auto simp add: next_msgid_def)
 done
 
@@ -415,7 +417,7 @@ lemma (in cbcast_protocol) msg_id_unique:
   using msg_id_distinct apply blast
   apply(subgoal_tac "fst (msg_id m1) = i")
   apply(subgoal_tac "fst (msg_id m2) = j", force)
-  using broadcast_node_id apply fastforce+
+  using broadcast_node_id history_def valid_execution apply fastforce+
 done
 
 (*
@@ -469,20 +471,20 @@ lemma (in cbcast_protocol) histories_distinct:
   assumes "execution conf"
   shows "distinct (op_history (fst (snd conf i)))"
   using assms apply -
-  apply(drule_tac i=i and P="\<lambda>c hist. distinct (op_history hist)" in history_invariant)
+  apply(drule_tac i=i and P="\<lambda>conf. distinct (op_history (fst (snd conf i)))" in history_invariant)
   apply(simp add: op_history_def, simp) prefer 3 apply assumption
-  apply(subgoal_tac "Broadcast (msg_id msg, msg_op msg) \<notin> set (op_history hist)")
+  apply(subgoal_tac "{Broadcast (msg_id msg, msg_op msg),
+    Deliver (msg_id msg, msg_op msg)} \<inter> set (op_history (fst (snd before i))) = {}")
   prefer 2 using broadcast_distinct apply blast
-  apply(subgoal_tac "Deliver (msg_id msg, msg_op msg) \<notin> set (op_history hist)")
-  prefer 2 using local_deliver_distinct apply blast
-  apply(subgoal_tac "op_history (hist @ [Broadcast msg, Deliver msg]) =
-    op_history hist @ [Broadcast (msg_id msg, msg_op msg), Deliver (msg_id msg, msg_op msg)]")
+  apply(subgoal_tac "op_history ((fst (snd before i)) @ [Broadcast msg, Deliver msg]) =
+    op_history (fst (snd before i)) @ [Broadcast (msg_id msg, msg_op msg),
+      Deliver (msg_id msg, msg_op msg)]")
   apply(simp, metis (no_types, lifting) op_history_append op_history_broadcast op_history_deliver
     append_butlast_last_id butlast.simps(2) last_ConsL last_ConsR list.simps(3))
-  apply(subgoal_tac "Deliver (msg_id msg, msg_op msg) \<notin> set (op_history hist)")
+  apply(subgoal_tac "Deliver (msg_id msg, msg_op msg) \<notin> set (op_history (fst (snd before i)))")
   prefer 2 using remote_deliver_distinct apply blast
-  apply(subgoal_tac "op_history (hist @ [Deliver msg]) =
-    op_history hist @ [Deliver (msg_id msg, msg_op msg)]")
+  apply(subgoal_tac "op_history ((fst (snd before i)) @ [Deliver msg]) =
+    op_history (fst (snd before i)) @ [Deliver (msg_id msg, msg_op msg)]")
   apply(simp, simp add: op_history_append op_history_deliver)
 done
 
