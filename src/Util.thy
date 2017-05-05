@@ -308,36 +308,6 @@ lemma first_occurrence_length:
   apply(metis butlast_append butlast_snoc hd_append2)
 done
 
-lemma first_occurrence_twice:
-  assumes "j < length xs" and "i < j"
-      and "xs = as @ [xs ! i] @ bs"
-      and "xs = cs @ [xs ! j] @ ds"
-      and "xs ! i \<notin> set as"
-      and "xs ! j \<notin> set cs"
-    shows "\<exists>ms. xs = as @ [xs ! i] @ ms @ [xs ! j] @ ds \<and>
-                bs = ms @ [xs ! j] @ ds \<and>
-                cs = as @ [xs ! i] @ ms \<and>
-                length as = i \<and> length cs = j"
-  using assms
-  apply(induction xs arbitrary: as bs cs ds rule: rev_induct, simp)
-  apply(case_tac "j < length xs")
-  apply(erule_tac x=as in meta_allE, erule_tac x="butlast bs" in meta_allE)
-  apply(erule_tac x=cs in meta_allE, erule_tac x="butlast ds" in meta_allE)
-  apply(subgoal_tac "(xs @ [x]) ! i = xs ! i \<and> (xs @ [x]) ! j = xs ! j")
-  prefer 2 apply(meson less_trans nth_append)
-  apply(subgoal_tac "xs = as @ (xs ! i) # butlast bs") prefer 2
-  apply(metis append_Cons append_Nil2 append_self_conv2 butlast.simps(2)
-    butlast_append less_trans list.simps(3) nth_mem)
-  apply(subgoal_tac "xs = cs @ (xs ! j) # butlast ds") prefer 2
-  apply(metis append_Cons append_Nil2 append_self_conv2 butlast.simps(2)
-    butlast_append list.simps(3) nth_mem)
-  apply(simp, erule exE, force)
-  apply(rule_tac x="butlast bs" in exI)
-    apply(subgoal_tac "j = length xs") prefer 2 apply simp
-    apply(subgoal_tac "ds = []") prefer 2
-   sledgehammer[no_smt_proofs]
-apply(rule conjI)
-
 lemma drop_final_append:
   assumes "xs = ys1 @ zs1"
       and "xs = ys2 @ zs2"
