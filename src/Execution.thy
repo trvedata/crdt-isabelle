@@ -135,6 +135,14 @@ lemma (in executions) config_evolution_butlast:
   apply(clarsimp, blast)
 done
 
+lemma (in executions) config_evolution_append:
+  assumes "config_evolution (last (xs @ ys)) (xs @ ys)"
+    and "xs \<noteq> []"
+  shows "config_evolution (last xs) xs"
+  using assms apply(induction ys rule: rev_induct)
+  apply(simp_all add: config_evolution_butlast)
+done
+
 lemma (in executions) history_append:
   assumes "config_evolution conf confs"
   and "\<exists>suf. pre@x#y#suf = confs"

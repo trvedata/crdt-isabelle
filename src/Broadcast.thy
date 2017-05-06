@@ -158,31 +158,31 @@ lemma (in cbcast_protocol) broadcast_origin:
 done
 
 lemma (in cbcast_protocol) broadcast_msg_eq:
-  shows "(\<exists>i. Broadcast msg \<in> set (history i)) \<longleftrightarrow> msg \<in> all_messages"
-  using valid_execution apply -
-  apply(simp add: all_messages_def)
+  assumes "execution conf"
+  shows "(\<exists>i. Broadcast msg \<in> set (fst (snd conf i))) \<longleftrightarrow> msg \<in> fst conf"
+  using assms apply -
   apply(rule iffI, erule exE)
-  apply(subgoal_tac "\<exists>es1 es2. history i = es1 @ Broadcast msg # es2 \<and> Broadcast msg \<notin> set es1")
+  apply(subgoal_tac "\<exists>es1 es2. fst (snd conf i) = es1 @ Broadcast msg # es2 \<and> Broadcast msg \<notin> set es1")
   prefer 2 apply(meson split_list_first)
-  apply((erule exE)+, erule conjE, simp add: history_def)
+  apply((erule exE)+, erule conjE, simp)
   apply(drule_tac broadcast_origin, simp, simp, (erule exE)+, (erule conjE)+)
   apply(subgoal_tac "msg \<in> fst after")
   apply(insert message_set_monotonic)[1]
-  apply(erule_tac x="config" in meta_allE)
-  apply(erule_tac x="pre @ [before]" in meta_allE, simp, simp)
+  apply(erule_tac x="conf" in meta_allE)
+  apply(erule_tac x="pre @ [before]" in meta_allE, simp_all)
   apply(insert valid_execution, drule config_evolution_exists, erule exE)
   apply(drule message_origin, simp, (erule exE)+, (erule conjE)+)
   apply(rule_tac x=sender in exI)
   apply(case_tac "snd (snd before sender) = None", simp add: valid_msgs_def)
   apply(subgoal_tac "Broadcast msg \<in> set evts") defer
   apply(simp add: protocol_send_def, force)
-  apply(subgoal_tac "Broadcast msg \<in> set (fst (snd config sender))")
+  apply(subgoal_tac "Broadcast msg \<in> set (fst (snd conf sender))")
   apply(simp add: history_def)
-  apply(subgoal_tac "\<exists>xs. fst (snd after sender) @ xs = fst (snd config sender)")
+  apply(subgoal_tac "\<exists>xs. fst (snd after sender) @ xs = fst (snd conf sender)")
   apply(simp add: protocol_send_def)
   apply(metis (no_types, lifting) append.assoc append_Cons in_set_conv_decomp)
   apply(insert history_monotonic)[1]
-  apply(erule_tac x="config" in meta_allE)
+  apply(erule_tac x="conf" in meta_allE)
   apply(erule_tac x="pre @ [before]" in meta_allE)
   apply(erule_tac x="after" in meta_allE)
   apply(erule_tac x="suf" in meta_allE)
@@ -275,21 +275,21 @@ done
 lemma (in cbcast_protocol) history_invariant:
   assumes "execution conf"
     and "P ({}, \<lambda>n. ([], Some initial_state))"
-    and "\<And>pre before after suf. P before \<Longrightarrow>
-       config_evolution (last (after # suf)) (pre @ before # after # suf) \<Longrightarrow>
+    and "\<And>pre before after suf.
+       config_evolution (last (pre @ before # after # suf)) (pre @ before # after # suf) \<Longrightarrow>
        fst (snd after i) = fst (snd before i) \<Longrightarrow>
-       P after"
-    and "\<And>pre before after suf msg. P before \<Longrightarrow>
-       config_evolution (last (after # suf)) (pre @ before # after # suf) \<Longrightarrow>
+       P before \<Longrightarrow> P after"
+    and "\<And>pre before after suf msg.
+       config_evolution (last (pre @ before # after # suf)) (pre @ before # after # suf) \<Longrightarrow>
        msg_id msg = next_msgid i (snd before i) \<Longrightarrow>
        msg_deps msg = causal_deps (snd before i) \<Longrightarrow>
        fst (snd before i) @ [Broadcast msg, Deliver msg] = fst (snd after i) \<Longrightarrow>
-       P after"
-    and "\<And>pre before after suf msg. P before \<Longrightarrow>
-       config_evolution (last (after # suf)) (pre @ before # after # suf) \<Longrightarrow>
+       P before \<Longrightarrow> P after"
+    and "\<And>pre before after suf msg.
+       config_evolution (last (pre @ before # after # suf)) (pre @ before # after # suf) \<Longrightarrow>
        causally_ready (snd before i) msg \<Longrightarrow>
        fst (snd before i) @ [Deliver msg] = fst (snd after i) \<Longrightarrow>
-       P after"
+       P before \<Longrightarrow> P after"
   shows "P conf"
   using assms(1) apply -
   apply(drule_tac P=P in evolution_invariant)
@@ -309,7 +309,7 @@ lemma (in cbcast_protocol) history_invariant:
   apply(subgoal_tac "fst (snd after i) = fst (snd before i) @
                      [Broadcast msg, Deliver msg]")
   apply(insert assms(4))[1]
-  apply(erule_tac x=before in meta_allE)
+  apply(erule_tac x=pre in meta_allE, erule_tac x=before in meta_allE)
   apply(erule_tac x=after in meta_allE, simp, force)
   apply(subgoal_tac "msg \<in> (\<lambda>oper.
              \<lparr>msg_id   = next_msgid i (snd before i),
@@ -328,14 +328,14 @@ lemma (in cbcast_protocol) history_invariant:
   apply(case_tac "causally_ready (snd before recipient) msg")
   apply(case_tac "\<exists>s. snd (snd before i) = Some s", erule exE)
   apply(insert assms(5))[1]
-  apply(erule_tac x=before in meta_allE)
+  apply(erule_tac x=pre in meta_allE, erule_tac x=before in meta_allE)
   apply(erule_tac x=after in meta_allE, simp, force)
   apply(subgoal_tac "fst (snd after i) = fst (snd before i)")
-  apply(simp add: assms(3), force)
+  using assms(3) apply(simp, force)
   apply(subgoal_tac "fst (snd after i) = fst (snd before i)")
-  apply(simp add: assms(3), force)
+  using assms(3) apply(force, force)
   apply(subgoal_tac "fst (snd after i) = fst (snd before i)")
-  apply(simp add: assms(3), force)
+  using assms(3) apply(simp, force)
 done
 
 lemma (in cbcast_protocol) broadcast_msg_id:
@@ -453,6 +453,45 @@ lemma rev_distinct_equiv:
   apply(auto simp add: rev_distinct.intros)
 done
 *)
+
+lemma (in cbcast_protocol) delivery_from_msg_set:
+  assumes "execution conf"
+    and "Deliver msg \<in> set (fst (snd conf i))"
+  shows "msg \<in> fst conf"
+  using assms apply -
+  apply(frule_tac P="\<lambda>conf. Deliver msg \<in> set (fst (snd conf i)) \<longrightarrow>
+      msg \<in> fst conf" in evolution_invariant)
+  apply(simp add: initial_conf_def) prefer 2 apply simp
+  apply(rule impI, erule disjE)
+  apply(subst (asm) send_step_def)
+  apply(simp add: case_prod_beta)
+  apply(erule unpack_let)+
+  apply(case_tac "valid = {}", force)
+  apply(simp add: case_prod_beta protocol_send_def)
+  apply(erule unpack_let)
+  apply(case_tac "sender = i")
+  apply(case_tac "\<exists>s. snd (snd before i) = Some s", force, force, force)
+  apply(subst (asm) recv_step_def)
+  apply(case_tac "fst before = {}", force)
+  apply(simp add: case_prod_beta protocol_recv_def)
+  apply(erule unpack_let)+
+  apply(case_tac "recipient = i", case_tac "msg = msga")
+  apply(subgoal_tac "msga \<in> fst before")
+  using message_set_monotonic apply force
+  apply(drule_tac x=msga in choose_set_memb, simp, simp)
+  apply(subgoal_tac "Deliver msg \<in> set (fst (snd before i))", force)
+  apply(case_tac "causally_ready (snd before recipient) msga")
+  apply(case_tac "\<exists>s. snd (snd before i) = Some s", force+)
+done
+
+lemma (in cbcast_protocol) delivery_has_a_cause:
+  assumes "execution conf"
+    and "Deliver msg \<in> set (fst (snd conf i))"
+  shows "\<exists>j. Broadcast msg \<in> set (fst (snd conf j))"
+  using assms apply(subgoal_tac "msg \<in> fst conf")
+  using broadcast_msg_eq apply blast
+  using delivery_from_msg_set apply blast
+done
 
 lemma (in cbcast_protocol) broadcast_distinct:
   assumes "execution conf"
