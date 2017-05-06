@@ -94,8 +94,7 @@ lemma list_nil_or_snoc:
 by (induction xs, auto)
 
 lemma suffix_eq_distinct_list:
-  assumes "distinct xs"
-      and "ys@suf1 = xs"
+  assumes "ys@suf1 = xs"
       and "ys@suf2 = xs"
     shows "suf1 = suf2"
 using assms by(induction xs arbitrary: suf1 suf2 rule: rev_induct, simp) (metis append_eq_append_conv)
@@ -312,14 +311,16 @@ lemma drop_final_append:
   assumes "xs = ys1 @ zs1"
       and "xs = ys2 @ zs2"
       and "length ys2 \<le> length ys1"
-    shows "\<exists>es. ys2 @ es = ys1"
+    shows "\<exists>es. ys2 @ es = ys1 \<and> es @ zs1 = zs2"
   using assms
   apply(induction zs1 arbitrary: xs zs2 rule: rev_induct, force)
   apply(erule_tac x="butlast xsa" in meta_allE)
   apply(erule_tac x="butlast zs2" in meta_allE)
-  apply(case_tac "butlast zs2 = []")
-  apply(metis append_eq_append_conv_if append_is_Nil_conv butlast_append butlast_snoc)
-  apply(metis append_self_conv butlast.simps(1) butlast_append butlast_snoc)
+  apply(subgoal_tac "butlast xsa = ys1 @ xs") prefer 2
+  apply(simp add: butlast_append)
+  apply(subgoal_tac "butlast xsa = ys2 @ butlast zs2") prefer 2
+  apply(simp add: append_eq_append_conv_if butlast_append)
+  using append_eq_append_conv apply auto
 done
 
 lemma list_append_length:

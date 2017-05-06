@@ -369,7 +369,7 @@ lemma (in executions) history_before_event:
   apply(erule_tac x="fst (snd (last xs) i)" in meta_allE)
   apply(erule_tac x="evts" in meta_allE)
   apply(erule_tac x="es1 @ [hd es]" in meta_allE)
-  apply(erule_tac x="es2" in meta_allE, simp)
+  apply(erule_tac x="es2" in meta_allE, force)
   apply(subgoal_tac "length es1 \<le> length (fst (snd before i))")
   apply(subgoal_tac "length (fst (snd before i)) < length (fst (snd after i))")
   apply(subgoal_tac "length (fst (snd after i)) \<le> length (fst (snd (last xs) i))")

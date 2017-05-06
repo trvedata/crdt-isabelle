@@ -493,6 +493,84 @@ lemma (in cbcast_protocol) delivery_has_a_cause:
   using delivery_from_msg_set apply blast
 done
 
+lemma (in cbcast_protocol) delivery_local_origin:
+  assumes "execution conf"
+    and "Deliver msg \<in> set (fst (snd conf i))"
+    and "fst (msg_id msg) = i"
+  shows "Broadcast msg \<in> set (fst (snd conf i))"
+  using assms apply -
+  apply(frule_tac P="\<lambda>conf. Deliver msg \<in> set (fst (snd conf i)) \<longrightarrow>
+      fst (msg_id msg) = i \<longrightarrow> Broadcast msg \<in> set (fst (snd conf i))"
+      and i=i in history_invariant, simp, simp) prefer 3 apply simp
+  apply(metis Un_iff broadcast_node_id config_evolution_def delivery_has_a_cause
+    list.set_intros(1) list.set_intros(2) set_append)+
+done
+
+lemma (in cbcast_protocol) skip_bcast_deliver:
+  assumes "before @ [Broadcast msga, Deliver msga] = after"
+    and "pre @ [Broadcast msg] @ suf = after"
+    and "\<forall>suf. pre @ [Broadcast msg] @ suf = before \<longrightarrow>
+             suf \<noteq> [] \<and> hd suf = Deliver msg"
+    and "msg \<noteq> msga \<or> pre \<noteq> before"
+  shows "suf \<noteq> [] \<and> hd suf = Deliver msg"
+  using assms apply -
+  apply(subgoal_tac "length (pre @ [Broadcast msg]) \<le> length before")
+  prefer 2
+  apply(subgoal_tac "length (before @ [Broadcast msga, Deliver msga]) =
+    length (pre @ [Broadcast msg] @ suf)") prefer 2 apply simp
+  apply(subgoal_tac "length (before @ [Broadcast msga, Deliver msga]) = length before + 2")
+  prefer 2 apply(metis (no_types, lifting) add_2_eq_Suc' append_butlast_last_id append_is_Nil_conv
+    butlast.simps(2) butlast_append length_append_singleton list.simps(3))
+  apply(subgoal_tac "length (pre @ [Broadcast msg] @ suf) =
+    length (pre @ [Broadcast msg]) + length suf")
+  prefer 2 apply(metis length_append append_assoc)
+  apply(subgoal_tac "length suf \<noteq> 0 \<and> length suf \<noteq> 1", linarith)
+  apply(rule conjI, subgoal_tac "suf \<noteq> []", simp)
+  apply(metis (mono_tags, lifting) append.right_neutral event.distinct(1)
+    last_ConsR last_appendR last_snoc)
+  apply(subgoal_tac "length suf = 1 \<Longrightarrow> False", force)
+  apply(subgoal_tac "suf = [Deliver msga]", force)
+  apply(metis (no_types, lifting) append_is_Nil_conv last_ConsL last_ConsR
+    last_appendR list.discI list_head_length_one)
+  apply(subgoal_tac "\<exists>newsuf. pre @ [Broadcast msg] @ newsuf = before \<and>
+    newsuf @ [Broadcast msga, Deliver msga] = suf")
+  prefer 2 apply(insert drop_final_append)[1]
+  apply(erule_tac x="after" in meta_allE)
+  apply(erule_tac x="before" in meta_allE)
+  apply(erule_tac x="[Broadcast msga, Deliver msga]" in meta_allE)
+  apply(erule_tac x="pre @ [Broadcast msg]" in meta_allE)
+  apply(erule_tac x="suf" in meta_allE, fastforce)
+  apply(erule exE, erule_tac x=newsuf in allE, force)
+done
+
+lemma (in cbcast_protocol) deliver_locally:
+  assumes "execution conf"
+    and "pre @ [Broadcast msg] @ suf = fst (snd conf i)"
+  shows "suf \<noteq> [] \<and> hd suf = Deliver msg"
+  using assms apply -
+  apply(frule_tac P="\<lambda>conf. \<forall>suf.
+      pre @ [Broadcast msg] @ suf = fst (snd conf i) \<longrightarrow>
+      suf \<noteq> [] \<and> hd suf = Deliver msg"
+      and i=i in history_invariant, simp, simp)
+  prefer 3 apply blast
+  apply(rule allI, rule impI)
+  apply(case_tac "msg = msga")
+  apply(case_tac "pre = fst (snd before i)")
+  apply(subgoal_tac "sufaa = [Deliver msg]", simp)
+  apply(metis (no_types, lifting) append_eq_Cons_conv append_self_conv2
+    list.inject suffix_eq_distinct_list)
+  apply(simp add: skip_bcast_deliver)+
+  apply(rule allI, rule impI)
+  apply(subgoal_tac "last sufaa = Deliver msga") prefer 2
+  apply(metis event.distinct(1) last_ConsL last_ConsR last_appendR list.distinct(1))
+  apply(subgoal_tac "\<exists>newsuf. sufaa = newsuf @ [Deliver msga]") prefer 2
+  apply(metis append_butlast_last_id event.distinct(1) last_snoc)
+  apply(erule exE, erule_tac x=newsuf in allE)
+  apply(subgoal_tac "pre @ Broadcast msg # newsuf = fst (snd before i)", simp)
+  apply(metis butlast.simps(2) butlast_append butlast_snoc list.distinct(1)
+    snoc_eq_iff_butlast)
+done
+
 lemma (in cbcast_protocol) broadcast_distinct:
   assumes "execution conf"
     and "msg_id msg = next_msgid i (snd conf i)"
