@@ -228,6 +228,12 @@ lemma op_history_deliver:
   shows "op_history [Deliver msg] = [Deliver (msg_id msg, msg_op msg)]"
 by(simp add: op_history_def)
 
+lemma op_history_broadcast_elem:
+  assumes "Broadcast msg \<in> set hist"
+    shows "Broadcast (msg_id msg, msg_op msg) \<in> set (op_history hist)"
+using assms by (metis (no_types, lifting) append_Cons in_set_conv_decomp list_set_memb
+  op_history_append op_history_broadcast)
+
 lemma (in cbcast_protocol) op_history_filter_bcast:
   assumes "Broadcast (idx, oper) \<in> set (op_history hist)"
   shows "\<exists>msg. msg \<in> set (filter_bcast hist) \<and> msg_id msg = idx \<and> msg_op msg = oper"
@@ -506,6 +512,43 @@ lemma (in cbcast_protocol) delivery_local_origin:
     list.set_intros(1) list.set_intros(2) set_append)+
 done
 
+lemma (in cbcast_protocol) op_history_local_origin:
+  assumes "execution conf"
+    and "fst (fst msg) = i"
+    and "Deliver msg \<in> set (op_history (fst (snd conf i)))"
+  shows "Broadcast msg \<in> set (op_history (fst (snd conf i)))"
+  using assms apply -
+  apply(frule_tac P="\<lambda>conf. Deliver msg \<in> set (op_history (fst (snd conf i))) \<longrightarrow>
+      fst (fst msg) = i \<longrightarrow> Broadcast msg \<in> set (op_history (fst (snd conf i)))"
+      and i=i in history_invariant)
+  apply(simp add: op_history_def, simp) prefer 3 apply simp
+  apply(rule impI)+
+  apply(case_tac "Deliver msg \<in> set (op_history (fst (snd before i)))")
+  apply(metis op_history_append Un_iff set_append)
+  apply(subgoal_tac "op_history (fst (snd after i)) =
+    op_history (fst (snd before i)) @ op_history [Broadcast msga, Deliver msga]")
+  prefer 2 apply(metis op_history_append)
+  apply(subgoal_tac "op_history [Broadcast msga, Deliver msga] =
+    [Broadcast (msg_id msga, msg_op msga), Deliver (msg_id msga, msg_op msga)]")
+  apply(force, metis (no_types, lifting) op_history_broadcast op_history_deliver
+    op_history_append append_butlast_last_id butlast.simps(2) last.simps list.simps(3))
+  apply(rule impI)+
+  apply(subgoal_tac "Deliver msga \<in> set (fst (snd after i))")
+  prefer 2 apply(metis in_set_conv_decomp)
+  apply(case_tac "Deliver msg \<in> set (op_history (fst (snd before i)))")
+  apply(metis Un_iff op_history_append set_append)
+  apply(subgoal_tac "op_history (fst (snd after i)) =
+    op_history (fst (snd before i)) @ op_history [Deliver msga]")
+  prefer 2 apply(metis op_history_append)
+  apply(subgoal_tac "msg = (msg_id msga, msg_op msga)")
+  prefer 2 apply(simp add: op_history_deliver)
+  apply(subgoal_tac "fst (msg_id msga) = i")
+  prefer 2 apply force
+  apply(subgoal_tac "Broadcast msga \<in> set (fst (snd after i))")
+  prefer 2 apply (simp add: delivery_local_origin config_evolution_def)
+  using op_history_broadcast_elem apply blast
+done
+
 lemma (in cbcast_protocol) skip_bcast_deliver:
   assumes "before @ [Broadcast msga, Deliver msga] = after"
     and "pre @ [Broadcast msg] @ suf = after"
@@ -574,7 +617,11 @@ done
 lemma (in cbcast_protocol) broadcast_distinct:
   assumes "execution conf"
     and "msg_id msg = next_msgid i (snd conf i)"
-  shows "Broadcast (msg_id msg, msg_op msg) \<notin> set (op_history (fst (snd conf i)))"
+  shows "{Broadcast (msg_id msg, msg_op msg), Deliver (msg_id msg, msg_op msg)}
+           \<inter> set (op_history (fst (snd conf i))) = {}"
+  apply(subgoal_tac "Broadcast (msg_id msg, msg_op msg) \<notin> set (op_history (fst (snd conf i)))")
+  using assms op_history_local_origin apply simp
+  apply(metis (no_types, lifting) fst_conv next_msgid_def)
   using assms apply(simp add: next_msgid_def)
   apply(subgoal_tac "\<forall>seq oper.
     Broadcast ((i, seq), oper) \<in> set (op_history (fst (snd conf i))) \<longrightarrow>
