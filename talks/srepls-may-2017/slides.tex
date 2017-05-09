@@ -27,25 +27,43 @@ Potentially widely geographically distributed
 \item
 Performing local processing
 \item
-Passing message back and forth across a network
+Passing messages back and forth across a network
 \end{itemize}
 \onslide<2->{
 Implicit shared global state}
 \end{frame}
 
 \begin{frame}
-\frametitle{Consistency models in distributed systems}
+\frametitle{Strong consistency}
 \onslide<1->{
-\emph{Strong consistency} model: e.g. in relational databases
+\emph{Strong consistency} model:
+\begin{itemize}
+\item
+Used in e.g. in relational databases
+\item
+Tries to make system behave like a single machine
+\end{itemize}}
+\onslide<2->{
+May be costly to achieve:
+\begin{itemize}
+\item
+Hundreds of thousands, or millions of replicas
+\item
+Replicas may be widely separated, or network slow
+\end{itemize}
+or not desired: e.g. in calendar applications}
+\end{frame}
+
+\begin{frame}
+\frametitle{Relaxed consistency models}
+\onslide<1->{
+Observations motivate \emph{relaxed} consistency models
 \\[1.5ex]
-Costly to achieve, or not desired: e.g. in calendar applications}
+Popular alternative is \emph{eventual consistency}
+\\[1.5ex]
+Used in many NoSQL distributed database systems}
 \\[1.5ex]
 \onslide<2->{
-Various weaker consistency guarantees
-\\[1.5ex]
-Popular alternative is \emph{eventual consistency}}
-\\[1.5ex]
-\onslide<3->{
 Informally:
 \begin{enumerate}
 \item
@@ -131,12 +149,12 @@ Observation:
 \item
 Some operations naturally commutative
 \item
-Operations can therefore be applied in any order
-\item
-Generalise this to other data structures and operations
+Concurrent operations can therefore be applied in any order
 \end{itemize}}
 \onslide<3->{
-CRDTs = replicated data types with commutative operations}
+Generalise this to other data structures and operations
+\\[1.5ex]
+CRDTs = replicated data types with commutative (concurrent) operations}
 \end{frame}
 
 \begin{frame}
@@ -162,25 +180,37 @@ We consider operation based CRDTs in this work}
 \onslide<1->{
 \emph{Operational Transformation} is a closely related technique
 \\[1.5ex]
-Technology behind Google Documents}
+Technology behind Google Documents
 \\[1.5ex]
+Correctness of OT algorithms has been fraught:}
 \onslide<2->{
-Algorithms have claimed to satisfy $TP_2$ but later shown incorrect}
-\\[1.5ex]
-\onslide<3->{
+\begin{itemize}
+\item
 Algorithms have been presented without any proof}
-\\[1.5ex]
-\onslide<4->{
-In classic formulation of OT, later shown impossible to achieve $TP_2$}
-\\[1.5ex]
-\onslide<5->{
+\item
+\onslide<3->{
 Hand-written proofs of convergence tend to be long and complex}
-\\[1.5ex]
+\item
+\onslide<4->{
+Algorithms have claimed to satisfy $TP_2$ but later shown incorrect}
+\item
+\onslide<5->{
+In classic formulation of OT, later shown impossible to achieve $TP_2$}
+\item
 \onslide<6->{
 Several wrong machine checked proofs presented (!)}
-\\[1.5ex]
+\end{itemize}
 \onslide<7->{
-Moral: reasoning about distributed systems is hard}
+\emph{Reasoning about distributed systems is hard!}}
+\end{frame}
+
+\begin{frame}
+\frametitle{More verification?}
+Rest of talk: overview of another distributed systems verification project
+\\[1.5ex]
+We use Isabelle/HOL to provide a mechanical proof of correctness
+\\[1.5ex]
+But why should you trust our proof?
 \end{frame}
 
 \begin{frame}
@@ -189,11 +219,13 @@ Moral: reasoning about distributed systems is hard}
 Relied on high-level axioms stated in terms of data structure, and operations on it}
 \\[1.5ex]
 \onslide<2->{
-But reasoning about data structure is hard, and unintuitive!
+But reasoning about data structure is hard, and unintuitive
+\\[1.5ex]
+(It's why there's a mechanical proof in the first place...)
 \\[1.5ex]
 Wrong axioms are therefore hard to spot
 \\[1.5ex]
-Need to think of all possible network behaviours to spot them!}
+Need to think of all possible network behaviours to spot them}
 \\[1.5ex]
 \onslide<3->{
 Claim: need end-to-end verification to ensure correctness
@@ -210,11 +242,11 @@ We develop a stratified proof \emph{framework} for CRDTs}
 We have three different `components':
 \begin{itemize}
 \item
-A network model,
+A network model
 \item
 An abstract convergence theorem
 \item
-An implementation of a concrete CRDT
+Implementations of concrete CRDTs
 \end{itemize}}
 \onslide<3->{
 Piecing all three together gives a concrete convergence theorem for the CRDT
@@ -242,7 +274,7 @@ By working axiomatically:
 \item
 Reason about all possible network behaviours
 \item
-Eliminate corner cases that may invalidate high-level proofs
+Eliminate corner cases that may invalidate proofs
 \end{itemize}}
 \end{frame}
 
@@ -274,8 +306,6 @@ In a final component, we:
 \begin{itemize}
 \item
 Formalise the Replicated Growable Array (RGA) CRDT
-\item
-Another technology for implementing e.g. shared-documenting editing
 \item
 ``the reason why the RGA actually works has been a bit of a mystery''
 \item
