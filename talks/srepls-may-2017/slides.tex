@@ -251,7 +251,7 @@ Eliminate corner cases that may invalidate high-level proofs
 \onslide<1->{
 In another component, we:
 \\[1.5ex]
-Parameterise our work with a preorder on abstract `events' called \emph{happens before}}
+Parameterise our work with a strict partial order on abstract `events' called \emph{happens before}}
 \\[1.5ex]
 \onslide<2->{
 Parameterise by a method of lifting `events' to `state transformers'}
@@ -295,7 +295,7 @@ Our network model has an associated concrete \emph{happens before} relation
 \item
 Given in terms of broadcast and deliver events
 \item
-This relation is a preorder
+This relation is a strict partial order
 \end{itemize}}
 \onslide<2->{
 We can then replace the parameter in our abstract theorem with this relation}
@@ -329,7 +329,7 @@ Network,
 Concrete CRDT implementation
 \end{itemize}
 \onslide<2->{
-Purely a theorem about preorders, and lists of ordered elements
+Purely a theorem about orders, and lists of ordered elements
 \\[1.5ex]
 Claim: this theorem is `essence' of CRDT convergence}
 \\[1.5ex]
@@ -337,7 +337,12 @@ Claim: this theorem is `essence' of CRDT convergence}
 If true, other CRDTs should be verifiable using it}
 \\[1.5ex]
 \onslide<4->{
-Distributed increment/decrement counter: 40 lines of Isabelle}
+\begin{enumerate}
+\item
+Observed-removed set
+\item
+Distributed increment-decrement counter
+\end{enumerate}}
 \end{frame}
 
 \begin{frame}
@@ -355,7 +360,7 @@ Must use end-to-end verification for confidence}
 \onslide<3->{
 Developed a framework for end-to-end verification of CRDTs
 \\[1.5ex]
-Verified RGA CRDT implementation as an example}
+Verified RGA, ORSet, and counter CRDT implementations as examples}
 \end{frame}
 
 \begin{frame}
