@@ -12,7 +12,10 @@ theory
   Counter
 imports
   Network
-  "~~/src/HOL/Library/Code_Target_Numeral"
+(* FIXME: for the OCaml extraction it's preferable to use OCaml's
+   own integer type, but when converting OCaml to JS, compiling
+   fails with Error: Required module `Big_int' is unavailable.
+  "~~/src/HOL/Library/Code_Target_Numeral" *)
 begin
 
 datatype operation = Increment | Decrement
