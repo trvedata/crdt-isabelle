@@ -1,7 +1,7 @@
 theory
   Op_Sets
 imports
-  Util
+  Main
 begin
 
 datatype ('objId, 'elemId) operation =
@@ -52,6 +52,14 @@ definition next_elem :: "('objId, 'elemId::linorder) operation set \<Rightarrow>
      next_elem_sibling opers listId prevId nextId \<or>
      next_elem_aunt opers listId prevId nextId"
 
+inductive following_elem :: "('objId, 'elemId::linorder) operation set \<Rightarrow> 'objId \<Rightarrow> 'elemId \<Rightarrow> 'elemId \<Rightarrow> bool" where
+  "\<lbrakk> have_list_elem opers listId someId \<rbrakk> \<Longrightarrow> following_elem opers listId someId someId" |
+  "\<lbrakk> following_elem opers listId prevId midId; next_elem opers listId midId nextId \<rbrakk> \<Longrightarrow> following_elem opers listId prevId nextId"
+
+definition list_elem_set :: "('objId, 'elemId::linorder) operation set \<Rightarrow> 'objId \<Rightarrow> 'elemId set" where
+  "list_elem_set opers listId \<equiv> {elemId. \<exists>firstId.
+     first_elem opers listId firstId \<and> following_elem opers listId firstId elemId}"
+
 fun valid_op :: "('objId, 'elemId) operation set \<Rightarrow> ('objId, 'elemId) operation \<Rightarrow> bool" where
   "valid_op opers (MakeList listId) = (\<not> have_list opers listId)" |
   "valid_op opers (Insert listId ref elem) = (
@@ -65,11 +73,6 @@ fun apply_op :: "('objId, 'elemId) operation set \<Rightarrow> ('objId, 'elemId)
 inductive valid_ops :: "('objId, 'elemId) operation set \<Rightarrow> bool" where
   "valid_ops {}" |
   "\<lbrakk> valid_ops opers; apply_op opers oper = Some newOpers \<rbrakk> \<Longrightarrow> valid_ops newOpers"
-
-inductive list_elem_set :: "('objId, 'elemId::linorder) operation set \<Rightarrow> 'objId \<Rightarrow> 'elemId set \<Rightarrow> bool" where
-  "\<lbrakk> valid_ops opers; first_elem opers listId elemId \<rbrakk> \<Longrightarrow> list_elem_set opers listId {elemId}" |
-  "\<lbrakk> listElems opers listId elems; prevId \<in> elems; next_elem opers listId elem nextId \<rbrakk>
-     \<Longrightarrow> list_elem_set opers listId (insert nextId elems)"
 
 lemma first_child_subset:
   shows "{childId. first_child opers listId parentId childId}
@@ -164,6 +167,62 @@ lemma first_child_unique:
   using set_pick_2 apply blast
 done
 
+lemma list_invariant:
+  assumes "valid_ops opers"
+    and "P {}"
+    and "\<And>opers oper. \<nexists>prev elemId. oper = Insert listId prev elemId \<Longrightarrow>
+           P opers \<Longrightarrow> P (insert oper opers)"
+    and "\<And>opers oper prev elemId.
+           oper = Insert listId prev elemId \<Longrightarrow>
+           prev = None \<or> (\<exists>prevId. prev = Some prevId \<and> have_list_elem opers listId prevId) \<Longrightarrow>
+           P opers \<Longrightarrow> P (insert oper opers)"
+  shows "P opers"
+  using assms(1) apply(induction rule: valid_ops.induct)
+  using assms(2) apply simp
+  apply(subgoal_tac "valid_op opers oper") prefer 2
+  apply(metis apply_op.elims option.distinct(1))
+  apply(subgoal_tac "newOpers = insert oper opers") prefer 2 apply simp
+  apply(case_tac oper, simp add: assms(3))
+  apply(case_tac "x21 = listId") prefer 2 apply(simp add: assms(3))
+  apply(subgoal_tac "have_list opers x21") prefer 2 apply force
+  apply(subgoal_tac "x22 = None \<or> (\<exists>prevId. x22 = Some prevId \<and> have_list_elem opers x21 prevId)")
+  prefer 2 using option.set_sel apply fastforce
+  apply(simp add: assms(4))
+done
+
+lemma first_elem_exists:
+  assumes "valid_ops opers"
+  shows "(\<exists>elemId. have_list_elem opers listId elemId) \<longleftrightarrow> (\<exists>firstId. first_elem opers listId firstId)"
+  using assms(1) apply -
+  apply(drule_tac P="\<lambda>opers. (\<exists>elemId. have_list_elem opers listId elemId) \<longleftrightarrow>
+          (\<exists>firstId. first_elem opers listId firstId)" and listId=listId in list_invariant)
+  apply(simp add: have_list_elem_def first_elem_def first_child_def child_def)
+  prefer 3 apply blast
+  apply(rule iffI)
+  apply(subgoal_tac "\<exists>elemId. have_list_elem opers listId elemId")
+  prefer 2 apply(metis have_list_elem_def insertE)
+  apply(metis first_elem_def first_child_def child_def insert_iff)
+  apply(erule exE, rule_tac x=firstId in exI)
+  apply(meson child_def first_child_def first_elem_def have_list_elem_def)
+  apply(rule iffI) prefer 2
+  apply(meson have_list_elem_def insertI1)
+  apply(case_tac "\<exists>elemId. have_list_elem opers listId elemId") prefer 2
+  apply(subgoal_tac "prev = None") prefer 2 apply simp
+  apply(rule_tac x=elemId in exI)
+  apply(simp add: first_elem_def first_child_def child_def have_list_elem_def)
+  apply blast
+  apply(subgoal_tac "\<exists>firstId. first_elem opers listId firstId", erule exE)
+  prefer 2 apply blast
+  apply((erule exE)+, erule disjE)
+  apply(case_tac "elemId < firstId")
+  apply(rule_tac x=firstId in exI)
+  apply(auto simp: first_elem_def first_child_def child_def)[1]
+  apply(rule_tac x=elemId in exI)
+  apply(auto simp: first_elem_def first_child_def child_def)[1]
+  apply(rule_tac x=firstId in exI)
+  apply(auto simp: first_elem_def first_child_def child_def)[1]
+done
+
 lemma next_sibling_unique:
   shows "card {nextId. next_sibling opers listId prevId nextId} \<le> 1"
   apply(subgoal_tac "card {nextId. next_sibling opers listId prevId nextId} > 1 \<Longrightarrow> False", force)
@@ -211,9 +270,42 @@ lemma next_elem_unique:
     have_list_elem_def inf_sup_aci(5) le_SucI le_zero_eq next_elem_aunt_def sup_bot.right_neutral)
 done
 
+lemma list_following_1:
+  assumes "valid_ops opers"
+    and "first_elem opers listId firstId"
+    and "have_list_elem opers listId elemId"
+  shows "following_elem opers listId firstId elemId"
+  using assms(2) apply(case_tac "elemId = firstId")
+  apply(metis following_elem.intros(1) child_def first_child_def first_elem_def have_list_elem_def)
+  apply(insert following_elem.intros(2))[1]
+  sorry
+
+lemma list_following_2:
+  assumes "valid_ops opers"
+    and "first_elem opers listId firstId"
+    and "following_elem opers listId firstId elemId"
+  shows "have_list_elem opers listId elemId"
+  sorry
+
+thm following_elem.inducts
+thm following_elem.induct
+thm following_elem.intros
+thm following_elem.cases
+thm following_elem.simps
+
 lemma list_order_complete:
-  assumes "list_elem_set opers listId elemIds"
-  shows "\<And>elem. elem \<in> elemIds \<longleftrightarrow> have_list_elem opers listId elem"
-  oops
+  assumes "valid_ops opers"
+  shows "list_elem_set opers listId = {elemId. have_list_elem opers listId elemId}"
+  apply(subgoal_tac "\<And>elemId. have_list_elem opers listId elemId \<longleftrightarrow>
+    (\<exists>firstId. first_elem opers listId firstId \<and> following_elem opers listId firstId elemId)")
+  apply(simp add: list_elem_set_def)
+  apply(rule iffI)
+  apply(subgoal_tac "\<exists>firstId. first_elem opers listId firstId") prefer 2
+  apply(meson assms first_elem_exists)
+  apply(erule exE, rule_tac x=firstId in exI)
+  apply(simp add: assms list_following_1)
+  apply(erule exE, erule conjE)
+  apply(simp add: assms list_following_2)
+done
 
 end
