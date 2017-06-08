@@ -1,0 +1,123 @@
+===========================================================================
+                           OOPSLA'17 Review #94A
+---------------------------------------------------------------------------
+  Paper #94: Verifying Strong Eventual Consistency in Distributed Systems
+---------------------------------------------------------------------------
+
+                      Overall merit: A. Good paper, I will champion it
+                         Confidence: Y. I am knowledgeable in this area,
+                                        but not an expert
+
+                         ===== Paper summary =====
+
+The paper provides a formal treatment of the issue of consistency in distributed systems. More specifically, the authors provide a formal foundation for “strong eventual consistency”, a model that states that at any time, network nodes that received the same set of updates up to that time must have converged to the same state.
+
+The authors indicate that proving consistency algorithms correct is a tricky business, with failed past attempts because of invalid assumptions made of real computer networks. To avoid this flaw, the authors first define a mechanized general formal model of asynchronous networks. This formal model is then extended to provide proofs of correctness for three existing conflict-free replicated data types (CRDTs): a counter, an observed-remove set and a replicated growable array (i.e. an ordered list). The formalisation starts from an abstract convergence theorem that provides insight into why strong eventual consistency protocols work. The proof strategy is general and follows the same pattern for all three CRDT proofs, indicating it may be applicable to future proofs and showcasing the foundational nature of the work.
+
+The authors also claim to provide the first mechanised proof of operation-based CRDTs in general.
+
+All proofs have been mechanised using the Isabelle/HOL proof assistant (and attached as supplementary material).
+
+                      ===== Comments for author =====
+
+Points in favor:
+
+* The paper tackles a fundamental and important problem in distributed systems.
+* The authors have taken care that the paper remains accessible even to readers that are not deep experts in formal correctness proofs. For instance, the general introduction to Isabelle/HOL (section 3) makes the paper stand largely on its own.
+* The proof strategy is first laid out at a high-level, and the rest of the paper faithfully follows this general strategy. Despite the complexity of the subject matter, the paper is well-written and the content remains accessible.
+* The authors do a good job of putting the work in context and citing relevant and appropriate related work.
+
+General remarks:
+
+In the abstract and section 1, the authors highlight that past peer-reviewed publications have claimed mechanised proofs of correctness for consistency models that have later been disproven. However, it is unclear from the given citations what work proposed the flawed results and what work disproved those results. It becomes much clearer in Section 8.2. My advice would be to do a slight rewording and making the citations more explicit in section 1 (or perhaps put a forward reference to sec 8.2 so the reader knows this explanation is coming).
+
+Continuing with section 8.2, given that this section is really key to one of the main points of the paper (namely that past attempts at formalising SEC were flawed), it would be helpful to provide a bit more intuition on what TP1 and TP2 refer to, and why it is that TP2 is so problematic.
+
+Detailed comments:
+
+page 1: “and there have even been examples of mechanised formal proofs of SEC algorithm correctness later being shown to be flawed.” => this sentence should be followed by a citation to support the claim.
+
+Section 5: it wasn’t entirely clear to me why the modeled primitive event for communication is a broadcast rather than a unicast. Is it because the most common type of communication is to broadcast an update to all replicas? Is it because broadcast is the most general and subsumes unicast? (in the sense that it’s allowed behaviour for a ‘broadcast’ event to generate only 1 subsequent ‘deliver’ event in another node)
+
+page 13, line 42, typo: “Is a little more” => “It is a little more”
+
+page 20, lines 13-14: what you describe here seems to be an initial empirical evaluation of the work (trying to establish that an implementation based on the proofs is actually correct and robust in real networks). This could benefit from more explanation. In particular, I wonder if you used (or are considering using) a tool like Kyle Kingsbury’s Jepsen <https://github.com/jepsen-io/jepsen> to induce network partitions.
+
+
+
+
+
+
+
+===========================================================================
+                           OOPSLA'17 Review #94B
+---------------------------------------------------------------------------
+  Paper #94: Verifying Strong Eventual Consistency in Distributed Systems
+---------------------------------------------------------------------------
+
+                      Overall merit: A. Good paper, I will champion it
+                         Confidence: Y. I am knowledgeable in this area,
+                                        but not an expert
+
+                         ===== Paper summary =====
+
+This paper presents a self-contained set of Isabelle definitions
+and theorems showing that three CRDTs obey Strong Eventual
+Consistency.
+
+                      ===== Comments for author =====
+
+
+The paper presents useful results, and in doing so, it establishes a
+basis for others to show similar properties of similar alorithms.
+
+The presentation is really good for this kind of paper.  It keeps
+readers attention, with enough anticipation to follow the main lines
+of argument/derivation. Rationales for each step are nicely presented.
+I'm not an expert in Isabelle (but have read enough Isabelle proofs to
+have basic familiarity), so I might not (and did not) notice technical
+flaws.
+
+It might be informative to show an example of how an attempted proof
+of a faulty algorithm goes wrong.
+
+Some discussion of the robustness of algorithms to minor variations in
+infrastructure assumptions might be informative. For example, what if
+read-your-own-writes is not strictly enforced?.
+
+Page 5: I've never learned exactly how thin/thick implication arrows
+differ, and still don't know. Do us a favor and briefly explain.
+
+
+
+
+
+
+
+===========================================================================
+                           OOPSLA'17 Review #94C
+---------------------------------------------------------------------------
+  Paper #94: Verifying Strong Eventual Consistency in Distributed Systems
+---------------------------------------------------------------------------
+
+                      Overall merit: A. Good paper, I will champion it
+                         Confidence: Z. I am not an expert; my evaluation
+                                        is that of an informed outsider
+
+                         ===== Paper summary =====
+
+The problem that this paper is addressing is verifying the correctness of algorithms for maintaining up-to-date copies of shared data across multiple computers.
+
+This problem is important because data replication is key to supporting fault tolerance in distributed systems.  As mentioned in the paper, algorithms for achieving consistency in replicated systems are still poorly understood.  Furthermore, many published algorithms have later been shown to be incorrect, even for those accompanied with mechanized proofs of correctness.
+
+The proposed solution is a modular and reusable framework in the Isabelle/HOL interactive proof assistant for verifying the correctness of Conflict-free Replicated Data Types (CRDT) algorithms.
+
+The claimed benefit of this approach is that the framework is highly reusable, developing proofs of correctness for the later two CRDTs in a few hours and with relatively little CRDT-specific code.
+
+The authors validate their claims by applying their framework to prove well-known operation-based CRDTs: the Observed-Remove Set and the Increment-Decrement Counter.  Increment-Decrement Counter was proved correct in a matter of minutes.  The specification and correctness proof for Observed-Remove Set was performed in about four hours.
+
+                      ===== Comments for author =====
+
+The paper is well written and presents informative and convincing results.  The framework helps for others prove related properties for similar algorithms.  The Isabelle introduction enables the paper to be self-contained.
+
+
