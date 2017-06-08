@@ -1,0 +1,51 @@
+# Response for submission 94
+
+We thank the reviewers for their careful reading of the paper and helpful
+suggestions.  We clarify some specific points raised by the reviewers below:
+
+Reviewer A found the discussion in Section 1 of previously published
+faulty proofs misleading, but found the further explanation in Section 8.2
+clearer.  We will address this by following the reviewer's advice in
+making the discussion in Section 1 clearer, and include missing
+citations highlighted by the reviewer.
+
+Reviewer A also suggested that we expand our discussion of the TP1 and TP2
+properties in Section 8.2.  We will expand the discussion of these two
+properties in Section 8.2.  For the reviewers' benefit: <INSERT DESCRIPTION OF
+TP1/TP2 FOR REFEREE.>
+
+Reviewer A asks why our network model uses message broadcast rather than
+unicast.  <INSERT EXPLANATION HERE.>
+
+Reviewer A also asks about our initial empirical investigation, using an OCaml
+CRDT extracted from our Isabelle definitions.  First, our primary focus in this
+work was algorithm correctness, rather than empirical analysis, or even
+implementation correctness.  Our CRDT implementations are unoptimised, and our
+experiments with the OCaml extraction were merely intended to show that our
+definitions are "reasonable": Isabelle, allows the user to define uncomputable
+functions so by showing that we can extract OCaml code we demonstrate that our
+definitions are not defined in terms of uncomputable facts about the network
+behaviour, or similar.  This will be clarified in the text.
+
+At present we have not used Jepsen or any other similar simulation tool.  We
+leave this to future work.
+
+Reviewer B suggests that it may be informative to show an example of how an
+attempted proof of a faulty algorithm goes wrong.  The challenge here is to
+construct an algorithm that ordinarily looks correct but nevertheless contains
+a subtle bug.  This is easily achieved by slightly modifying any of our existing
+CRDT implementations, or varying the assumptions in any of our correctness
+proofs, causing Isabelle to raise an error.  However, what error Isabelle raises
+depends on the changes we make to the definitions or theorem statements, so it
+is not clear what lesson can be drawn from this.  We could, however, briefly
+mention Isabelle's couterexample checker, and show how using this one is able to
+debug CRDT implementations by using it to find bugs.
+
+Reviewer B asks about the robustness of the algorithms presented to minor
+variations in the assumed network axioms.  <INSERT EXPLANATION.>
+
+Reviewer B also asks about the distinction between fat and thin implications in
+Isabelle.  Briefly: the fat implication arrows belongs to Isabelle's metalogic,
+whereas the thin implication belongs to the object logic we are using for our
+formalisation, HOL.  We will expand the explanation of these two arrows in our
+paper, as they are indeed confusing.
