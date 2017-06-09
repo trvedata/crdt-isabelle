@@ -29,25 +29,23 @@ Reviewer A also asks about our OCaml extraction.  At present we have not used
 Jepsen or another similar tool, leaving this to future work.  Our primary focus
 in this work was algorithm correctness, rather than empirical analysis, or even
 implementation correctness.  The OCaml was to show that our definitions are
-"reasonable", as Isabelle allows the user to define uncomputable functions.  We
-will clarify this point.
+"reasonable", as Isabelle allows the user to define uncomputable functions, and
+ensuring that executable code is extractable is a guard against this.  We will
+clarify this point.
 
 Reviewer B suggests that it may be informative to show an example of how an
 attempted proof of a faulty algorithm goes wrong.  This is easily achieved, but
 it is not clear what lesson can be drawn from this.  We could briefly mention
-Isabelle's couterexample checker, and show how Isabelle can automatically spot
+Isabelle's counterexample checker, and show how Isabelle can automatically spot
 faulty theorem statements, however.
 
 Reviewer B asks about variations in the assumed network axioms.  We believe that
-there is flexibility here, as one can implement stronger properties on top of
-weak networks, and the msg-id-unique and histories-distinct axioms can be
-implemented using sequence numbers, making those axioms unnecessary.  We plan
-to explore this reduction of axioms in future work.
-
-The read-your-own-writes property mentioned by Reviewer B is not relevant to
-this work, since it is used to describe systems that access shared storage over
-the network, whereas our algorithm only accesses local storage on each node and
-uses asynchronous message-passing for communication.
+there is a degree of flexibility here, as one can implement stronger properties
+on top of weak networks, and the msg-id-unique and histories-distinct axioms can
+be implemented using sequence numbers, making those axioms unnecessary.  We plan
+to explore this reduction of axioms in future work.  However, the
+read-your-own-writes property mentioned by the reviewer is, we believe,
+necessary to the correct functioning of our CRDTs.
 
 Reviewer B also asks about the distinction between arrows in Isabelle.  We will
 explain this as they are indeed confusing.
