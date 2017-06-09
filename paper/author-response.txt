@@ -11,24 +11,48 @@ citations highlighted by the reviewer.
 
 Reviewer A also suggested that we expand our discussion of the TP1 and TP2
 properties in Section 8.2.  We will expand the discussion of these two
-properties in Section 8.2.  For the reviewers' benefit: <INSERT DESCRIPTION OF
-TP1/TP2 FOR REFEREE.>
+properties in Section 8.2.  Briefly, the properties can be understood as
+follows:
+
+Given two concurrent operations x and y that modify the same initial state, TP1
+states that y can be transformed into an operation y' that performs an
+equivalent modification on a state where x has already been applied, and vice
+versa, such that $x \circ y' = y \circ x'$.  When all operations are sequenced
+through a central server, TP1 is sufficient to allow a client to reorder its
+operations with respect to the server's operation sequence.  However, note that
+TP1 is not a commutativity law, since the transformed operations x' and y' may
+be different from x and y, respectively.
+
+If there are three concurrent operations x, y, and z that modify the same
+initial state, and those operations can be applied in any order, TP1 is not
+sufficient. For example, the state in which x and y have been applied could be
+obtained by $x \circ y'$ or by $y \circ x'$ (as per the previous paragraph); to
+finally apply z to this state, it must be transformed into an operation z' that
+performs an equivalent modification on a state where x and y have already been
+applied.  TP2 requires that no matter whether this state was obtained by
+$x \circ y'$ or by $y \circ x'$, the transformed operation z' is the same, so
+that $x \circ y' \circ z' = y \circ x' \circ z'$.  This property is difficult to
+achieve due to the lack of commutativity in the operations.
 
 Reviewer A asks why our network model uses message broadcast rather than
-unicast.  <INSERT EXPLANATION HERE.>
+unicast.  The reason is that full replication requires every change to be sent
+to every node, which is most easily modelled as a broadcast abstraction.  Of
+course, broadcast can be implemented on top of unicast (for example using a
+fully connected graph of unicast links, or by forwarding messages along a
+spanning tree), but these algorithms are well understood and would add further
+complexity to our proof, so we left them out of scope.
 
 Reviewer A also asks about our initial empirical investigation, using an OCaml
 CRDT extracted from our Isabelle definitions.  First, our primary focus in this
 work was algorithm correctness, rather than empirical analysis, or even
 implementation correctness.  Our CRDT implementations are unoptimised, and our
 experiments with the OCaml extraction were merely intended to show that our
-definitions are "reasonable": Isabelle, allows the user to define uncomputable
-functions so by showing that we can extract OCaml code we demonstrate that our
-definitions are not defined in terms of uncomputable facts about the network
-behaviour, or similar.  This will be clarified in the text.
+definitions are "reasonable": Isabelle allows the user to define uncomputable
+functions, so by extracting OCaml code we demonstrate that we do not rely on
+any such uncomputable facts.  This reason will be clarified in the text.
 
-At present we have not used Jepsen or any other similar simulation tool.  We
-leave this to future work.
+At present we have not used Jepsen or any other similar testing tool.  We leave
+this to future work.
 
 Reviewer B suggests that it may be informative to show an example of how an
 attempted proof of a faulty algorithm goes wrong.  The challenge here is to
@@ -42,7 +66,17 @@ mention Isabelle's couterexample checker, and show how using this one is able to
 debug CRDT implementations by using it to find bugs.
 
 Reviewer B asks about the robustness of the algorithms presented to minor
-variations in the assumed network axioms.  <INSERT EXPLANATION.>
+variations in the assumed network axioms.  We believe that there is significant
+flexibility here, since algorithms can implement stronger properties on top of a
+network with weaker properties.  For example, the msg-id-unique and
+histories-distinct assumptions can be implemented by including sequence numbers
+in messages, making those axioms unnecessary.  We are planning to explore this
+reduction of axioms in future work.
+
+The read-your-own-writes property mentioned by reviewer B is not relevant to
+this work, since it is used to describe systems that access shared storage over
+the network, whereas our algorithm only accesses local storage on each node and
+uses asynchronous message-passing for communication.
 
 Reviewer B also asks about the distinction between fat and thin implications in
 Isabelle.  Briefly: the fat implication arrows belongs to Isabelle's metalogic,
