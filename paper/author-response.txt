@@ -1,37 +1,37 @@
-# Response for submission 94
-
 We thank the reviewers for their reading of the paper and helpful suggestions.
 
 Reviewer A found Section 1 misleading, noted missing citations, and also
-suggested we expand discussion of TP1 and TP2.  We will fix all of these points,
-but briefly, TP1 and TP2 are:
+suggested we expand discussion of TP1 and TP2.  We will fix all of these points.
+Briefly, TP1 and TP2 are defined as follows:
 
-Given two concurrent operations x and y that modify the same initial state, TP1
-states that y can be transformed into an operation y' that performs an
-equivalent modification on a state where x has already been applied, and vice
+Given two concurrent operations $x$ and $y$ that modify the same initial state,
+TP1 requires that $y$ can be transformed into an operation $y'$ that performs an
+equivalent modification on a state where $x$ has already been applied, and vice
 versa, such that $x \circ y' = y \circ x'$.  When all operations are sequenced
 through a central server, TP1 is sufficient to allow a client to reorder its
 operations with respect to the server's operation sequence.
 
-If there are three concurrent operations x, y, and z that modify the same
+If there are three concurrent operations $x$, $y$, and $z$ that modify the same
 initial state, and those operations can be applied in any order, TP1 does
-not suffice.  TP2 requires that no matter whether this state was obtained by
-$x \circ y'$ or by $y \circ x'$, the transformed operation z' is the same, so
-that $x \circ y' \circ z' = y \circ x' \circ z'$.  This is complex due to the
-lack of commutativity in the operations.
+not suffice.  TP2 requires that if transformations of $x$ and $y$ are applied in
+either order, the same transformation of $z$ can be applied to the result:
+$x \circ y' \circ z' = y \circ x' \circ z'$.  Since transformed operations may
+be different from original operations, this property demands much more than just
+commutativity, making it difficult to implement correctly.
 
 Reviewer A asks why our network model uses message broadcast rather than
-unicast: full replication requires every change to be sent to every node, which
-is naturally modelled as a broadcast abstraction.  Broadcast can be implemented
-on top of unicast, but we do not consider this here.
+unicast. The reason is that full replication requires every change to be sent to
+every node, which is naturally modelled as a broadcast abstraction.  Broadcast
+can be implemented on top of unicast using well-known network protocols (Cachin
+et al.)
 
 Reviewer A also asks about our OCaml extraction.  At present we have not used
-Jepsen or another similar tool, leaving this to future work.  Our primary focus
+Jepsen or similar testing tools, leaving this to future work.  Our primary focus
 in this work was algorithm correctness, rather than empirical analysis, or even
-implementation correctness.  The OCaml was to show that our definitions are
-"reasonable", as Isabelle allows the user to define uncomputable functions, and
-ensuring that executable code is extractable is a guard against this.  We will
-clarify this point.
+implementation correctness.  The OCaml extraction demonstrates that our
+definitions are "reasonable": Isabelle allows the user to define uncomputable
+functions, and extracting executable code guards against this problem.  We will
+clarify this point in the paper.
 
 Reviewer B suggests that it may be informative to show an example of how an
 attempted proof of a faulty algorithm goes wrong.  This is easily achieved, but
@@ -41,11 +41,11 @@ faulty theorem statements, however.
 
 Reviewer B asks about variations in the assumed network axioms.  We believe that
 there is a degree of flexibility here, as one can implement stronger properties
-on top of weak networks, and the msg-id-unique and histories-distinct axioms can
-be implemented using sequence numbers, making those axioms unnecessary.  We plan
-to explore this reduction of axioms in future work.  However, the
-read-your-own-writes property mentioned by the reviewer is, we believe,
-necessary to the correct functioning of our CRDTs.
+on top of weak networks: for example the msg-id-unique and histories-distinct
+axioms can be implemented using sequence numbers, making those axioms
+unnecessary.  We plan to explore this reduction of axioms in future work.
+However, the read-your-own-writes property mentioned by the reviewer is, we
+believe, necessary for the correct functioning of our CRDTs.
 
 Reviewer B also asks about the distinction between arrows in Isabelle.  We will
-explain this as they are indeed confusing.
+explain this aspect as they are indeed confusing.
