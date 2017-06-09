@@ -15,7 +15,7 @@ operations with respect to the server's operation sequence.
 
 If there are three concurrent operations x, y, and z that modify the same
 initial state, and those operations can be applied in any order, TP1 does
-not suffic.  TP2 requires that no matter whether this state was obtained by
+not suffice.  TP2 requires that no matter whether this state was obtained by
 $x \circ y'$ or by $y \circ x'$, the transformed operation z' is the same, so
 that $x \circ y' \circ z' = y \circ x' \circ z'$.  This is complex due to the
 lack of commutativity in the operations.
