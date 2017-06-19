@@ -6,58 +6,43 @@ begin
 
 section \<open>Datalog syntax\<close>
 
-subsection \<open>Syntax for an atom\<close>
+subsection \<open>Syntax of a rule\<close>
 
-type_synonym ('rel, 'var) atom = "'rel \<times> 'var list"
+type_synonym ('rel, 'var) rule = "('rel \<times> 'var list) \<times> ('rel \<times> 'var list \<times> bool) set"
 
-definition null_relation :: "'rel \<Rightarrow> ('rel, 'var) atom" ("_\<langle>\<rangle>" [60] 60) where
-  "R\<langle>\<rangle> \<equiv> (R, [])"
-
-definition atom_var_cons :: "'var \<Rightarrow> ('rel, 'var) atom \<Rightarrow> ('rel, 'var) atom"
-  (infixr "varcons" 50) where
-  "x varcons atom \<equiv> (fst atom, x # (snd atom))"
-
-nonterminal atomvars
-syntax
-  "_atomvar"  :: "'a \<Rightarrow> atomvars"             ("_")
-  "_atomvars" :: "['a, atomvars] \<Rightarrow> atomvars" ("_,/ _" [86,85] 85)
-  "_atomterm" :: "['a, atomvars] \<Rightarrow> 'a"       ("_\<langle>_\<rangle>" [100,80] 80)
-translations
-  "R\<langle>x\<rangle>" == "x varcons R\<langle>\<rangle>"
-  "_atomterm R (_atomvars x xs)" == "x varcons (_atomterm R xs)"
-
-term "R\<langle>\<rangle>"
-term "R\<langle>x\<rangle>"
-term "R\<langle>x, y\<rangle>"
-term "R\<langle>x, y, z\<rangle>"
-term "x varcons y varcons z varcons R\<langle>\<rangle>"
-(*print_syntax*)
-
-subsection \<open>Syntax for a rule\<close>
-
-type_synonym ('rel, 'var) rule = "('rel, 'var) atom \<times> ('rel, 'var) atom set"
-
-definition rule_fact :: "('rel, 'var) atom \<Rightarrow> ('rel, 'var) rule" ("_." 50) where
-  "atom. \<equiv> (atom, {})"
-
-definition add_premise :: "('rel, 'var) atom \<Rightarrow> ('rel, 'var) rule \<Rightarrow> ('rel, 'var) rule"
+definition add_premise :: "'rel \<times> 'var list \<times> bool \<Rightarrow> ('rel, 'var) rule \<Rightarrow> ('rel, 'var) rule"
   (infixr "premiseof" 50) where
   "atom premiseof rule \<equiv> (fst rule, insert atom (snd rule))"
 
-nonterminal ruleatoms
+nonterminal atomvars and ruleatom and ruleatoms
 syntax
-  "_ruleatom"  :: "'a \<Rightarrow> ruleatoms"              ("_")
-  "_ruleatoms" :: "['a, ruleatoms] \<Rightarrow> ruleatoms" ("_,/ _" [76,75] 75)
-  "_ruleexpr"  :: "['a, ruleatoms] \<Rightarrow> 'a"        ("_/ \<leftarrow>/ _" [70,70] 70)
+  "_atomvar"  :: "'a \<Rightarrow> atomvars"              ("_")
+  "_atomvars" :: "['a, atomvars] \<Rightarrow> atomvars"  ("_,/ _" [86,85] 85)
+  "_posatom"   :: "['a, atomvars] \<Rightarrow> ruleatom" ("_\<langle>_\<rangle>" [100,80] 80)
+  "_negatom"   :: "['a, atomvars] \<Rightarrow> ruleatom" ("\<not>_\<langle>_\<rangle>" [100,80] 80)
+  "_ruleatom"  :: "ruleatom \<Rightarrow> ruleatoms"      ("_")
+  "_ruleatoms" :: "[ruleatom, ruleatoms] \<Rightarrow> ruleatoms" ("_,/ _" [75,76] 75)
+  "_ruleexpr"  :: "['a, atomvars, ruleatoms] \<Rightarrow> 'a"    ("_\<langle>_\<rangle>/ \<leftarrow>/ _" [70,70,70] 70)
 translations
-  "h \<leftarrow> x" == "x premiseof (h.)"
-  "_ruleexpr h (_ruleatoms x xs)" == "x premiseof (_ruleexpr h xs)"
+  "_atomvar v" == "(v#[])"
+  "_atomvars v vs" == "(v#vs)"
+  "_posatom R vs" == "(R, vs, HOL.True)"
+  "_negatom R vs" == "(R, vs, HOL.False)"
+  "_ruleexpr R vs (_ruleatom a)" == "((R, vs), {a})"
+  "_ruleexpr R vs (_ruleatoms a as)" == "a premiseof (_ruleexpr R vs as)"
 
-term "R\<langle>a\<rangle>"
 term "R\<langle>x\<rangle> \<leftarrow> S\<langle>x\<rangle>"
+term "R\<langle>x\<rangle> \<leftarrow> \<not>S\<langle>x\<rangle>"
 term "R\<langle>x, y\<rangle> \<leftarrow> S\<langle>x\<rangle>, T\<langle>x, y\<rangle>"
+term "R\<langle>x, y\<rangle> \<leftarrow> S\<langle>x\<rangle>, \<not>T\<langle>x, y\<rangle>"
+term "R\<langle>x, y\<rangle> \<leftarrow> \<not>S\<langle>x\<rangle>, T\<langle>x, y\<rangle>"
 
-subsection \<open>Syntax for a ruleset\<close>
+(* Example *)
+lemma "R\<langle>x, y\<rangle> \<leftarrow> \<not>S\<langle>x\<rangle>, T\<langle>x, y\<rangle> =
+       ((R, [x, y]), {(S, [x], False), (T, [x, y], True)})"
+by (simp add: add_premise_def)
+
+subsection \<open>Syntax of a ruleset\<close>
 
 type_synonym ('rel, 'var) ruleset = "('rel, 'var) rule set"
 
@@ -80,6 +65,6 @@ translations
 
 term "{S\<langle>x,y\<rangle> \<leftarrow> R\<langle>x,y\<rangle>}"
 term "{S\<langle>x,y\<rangle> \<leftarrow> R\<langle>x,y\<rangle>; S\<langle>x,y\<rangle> \<leftarrow> S\<langle>x,z\<rangle>, R\<langle>z,y\<rangle>}"
-term "{A\<langle>x\<rangle> \<leftarrow> R\<langle>x\<rangle>; A\<langle>x\<rangle> \<leftarrow> S\<langle>x\<rangle>; A\<langle>x\<rangle> \<leftarrow> T\<langle>x\<rangle>}"
+term "{A\<langle>x\<rangle> \<leftarrow> R\<langle>x\<rangle>; A\<langle>x\<rangle> \<leftarrow> S\<langle>x\<rangle>; A\<langle>x\<rangle> \<leftarrow> T\<langle>x\<rangle>, \<not>U\<langle>x\<rangle>}"
 
 end
