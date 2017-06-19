@@ -13,17 +13,19 @@ record ('rel, 'var) atom =
   atom_vars :: "'var list"
   atom_neg  :: "bool"
 
-type_synonym ('rel, 'var) rule = "('rel \<times> 'var list) \<times> ('rel, 'var) atom set"
+definition rule_body :: "'a \<Rightarrow> 'a" where "rule_body body \<equiv> body"
 
-nonterminal atomvars and ruleatom and ruleatoms
+nonterminal atomvars and ruleatom and ruleatoms and rulebody
 syntax
-  "_atomvar"   :: "'a \<Rightarrow> atomvars"             ("_")
-  "_atomvars"  :: "['a, atomvars] \<Rightarrow> atomvars" ("_,/ _" [86,85] 85)
-  "_posatom"   :: "['a, atomvars] \<Rightarrow> ruleatom" ("_\<langle>_\<rangle>"   [100,80] 80)
-  "_negatom"   :: "['a, atomvars] \<Rightarrow> ruleatom" ("\<not>_\<langle>_\<rangle>"  [100,80] 80)
-  "_ruleatom"  :: "ruleatom \<Rightarrow> ruleatoms"      ("_")
+  "_atomvar"   :: "'a \<Rightarrow> atomvars"                     ("_")
+  "_atomvars"  :: "['a, atomvars] \<Rightarrow> atomvars"         ("_,/ _" [86,85] 85)
+  "_posatom"   :: "[pttrn, atomvars] \<Rightarrow> ruleatom"      ("_\<langle>_\<rangle>"   [100,80] 80)
+  "_negatom"   :: "[pttrn, atomvars] \<Rightarrow> ruleatom"      ("\<not>_\<langle>_\<rangle>"  [100,80] 80)
+  "_ruleatom"  :: "ruleatom \<Rightarrow> ruleatoms"              ("_")
   "_ruleatoms" :: "[ruleatom, ruleatoms] \<Rightarrow> ruleatoms" ("_,/ _" [75,76] 75)
-  "_ruleexpr"  :: "['a, atomvars, ruleatoms] \<Rightarrow> 'a"    ("_\<langle>_\<rangle>/ \<leftarrow>/ _" [70,70,70] 70)
+  "_rulebody"  :: "ruleatoms \<Rightarrow> rulebody"              ("_")
+  "_ruleany"   :: "[idts, rulebody] \<Rightarrow> rulebody"       ("any/ (_),/ _" [76,75] 75)
+  "_ruleexpr"  :: "[pttrn, atomvars, rulebody] \<Rightarrow> 'a"  ("_\<langle>_\<rangle>/ \<leftarrow>/ _" [70,70,70] 70)
 translations
   "_atomvar v"        \<rightleftharpoons> "(v#[])"
   "_atomvars v vs"    \<rightleftharpoons> "(v#vs)"
@@ -31,30 +33,32 @@ translations
   "_negatom R vs"     \<rightleftharpoons> "\<lparr>atom_rel=R, atom_vars=vs, atom_neg=CONST False\<rparr>"
   "_ruleatom a"       \<rightleftharpoons> "CONST insert a {}"
   "_ruleatoms a as"   \<rightleftharpoons> "CONST insert a as"
-  "_ruleexpr R vs as" \<rightleftharpoons> "((R, vs), as)"
+  "_rulebody as"      \<rightleftharpoons> "CONST rule_body as"
+  "_ruleany v body"   \<rightleftharpoons> "CONST rule_body (\<lambda>v. body)"
+  "_ruleexpr R (v#vs) body" \<rightleftharpoons> "\<lambda>v. _ruleexpr R vs body"
+  "_ruleexpr R [] (CONST rule_body body)" \<rightleftharpoons> "(R, body)"
 
 term "R\<langle>x\<rangle> \<leftarrow> S\<langle>x\<rangle>"
+term "R\<langle>x\<rangle> \<leftarrow> any y, any z, S\<langle>w, x, y, z\<rangle>"
 term "R\<langle>x\<rangle> \<leftarrow> \<not>S\<langle>x\<rangle>"
 term "R\<langle>x, y\<rangle> \<leftarrow> S\<langle>x\<rangle>, T\<langle>x, y\<rangle>"
-term "R\<langle>x, y\<rangle> \<leftarrow> S\<langle>x\<rangle>, \<not>T\<langle>x, y\<rangle>"
+term "R\<langle>x, y\<rangle> \<leftarrow> S\<langle>x, a\<rangle>, \<not>T\<langle>x, y, 3\<rangle>"
 term "R\<langle>x, y\<rangle> \<leftarrow> \<not>S\<langle>x\<rangle>, T\<langle>x, y\<rangle>"
+term "R\<langle>x, z\<rangle> \<leftarrow> any y, S\<langle>x,y\<rangle>, S\<langle>y,z\<rangle>"
+term "\<lambda>x y. x"
 
 (* Example *)
 lemma "R\<langle>x, y\<rangle> \<leftarrow> \<not>S\<langle>x\<rangle>, T\<langle>x, y\<rangle> =
-       ((R, [x, y]), {
+       (\<lambda>x y. (R, {
          \<lparr>atom_rel=S, atom_vars=[x], atom_neg=False\<rparr>,
-         \<lparr>atom_rel=T, atom_vars=[x, y], atom_neg=True\<rparr>})"
+         \<lparr>atom_rel=T, atom_vars=[x, y], atom_neg=True\<rparr>}))"
 by auto
 
-subsection \<open>Syntax of a ruleset\<close>
-
-type_synonym ('rel, 'var) ruleset = "('rel, 'var) rule set"
-
-definition to_ruleset :: "('rel, 'var) rule \<Rightarrow> ('rel, 'var) ruleset"
+definition to_ruleset :: "'a \<Rightarrow> 'a set"
   ("_." [60] 60) where
   "r. \<equiv> {r}"
 
-definition add_rule :: "('rel, 'var) rule \<Rightarrow> ('rel, 'var) ruleset \<Rightarrow> ('rel, 'var) ruleset"
+definition add_rule :: "'a \<Rightarrow> 'a set \<Rightarrow> 'a set"
   ("_;//_" [51,50] 50) where
   "r ; rs \<equiv> insert r rs"
 
