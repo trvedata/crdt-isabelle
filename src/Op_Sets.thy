@@ -40,6 +40,7 @@ definition next_elem_sibling :: "('objId, 'elemId::linorder) operation set \<Rig
      (\<nexists>child. first_child opers listId (Some prevId) child) \<and>
      next_sibling opers listId prevId nextId"
 
+(* TODO aunt needs to search (grand)+parents' siblings as well *)
 definition next_elem_aunt :: "('objId, 'elemId::linorder) operation set \<Rightarrow> 'objId \<Rightarrow> 'elemId \<Rightarrow> 'elemId \<Rightarrow> bool" where
   "next_elem_aunt opers listId prevId nextId \<equiv>
      (\<nexists>child. first_child opers listId (Some prevId) child) \<and>
@@ -270,28 +271,22 @@ lemma next_elem_unique:
     have_list_elem_def inf_sup_aci(5) le_SucI le_zero_eq next_elem_aunt_def sup_bot.right_neutral)
 done
 
-lemma list_following_1:
-  assumes "valid_ops opers"
-    and "first_elem opers listId firstId"
-    and "have_list_elem opers listId elemId"
-  shows "following_elem opers listId firstId elemId"
-  using assms(2) apply(case_tac "elemId = firstId")
-  apply(metis following_elem.intros(1) child_def first_child_def first_elem_def have_list_elem_def)
-  apply(insert following_elem.intros(2))[1]
-  sorry
-
-lemma list_following_2:
-  assumes "valid_ops opers"
-    and "first_elem opers listId firstId"
-    and "following_elem opers listId firstId elemId"
-  shows "have_list_elem opers listId elemId"
-  sorry
-
 thm following_elem.inducts
 thm following_elem.induct
 thm following_elem.intros
 thm following_elem.cases
 thm following_elem.simps
+
+lemma following_elem_unaffected:
+  assumes "\<forall>prev elemId. oper \<noteq> Insert listId prev elemId"
+  shows "following_elem opers listId firstId elemId =
+         following_elem (insert oper opers) listId firstId elemId"
+  apply(subgoal_tac "following_elem opers listId firstId elemId \<noteq>
+         following_elem (insert oper opers) listId firstId elemId \<Longrightarrow>
+         \<exists>prev elemId. oper = Insert listId prev elemId")
+  using assms apply force
+  apply(case_tac "following_elem opers listId firstId elemId")
+  sorry
 
 lemma list_order_complete:
   assumes "valid_ops opers"
@@ -299,13 +294,23 @@ lemma list_order_complete:
   apply(subgoal_tac "\<And>elemId. have_list_elem opers listId elemId \<longleftrightarrow>
     (\<exists>firstId. first_elem opers listId firstId \<and> following_elem opers listId firstId elemId)")
   apply(simp add: list_elem_set_def)
-  apply(rule iffI)
-  apply(subgoal_tac "\<exists>firstId. first_elem opers listId firstId") prefer 2
-  apply(meson assms first_elem_exists)
-  apply(erule exE, rule_tac x=firstId in exI)
-  apply(simp add: assms list_following_1)
-  apply(erule exE, erule conjE)
-  apply(simp add: assms list_following_2)
-done
+  using assms(1) apply -
+  apply(drule_tac P="\<lambda>opers. \<forall>elemId. have_list_elem opers listId elemId \<longleftrightarrow>
+          (\<exists>firstId. first_elem opers listId firstId \<and> following_elem opers listId firstId elemId)"
+        and listId=listId in list_invariant)
+  apply(simp add: child_def first_child_def first_elem_def have_list_elem_def)
+  prefer 3 apply simp
+  apply clarsimp
+  apply(erule_tac x=elemId in allE)
+  apply(subgoal_tac "have_list_elem opers listId elemId =
+                have_list_elem (insert oper opers) listId elemId")
+  prefer 2 apply(metis have_list_elem_def insert_iff)
+  apply(subgoal_tac "\<forall>firstId. first_elem opers listId firstId =
+                first_elem (insert oper opers) listId firstId")
+  prefer 2 apply(metis child_def first_child_def first_elem_def insert_iff)
+  apply(subgoal_tac "\<forall>firstId. following_elem opers listId firstId elemId =
+                following_elem (insert oper opers) listId firstId elemId")
+  apply(blast, meson following_elem_unaffected)
+  oops
 
 end

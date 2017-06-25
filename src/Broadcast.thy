@@ -25,6 +25,12 @@ definition filter_bcast :: "('nodeid, 'op) message event list \<Rightarrow> ('no
 definition filter_deliv :: "('nodeid, 'op) message event list \<Rightarrow> ('nodeid, 'op) message list" where
   "filter_deliv evts \<equiv> List.map_filter (\<lambda>e. case e of Deliver m \<Rightarrow> Some m | _ \<Rightarrow> None) evts"
 
+definition deliveries_from :: "'nodeid \<Rightarrow> ('nodeid, 'op) message event list \<Rightarrow> ('nodeid, 'op) message list" where
+  "deliveries_from sender evts \<equiv> List.map_filter
+     (\<lambda>e. case e of Deliver msg \<Rightarrow>
+            if fst (msg_id msg) = sender then Some msg else None |
+          _ \<Rightarrow> None) evts"
+
 definition op_history :: "('nodeid, 'op) message event list \<Rightarrow> ('nodeid msgid \<times> 'op) event list" where
   "op_history hist \<equiv> map (\<lambda>evt. case evt of
       Broadcast msg \<Rightarrow> Broadcast (msg_id msg, msg_op msg) |
@@ -614,6 +620,51 @@ lemma (in cbcast_protocol) deliver_locally:
     snoc_eq_iff_butlast)
 done
 
+lemma (in cbcast_protocol) delivery_causally_ready:
+  assumes "execution conf"
+    and "fst (snd conf i) = pre @ [Deliver msg] @ suf"
+  shows "\<exists>before. execution before \<and> causally_ready (snd before i) msg \<and>
+    (fst (snd before i) = pre \<or> fst (snd before i) = pre @ [Broadcast msg])"
+  oops
+
+lemma (in cbcast_protocol) delivery_order:
+  assumes "execution conf"
+    and "fst (snd conf i) = pre @ [Deliver m1] @ mid @ [Deliver m2] @ suf"
+  shows "deps_leq (msg_deps m1) (msg_deps m2)"
+  oops
+
+lemma (in cbcast_protocol) deliver_no_dups:
+  assumes "execution conf"
+    and "fst (snd conf i) = pre @ [Deliver msg] @ suf"
+  shows "Deliver msg \<notin> set pre"
+  using assms apply -
+  apply(frule_tac P="\<lambda>conf. (\<exists>suf. fst (snd conf i) = pre @ [Deliver msg] @ suf) \<longrightarrow>
+      Deliver msg \<notin> set pre" and i=i in history_invariant, simp, simp)
+  prefer 3 apply simp
+  apply(rule impI, case_tac "msg=msga")
+  oops
+
+lemma (in cbcast_protocol) delivery_circumstances:
+  assumes "execution conf"
+    and "Deliver msg \<in> set (fst (snd conf i))"
+  shows "\<exists>xs ys before. fst (snd conf i) = xs @ Deliver msg # ys \<and> execution before \<and>
+    (fst (msg_id msg) = i \<longrightarrow> butlast xs = fst (snd before i) \<and> last xs = Broadcast msg) \<and>
+    (fst (msg_id msg) \<noteq> i \<longrightarrow> xs = fst (snd before i) \<and> causally_ready (snd before i) msg)"
+  using assms apply -
+  apply(frule_tac P="\<lambda>conf. Deliver msg \<in> set (fst (snd conf i)) \<longrightarrow> (
+      \<exists>xs ys before. fst (snd conf i) = xs @ Deliver msg # ys \<and> execution before \<and>
+        (fst (msg_id msg) = i \<longrightarrow> butlast xs = fst (snd before i) \<and> last xs = Broadcast msg) \<and>
+        (fst (msg_id msg) \<noteq> i \<longrightarrow> xs = fst (snd before i) \<and> causally_ready (snd before i) msg))"
+    and i=i in history_invariant, simp, simp) prefer 3 apply simp
+  apply(rule impI, case_tac "msg=msga")
+  apply(subgoal_tac "fst (msg_id msg) = i") prefer 2
+  apply(simp add: next_msgid_def, simp)
+  apply(rule_tac x="fst (snd before i) @ [Broadcast msga]" in exI, force)
+  apply(subgoal_tac "Deliver msg \<in> set (fst (snd before i))", fastforce)
+  apply(subgoal_tac "Deliver msg \<notin> {Broadcast msga, Deliver msga}", force, blast)
+  oops
+(*    (case msg_id msg of (sender, seq) \<Rightarrow> seq = Suc(causal_deps state sender))" *)
+
 lemma (in cbcast_protocol) broadcast_distinct:
   assumes "execution conf"
     and "msg_id msg = next_msgid i (snd conf i)"
@@ -635,19 +686,30 @@ lemma (in cbcast_protocol) broadcast_distinct:
   apply(metis op_history_filter_bcast)
 done
 
-lemma (in cbcast_protocol) local_deliver_distinct:
+lemma (in cbcast_protocol) fifo_by_sender:
   assumes "execution conf"
-    and "msg_id msg = next_msgid i (snd conf i)"
-  shows "Deliver (msg_id msg, msg_op msg) \<notin> set (op_history (fst (snd conf i)))"
+    and "delivs = deliveries_from sender (fst (snd conf i))"
+    and "seq < length delivs"
+  shows "msg_id (delivs ! seq) = (sender, Suc seq)"
   using assms apply -
-(*  apply(frule_tac i=i and P="\<lambda>conf hist. Deliver msg \<notin> set hist"
-        in history_invariant, simp_all) *)
-  sorry
+  apply(drule_tac i=i and conf=conf and P="\<lambda>conf.
+         seq < length (deliveries_from sender (fst (snd conf i))) \<longrightarrow>
+         msg_id (deliveries_from sender (fst (snd conf i)) ! seq) = (sender, Suc seq)"
+         in history_invariant)
+  apply(simp add: deliveries_from_def map_filter_def, simp) prefer 3 apply simp
+  apply(rule impI)
+  oops
 
 lemma (in cbcast_protocol) remote_deliver_distinct:
   assumes "execution conf"
     and "causally_ready (snd conf i) msg"
   shows "Deliver (msg_id msg, msg_op msg) \<notin> set (op_history (fst (snd conf i)))"
+  using assms apply -
+  apply(subgoal_tac "\<And>sender earlier later oper.
+    Deliver ((sender, earlier), oper) \<in> set (op_history (fst (snd conf i))) \<Longrightarrow>
+    msg_id msg = (sender, later) \<Longrightarrow> earlier < later")
+  apply(metis causally_ready_def case_prodE nat_neq_iff)
+  apply(simp add: causally_ready_def causal_deps_def, erule conjE)
   sorry
 
 lemma (in cbcast_protocol) histories_distinct:

@@ -24,7 +24,7 @@ syntax
   "_ruleatom"  :: "ruleatom \<Rightarrow> ruleatoms"              ("_")
   "_ruleatoms" :: "[ruleatom, ruleatoms] \<Rightarrow> ruleatoms" ("_,/ _" [75,76] 75)
   "_rulebody"  :: "ruleatoms \<Rightarrow> rulebody"              ("_")
-  "_ruleany"   :: "[idts, rulebody] \<Rightarrow> rulebody"       ("any/ (_),/ _" [76,75] 75)
+  "_ruleany"   :: "[pttrns, rulebody] \<Rightarrow> rulebody"     ("any/ (_),/ _" [76,75] 75)
   "_ruleexpr"  :: "[pttrn, atomvars, rulebody] \<Rightarrow> 'a"  ("_\<langle>_\<rangle>/ \<leftarrow>/ _" [70,70,70] 70)
 translations
   "_atomvar v"        \<rightleftharpoons> "(v#[])"
@@ -54,6 +54,10 @@ lemma "R\<langle>x, y\<rangle> \<leftarrow> \<not>S\<langle>x\<rangle>, T\<langl
          \<lparr>atom_rel=T, atom_vars=[x, y], atom_neg=True\<rparr>}))"
 by auto
 
+lemma "R\<langle>x\<rangle> \<leftarrow> any y, any z, S\<langle>w,x,y,z\<rangle> =
+       (\<lambda>x. (R, \<lambda>y z. {\<lparr>atom_rel=S, atom_vars=[w, x, y, z], atom_neg=True\<rparr>}))"
+by(simp add: rule_body_def)
+
 definition to_ruleset :: "'a \<Rightarrow> 'a set"
   ("_." [60] 60) where
   "r. \<equiv> {r}"
@@ -67,5 +71,8 @@ term "S\<langle>x,y\<rangle> \<leftarrow> R\<langle>x,y\<rangle>; S\<langle>x,y\
 term "S\<langle>x,y\<rangle> \<leftarrow> R\<langle>x,y\<rangle>; S\<langle>x,y\<rangle> \<leftarrow> S\<langle>x,z\<rangle>, R\<langle>z,y\<rangle>."
 term "A\<langle>x\<rangle> \<leftarrow> R\<langle>x\<rangle>; A\<langle>x\<rangle> \<leftarrow> S\<langle>x\<rangle>; A\<langle>x\<rangle> \<leftarrow> T\<langle>x\<rangle>, \<not>U\<langle>x\<rangle>."
 
+(* FIXME the syntax definitions mess up the display of regular sets and lists *)
+term "{a,b,c}" 
+term "x#xs"
 
 end
