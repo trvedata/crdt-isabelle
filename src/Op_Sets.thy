@@ -51,7 +51,6 @@ inductive siblingless_ancestor :: "('objId, 'elemId::linorder) operation set \<R
 definition next_elem_auntie :: "('objId, 'elemId::linorder) operation set \<Rightarrow> 'objId \<Rightarrow> 'elemId \<Rightarrow> 'elemId \<Rightarrow> bool" where
   "next_elem_auntie opers listId prevId nextId \<equiv>
      (\<nexists>child. first_child opers listId (Some prevId) child) \<and>
-     (\<nexists>sibling. next_sibling opers listId prevId sibling) \<and>
      (\<exists>ancestor parent. siblingless_ancestor opers listId prevId ancestor \<and>
       child opers listId (Some parent) ancestor \<and>
       next_sibling opers listId parent nextId)"
@@ -96,11 +95,17 @@ lemma next_elem_exclusive_child:
 using assms apply(simp add: next_elem_sibling_def)
 using assms next_elem_auntie_def by force
 
+lemma siblingless_start:
+  assumes "siblingless_ancestor opers listId startId anc"
+  shows "\<nexists>sibling. next_sibling opers listId startId sibling"
+using assms by(induction rule: siblingless_ancestor.induct, auto)
+
 lemma next_elem_exclusive_sibling:
   assumes "{nextId. next_elem_sibling opers listId prevId nextId} \<noteq> {}"
   shows "{nextId. first_child opers listId (Some prevId) nextId} = {}"
     and "{nextId. next_elem_auntie opers listId prevId nextId} = {}"
-using assms by(simp_all add: next_elem_auntie_def next_elem_sibling_def)
+using assms apply(simp add: next_elem_auntie_def next_elem_sibling_def)
+using assms next_elem_auntie_def next_elem_sibling_def siblingless_start by fastforce
 
 lemma elem_id_unique:
   assumes "valid_ops opers"
