@@ -226,9 +226,7 @@ using assms
   apply clarsimp
   apply(frule local_order_carrier_closed)
   apply clarsimp
-  apply(frule delivery_has_a_cause) back
-  apply clarsimp
-  apply(drule causal_broadcast[rotated, where j=j])
+  apply(frule delivery_has_a_cause, clarsimp, drule causal_broadcast[rotated, where j=j])
   apply auto
 done
 
@@ -297,9 +295,7 @@ using assms
   apply(case_tac e')
   apply clarsimp
   apply(frule delivery_has_a_cause)
-  apply(frule delivery_has_a_cause) back
-  apply clarsimp
-  apply(frule allowed_insert)
+  apply(frule delivery_has_a_cause, clarsimp, frule allowed_insert)
   apply clarsimp
   apply(metis Insert_equal delivery_has_a_cause fst_conv hb.intros(2) insert_subset
     local_order_carrier_closed insert_msg_id)

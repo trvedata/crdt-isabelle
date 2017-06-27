@@ -403,21 +403,15 @@ lemma (in network) node_deliver_messages_distinct:
   assumes "xs prefix of i"
   shows "distinct (node_deliver_messages xs)"
 using assms
-  apply(induction xs rule: rev_induct)
-  apply simp
+  apply(induction xs rule: rev_induct, simp)
   apply(clarsimp simp add: node_deliver_messages_append)
-  apply safe
-  apply force
+  apply(safe, force)
   apply(clarsimp simp: node_deliver_messages_def map_filter_def)
-  apply clarsimp
   apply(frule prefix_distinct)
-  apply clarsimp
-  apply(subst (asm) node_deliver_messages_def) back back back
-  apply(clarsimp simp add: map_filter_def)
+  apply(clarsimp simp add: map_filter_def node_deliver_messages_def)
+  apply(rename_tac x xs y z)
   apply(case_tac x; clarsimp)
-  apply(subst (asm) node_deliver_messages_def) back
-  apply(clarsimp simp add: map_filter_def)
-  apply(case_tac x; clarsimp)
+  apply(case_tac y; clarsimp)
 done
 
 lemma (in network) drop_last_message:
