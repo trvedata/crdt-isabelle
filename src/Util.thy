@@ -167,9 +167,10 @@ using assms
   apply(case_tac cs; clarsimp)
   apply(rule list_nth_split_technical, simp, force)
   apply(case_tac cs; clarsimp)
-  apply(erule_tac x="list" in meta_allE, erule_tac x="m-1" in meta_allE)
-  apply(subgoal_tac "m-1 < length list", subgoal_tac "n<m-1", clarsimp)
-  apply(rule_tac x="a#xs" in exI, rule_tac x="ys" in exI, rule_tac x="zs" in exI)
+  apply(rename_tac w ws)
+  apply(erule_tac x="ws" in meta_allE, erule_tac x="m-1" in meta_allE)
+  apply(subgoal_tac "m-1 < length ws", subgoal_tac "n<m-1", clarsimp)
+  apply(rule_tac x="w#xs" in exI, rule_tac x="ys" in exI, rule_tac x="zs" in exI)
   apply force+
 done
 
@@ -180,18 +181,19 @@ lemma split_first_occurrence:
     shows "as = cs \<and> bs = ds"
   using assms
   apply(induction xs arbitrary: as bs cs ds rule: rev_induct, simp)
-  apply(case_tac "x \<in> set xs")
+  apply (rename_tac y ys as bs cs ds)
+  apply(case_tac "x \<in> set ys")
   apply(erule_tac x=as in meta_allE, erule_tac x="butlast bs" in meta_allE)
   apply(erule_tac x=cs in meta_allE, erule_tac x="butlast ds" in meta_allE)
   apply(simp, rule conjI)
   apply(metis append_Nil2 butlast.simps(2) butlast_append list.simps(3))
   apply(metis (no_types, lifting) append_Nil2 append_butlast_last_id
     butlast.simps(2) butlast_append last.simps last_appendR list.simps(3))
-  apply(case_tac "x = xa")
+  apply(case_tac "x = y")
   apply(erule_tac x=as in meta_allE, erule_tac x="[]" in meta_allE)
   apply(erule_tac x=cs in meta_allE, erule_tac x="[]" in meta_allE)
   apply(metis append_Nil2 butlast.simps(2) butlast_append in_set_conv_decomp)
-  apply(subgoal_tac "x \<notin> set (xs @ [xa])")
+  apply(subgoal_tac "x \<notin> set (ys @ [y])")
   apply(metis in_set_conv_decomp)
   apply(metis butlast.simps(2) butlast_append butlast_snoc in_set_conv_decomp
     last_snoc list.simps(3))
@@ -203,16 +205,17 @@ lemma list_first_index:
            x \<notin> set pre \<and> i = length pre"
   using assms
   apply(induction xs rule: rev_induct, simp)
-  apply(case_tac "x \<in> set xs")
+  apply(rename_tac y ys)
+  apply(case_tac "x \<in> set ys")
   apply(simp, (erule exE)+, (erule conjE)+, erule exE)
   apply(rule_tac x=pre in exI)
   apply(rule conjI)
   using less_Suc_eq apply blast
   apply(rule conjI, meson nth_append)
-  apply(rule conjI, rule_tac x="suf @ [xa]" in exI)
+  apply(rule conjI, rule_tac x="suf @ [y]" in exI)
   apply(metis append_Cons append_eq_appendI nth_append, simp)
-  apply(subgoal_tac "x=xa") prefer 2 apply simp
-  apply(rule_tac x=xs in exI, rule_tac x="length xs" in exI)
+  apply(subgoal_tac "x=y") prefer 2 apply simp
+  apply(rule_tac x=ys in exI, rule_tac x="length ys" in exI)
   apply(rule_tac x="[]" in exI, simp)
 done
 
@@ -258,6 +261,7 @@ lemma split_list_unique_prefix:
   shows "\<exists>pre suf. xs = pre @ x # suf \<and> (\<forall>y \<in> set pre. x \<noteq> y)"
 using assms
   apply(induction xs; clarsimp)
+  apply(rename_tac a as)
   apply(case_tac "a = x")
   apply(rule_tac x="[]" in exI, force)
   apply(subgoal_tac "x \<in> set xs", clarsimp)
@@ -314,11 +318,12 @@ lemma drop_final_append:
     shows "\<exists>es. ys2 @ es = ys1 \<and> es @ zs1 = zs2"
   using assms
   apply(induction zs1 arbitrary: xs zs2 rule: rev_induct, force)
-  apply(erule_tac x="butlast xsa" in meta_allE)
+  apply(rename_tac z zs2)
+  apply(erule_tac x="butlast z" in meta_allE)
   apply(erule_tac x="butlast zs2" in meta_allE)
-  apply(subgoal_tac "butlast xsa = ys1 @ xs") prefer 2
+  apply(subgoal_tac "butlast z = ys1 @ xs") prefer 2
   apply(simp add: butlast_append)
-  apply(subgoal_tac "butlast xsa = ys2 @ butlast zs2") prefer 2
+  apply(subgoal_tac "butlast z = ys2 @ butlast zs2") prefer 2
   apply(simp add: append_eq_append_conv_if butlast_append)
   using append_eq_append_conv apply auto
 done

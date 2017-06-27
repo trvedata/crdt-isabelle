@@ -170,7 +170,8 @@ next
         apply clarsimp
         apply(case_tac "i2")
           apply clarsimp
-          apply(force simp add: insert_body_commutes)
+        apply(force simp add: insert_body_commutes)
+        apply (rename_tac a)
         apply clarsimp
       apply(case_tac "fst x = a")
         apply clarsimp
@@ -256,11 +257,10 @@ lemma insert_body_contains_new_elem:
   apply (rule conjI)
   apply clarsimp
   apply (rule_tac x="[]" in exI)
-  apply (rule_tac x="(a, aa, b) # p @ s" in exI)
+  apply fastforce
   apply clarsimp
-  apply clarsimp
-  apply (rule_tac x="(a, aa, b) # p" in exI)
-  apply (rule_tac x="s" in exI)
+  apply (rename_tac a b c p s)
+  apply (rule_tac x="(a, b, c) # p" in exI)
   apply clarsimp
 done
 
@@ -298,16 +298,17 @@ lemma split_tuple_list_by_id:
   using assms
   apply(induction xs)
   apply clarsimp
-  apply(case_tac "aa = (a,b,c)")
+  apply (rename_tac x xs)  
+  apply(case_tac "x = (a,b,c)")
   apply(rule_tac x="[]" in exI)
   apply(rule_tac x="xs" in exI)
   apply force
   apply(subgoal_tac "\<exists>pre suf. xs = pre @ (a, b, c) # suf \<and> (\<forall>y\<in>set pre. fst y \<noteq> a)")
   apply(erule exE)+
-  apply(rule_tac x="aa#pre" in exI)
+  apply(rule_tac x="x#pre" in exI)
   apply(rule_tac x="suf" in exI)
   apply(rule conjI)
-  apply auto+
+  apply auto
 done
 
 lemma insert_preserves_order:
@@ -320,11 +321,14 @@ lemma insert_preserves_order:
   apply clarsimp
   using insert_body_contains_new_elem apply metis
   apply(erule exE, clarsimp)
-  apply(subgoal_tac "\<exists>as bs. xs = as@(a,aa,b)#bs \<and> (\<forall>x \<in> set as. fst x \<noteq> a)")
+  apply(rename_tac a b c)
+  apply(subgoal_tac "\<exists>as bs. xs = as@(a,b,c)#bs \<and> (\<forall>x \<in> set as. fst x \<noteq> a)")
   apply clarsimp
+  apply(rename_tac as bs) 
   apply(subgoal_tac "\<exists>cs ds. insert_body bs e = cs@e#ds \<and> cs@ds = bs")
   apply clarsimp
-  apply(rule_tac x="as@(a,aa,b)#cs" in exI)
+  apply(rename_tac cs ds) 
+  apply(rule_tac x="as@(a,b,c)#cs" in exI)
   apply(rule_tac x="ds" in exI)
   apply clarsimp
   apply(metis insert_position_element_technical)
