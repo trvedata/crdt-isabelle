@@ -14,3 +14,4 @@ src/output
 *.vrb
 _build
 *.native
+src/ocaml/wrapper.js

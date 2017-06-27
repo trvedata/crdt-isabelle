@@ -1,0 +1,462 @@
+\documentclass[professionalfonts,smallfonts]{beamer}
+
+\usepackage[british]{babel}
+\usepackage{microtype}
+\usepackage{prooftree}
+
+\usetheme{metropolis}
+
+\author{Dominic Mulligan \\ Joint work with Victor Gomes, Martin Kleppmann, and Alastair Beresford}
+\title{A framework for verifying Conflict-free Replicated Data Types (CRDTs)}
+\date{S-REPLS 6, University College London, May 2017}
+
+\begin{document}
+
+\begin{frame}
+\maketitle
+\end{frame}
+
+\begin{frame}
+\frametitle{Distributed systems: quick introduction}
+Distributed systems characterised by:
+\begin{itemize}
+\item
+A number of nodes/processes
+\item
+Potentially widely geographically distributed
+\item
+Performing local processing
+\item
+Passing messages back and forth across a network
+\end{itemize}
+\onslide<2->{
+Implicit shared global state}
+\end{frame}
+
+\begin{frame}
+\frametitle{Strong consistency}
+\onslide<1->{
+\emph{Strong consistency} model:
+\begin{itemize}
+\item
+Used in e.g. in relational databases
+\item
+Tries to make system behave like a single machine
+\end{itemize}}
+\onslide<2->{
+May be costly to achieve:
+\begin{itemize}
+\item
+Hundreds of thousands, or millions of replicas
+\item
+Replicas may be widely separated, or network slow
+\end{itemize}
+or not desired: e.g. in calendar applications}
+\end{frame}
+
+\begin{frame}
+\frametitle{Relaxed consistency models}
+\onslide<1->{
+Observations motivate \emph{relaxed} consistency models
+\\[1.5ex]
+Popular alternative is \emph{eventual consistency}
+\\[1.5ex]
+Used in many NoSQL distributed database systems}
+\\[1.5ex]
+\onslide<2->{
+Informally:
+\begin{enumerate}
+\item
+If no changes are made to some component of shared global state
+\item
+Eventually all replicas will converge to some consensus on value of that component
+\end{enumerate}}
+\end{frame}
+
+\begin{frame}
+\frametitle{Eventual consistency}
+\onslide<1->{
+Eventual consistency is very weak consistency model!}
+\\[1.5ex]
+\onslide<2->{
+Model:
+\begin{itemize}
+\item
+makes no guarantees in case where updates never cease,
+\item
+and does not constrain return value of intermediate reads
+\end{itemize}}
+\end{frame}
+
+\begin{frame}
+\frametitle{Trade-offs}
+\onslide<1->{
+Range of consistency models exists because of a tradeoff:
+\begin{center}
+Performance vs. guarantees offered by model
+\end{center}}
+\vspace{\baselineskip}
+\onslide<2->{
+Possible to find intermediate models:
+\begin{itemize}
+\item
+Obtain stronger guarantees than those provided by eventual consistency
+\item
+Without inheriting the inherent costs of strong consistency
+\end{itemize}}
+\vspace{\baselineskip}
+\onslide<3->{
+One such consistency model is \emph{strong eventual consistency}}
+\end{frame}
+
+\begin{frame}
+\frametitle{Strong eventual consistency}
+\onslide<1->{
+Strong eventual consistency (Shapiro, 2011) has:
+\begin{itemize}
+\item
+Performance and fault-tolerance characteristics similar to eventual consistency
+\item
+Provides stronger guarantees
+\end{itemize}}
+\onslide<2->{
+A system satisfying strong eventual consistency must satisfy:
+\begin{itemize}
+\item
+Correct replicas that have received same updates have same state,
+\item
+Update delivered at a replica is eventually delivered to all replicas,
+\item
+All executions must terminate
+\end{itemize}}
+\onslide<3->{
+First property (`convergence') most important}
+\end{frame}
+
+\begin{frame}
+\frametitle{Conflict Free Replicated Datatypes (CRDTs)}
+\onslide<1->{
+Achieving consensus in SEC:
+\begin{itemize}
+\item
+Typically requires conflict resolution policy
+\item
+Simple policies cause data loss, complex ones are error prone
+\end{itemize}}
+\onslide<2->{
+Observation:
+\begin{itemize}
+\item
+Some operations naturally commutative
+\item
+Concurrent operations can therefore be applied in any order
+\end{itemize}}
+\onslide<3->{
+Generalise this to other data structures and operations
+\\[1.5ex]
+CRDTs = replicated data types with commutative (concurrent) operations}
+\end{frame}
+
+\begin{frame}
+\frametitle{Three families of CRDT}
+\onslide<1->{
+Three different types of CRDT are known:
+\begin{itemize}
+\item
+Operation based CRDTs: construct operations so they are commutative
+\item
+State based CRDTs: broadcast entire state of replica when it changes
+\item
+Delta-CRDTs: broadcast changes to states, not entire states
+\end{itemize}}
+\onslide<2->{
+Operation based CRDTs require stronger network behaviour
+\\[1.5ex]
+We consider operation based CRDTs in this work}
+\end{frame}
+
+\begin{frame}
+\frametitle{Why is verification necessary here?}
+\onslide<1->{
+\emph{Operational Transformation} is a closely related technique
+\\[1.5ex]
+Technology behind Google Documents
+\\[1.5ex]
+Correctness of OT algorithms has been fraught:}
+\onslide<2->{
+\begin{itemize}
+\item
+Algorithms have been presented without any proof}
+\item
+\onslide<3->{
+Hand-written proofs of convergence tend to be long and complex}
+\item
+\onslide<4->{
+Algorithms have claimed to satisfy $TP_2$ but later shown incorrect}
+\item
+\onslide<5->{
+In classic formulation of OT, later shown impossible to achieve $TP_2$}
+\item
+\onslide<6->{
+Several wrong machine checked proofs presented (!)}
+\end{itemize}
+\onslide<7->{
+\emph{Reasoning about distributed systems is hard!}}
+\end{frame}
+
+\begin{frame}
+\frametitle{More verification?}
+Rest of talk: overview of another distributed systems verification project
+\\[1.5ex]
+We use Isabelle/HOL to provide a mechanical proof of correctness
+\\[1.5ex]
+But why should you trust our proof?
+\end{frame}
+
+\begin{frame}
+\frametitle{Diagnosing bugs in previous proofs}
+\onslide<1->{
+Relied on high-level axioms stated in terms of data structure, and operations on it}
+\\[1.5ex]
+\onslide<2->{
+But reasoning about data structure is hard, and unintuitive
+\\[1.5ex]
+(It's why there's a mechanical proof in the first place...)
+\\[1.5ex]
+Wrong axioms are therefore hard to spot
+\\[1.5ex]
+Need to think of all possible network behaviours to spot them}
+\\[1.5ex]
+\onslide<3->{
+Claim: need end-to-end verification to ensure correctness
+\\[1.5ex]
+Ensure required properties hold in all network executions}
+\end{frame}
+
+\begin{frame}
+\frametitle{Our contributions: a framework for verifying CRDTs}
+\onslide<1->{
+We develop a stratified proof \emph{framework} for CRDTs}
+\\[1.5ex]
+\onslide<2->{
+We have three different `components':
+\begin{itemize}
+\item
+A network model
+\item
+An abstract convergence theorem
+\item
+Implementations of concrete CRDTs
+\end{itemize}}
+\onslide<3->{
+Piecing all three together gives a concrete convergence theorem for the CRDT
+\\[1.5ex]
+Two components are reusable}
+\end{frame}
+
+\begin{frame}
+\frametitle{Our contributions: modelling the network}
+\onslide<1->{
+In one component, we:
+\begin{itemize}
+\item
+Model a standard class of networks, axiomatically
+\item
+Our axioms are easy to defend, only 5 of them
+\item
+Use standard broadcast/deliver event model for network
+\item
+Contents of messages are abstract
+\end{itemize}}
+\onslide<2->{
+By working axiomatically:
+\begin{itemize}
+\item
+Reason about all possible network behaviours
+\item
+Eliminate corner cases that may invalidate proofs
+\end{itemize}}
+\end{frame}
+
+\begin{frame}
+\frametitle{Our contributions: abstract convergence}
+\onslide<1->{
+In another component, we:
+\\[1.5ex]
+Parameterise our work with a strict partial order on abstract `events' called \emph{happens before}}
+\\[1.5ex]
+\onslide<2->{
+Parameterise by a method of lifting `events' to `state transformers'}
+\\[1.5ex]
+\onslide<3->{
+For two lists of events $xs$ and $ys$, if we assume:
+\begin{itemize}
+\item
+Concurrent events in both $xs$ and $ys$ commute
+\item
+All events in $xs$ and $ys$ respect the happens before relation
+\end{itemize}}
+\onslide<4->{
+Then: applying the state transformers in both $xs$ and $ys$ to the same initial state gives the same final state}
+\end{frame}
+
+\begin{frame}
+\frametitle{Our contributions: Replicated Growable Array}
+In a final component, we:
+\begin{itemize}
+\item
+Formalise the Replicated Growable Array (RGA) CRDT
+\item
+``the reason why the RGA actually works has been a bit of a mystery''
+\item
+Show operations commute with themselves, and with each other, under assumptions
+\item
+Work in terms of insert/delete messages with concrete elements to insert into array
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Composing components}
+\onslide<1->{
+We compose:
+\begin{itemize}
+\item
+Our network model has an associated concrete \emph{happens before} relation
+\item
+Given in terms of broadcast and deliver events
+\item
+This relation is a strict partial order
+\end{itemize}}
+\onslide<2->{
+We can then replace the parameter in our abstract theorem with this relation}
+\end{frame}
+
+\begin{frame}
+\frametitle{Composing components}
+\onslide<1->{
+As a corollary of abstract theorem, obtain a concrete convergence theorem for CRDT}
+\\[1.5ex]
+\onslide<2->{
+Assuming two finite lists of deliver events, with insert/delete messages}
+\\[1.5ex]
+\onslide<3->{
+Such that the messages delivered are the same (but not necessarily in same order)}
+\\[1.5ex]
+\onslide<4->{
+Then applying these insert/delete operations to an initial state yields the same list}
+\\[1.5ex]
+\onslide<5->{
+Convergence, from definition of strong eventual consistency}
+\end{frame}
+
+\begin{frame}
+\frametitle{A note}
+Abstract convergence theorem does not mention:
+\begin{itemize}
+\item
+Network,
+\item
+Concrete CRDT implementation
+\end{itemize}
+\onslide<2->{
+Purely a theorem about orders, and lists of ordered elements
+\\[1.5ex]
+Claim: this theorem is `essence' of CRDT convergence}
+\\[1.5ex]
+\onslide<3->{
+If true, other CRDTs should be verifiable using it}
+\\[1.5ex]
+\onslide<4->{
+\begin{enumerate}
+\item
+Observed-removed set
+\item
+Distributed increment-decrement counter
+\end{enumerate}}
+\end{frame}
+
+\begin{frame}
+\frametitle{Conclusions}
+\onslide<1->{
+Distributed algorithms hard to verify
+\\[1.5ex]
+Many mistakes in previous proofs of distributed algorithms
+\\[1.5ex]
+Even those checked by machine!}
+\\[1.5ex]
+\onslide<2->{
+Must use end-to-end verification for confidence}
+\\[1.5ex]
+\onslide<3->{
+Developed a framework for end-to-end verification of CRDTs
+\\[1.5ex]
+Verified RGA, ORSet, and counter CRDT implementations as examples}
+\end{frame}
+
+\begin{frame}
+\frametitle{Our network axioms}
+Write $hist_i$ for local (totally ordered) history of node $i$
+\\[1.5ex]
+Write $m \sqsubset^i n$ for local message ordering at node $i$
+\\[1.5ex]
+Write $mid_m$ for message identifier of message $m$
+\\[1.5ex]
+All events are either a $Broadcast$ or a $Delivery$ of message
+\end{frame}
+
+\begin{frame}
+\frametitle{Delivery has a cause}
+\begin{displaymath}
+Deliver\ m \in hist_i \longrightarrow \exists j.\ Broadcast\ m \in hist_j
+\end{displaymath}
+\end{frame}
+
+\begin{frame}
+\frametitle{Deliver locally}
+\begin{displaymath}
+Broadcast\ m \in hist_i \longrightarrow Broadcast\ m \sqsubset^i Deliver\ m
+\end{displaymath}
+\end{frame}
+
+\begin{frame}
+\frametitle{Message identifiers unique}
+\begin{gather*}
+Broadcast\ m \in hist_i\ \wedge \\
+Broadcast\ n \in hist_j\ \wedge \\
+mid_m = mid_n \longrightarrow m = n \wedge i = j
+\end{gather*}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Causal networks}
+Write $hb\ m\ n$ for happens before relation, defined by:
+\vspace{\baselineskip}
+\begin{gather*}
+\begin{prooftree}
+Broadcast\ m \sqsubset^i Deliver\ n
+\justifies
+hb\ m\ n
+\end{prooftree}
+\\[3ex]
+\begin{prooftree}
+Deliver\ m \sqsubset^i Broadcast\ n
+\justifies
+hb\ m\ n
+\end{prooftree}
+\\[3ex]
+\begin{prooftree}
+hb\ m\ n \quad hb\ n\ o
+\justifies
+hb\ m\ o
+\end{prooftree}
+\end{gather*}
+\end{frame}
+
+\begin{frame}
+\frametitle{Causality}
+\begin{displaymath}
+Deliver\ m \in hist_j \wedge hb\ n\ m \longrightarrow Deliver\ n \sqsubset^j Deliver\ m
+\end{displaymath}
+\end{frame}
+
+\end{document}

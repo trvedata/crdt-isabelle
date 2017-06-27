@@ -1,3 +1,4 @@
+\vspace{-0.5em}
 \section{Two other CRDTs: Counter and Set}
 \label{sect.simple.crdts}
 
@@ -7,6 +8,7 @@ These proofs build upon the abstract convergence theorem and the network model o
 As these proofs leverage the framework's machinery and proof techniques, we were able to develop them very quickly: the counter was proved correct in a matter of minutes, and the specification and correctness proof of the ORSet was done in about four hours by one of the authors, an Isabelle novice who had never used any proof assistant software prior to the start of this project.
 Although these anecdotes do not constitute a formal evaluation of ease of use, we take them as being an encouraging sign.
 
+\vspace{-0.65em}
 \subsection{Increment-Decrement Counter}
 \label{subsect.increment-decrement.counter}
 
@@ -44,6 +46,7 @@ We need only specify the interpretation function and the initial state 0:
 \vspace{0.25em}
 It is then straightforward to prove that $\isa{counter}$ is a sublocale of $\isa{strong-eventual-consistency}$ (see Section~\ref{sect.abstract.sec.spec}), from which we obtain concrete convergence and progress theorems for the counter CRDT.
 
+\vspace{-0.4em}
 \subsection{Observed-Remove Set}
 \label{subsect.orset}
 
@@ -165,8 +168,7 @@ Then we prove that the set of identifiers in the node state is a subset of \isa{
 \noindent Now that we have proved that the assumption of $\isa{add-rem-commute}$ holds for all concurrent operations, we can deduce that all concurrent operations commute:
 \vspace{0.25em}
 \begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{theorem}\ concurrent{\isacharunderscore}operations{\isacharunderscore}commute{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ \ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ i{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
+\ \ \ \ \ \ \ \ \isacommand{theorem}\ concurrent{\isacharunderscore}operations{\isacharunderscore}commute{\isacharcolon}\ \isakeyword{shows}\ \ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ i{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabellebody}
 \vspace{0.25em}
 

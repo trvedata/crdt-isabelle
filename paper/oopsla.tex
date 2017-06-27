@@ -207,6 +207,7 @@ The framework is modular and reusable, making it easy to formulate proofs for ne
 We provide the first mechanised proofs of correctness for the Replicated Growable Array (RGA), the operation-based Observed-Remove Set, and the operation-based counter CRDT.
 RGA is an especially subtle algorithm: \citet{Attiya:2016kh} wrote, ``the reason why RGA actually works has been a bit of a mystery'', making its formal verification of interest, whilst the ORSet is supported as a primitive by the Lasp language~\cite{DBLP:conf/ppdp/MeiklejohnR15} for synchronisation-free programming, with an implemention also exported by the Akka framework~\cite{akka}.
 These proofs demonstrate that our framework is highly reusable: we were able to quickly develop proofs of convergence for the set and counter CRDTs with little CRDT-specific code, using a fixed proof pattern that applies to all of our CRDTs.
+All of our CRDT implementations are ``executable'' in the sense that functioning OCaml (or Scala, SML, and Haskell) code can be obtained from our definitions using Isabelle's code extraction mechanism, and in experiments we have used one extracted implementation, sitting above a simple TCP network of $n$ nodes, to show that our implementations are usable in practice.
 \item
 As part of our proof framework, we identify an abstract convergence theorem, a property of order relations, from which we can deduce correctness theorems for concrete SEC algorithms.
 Intuitively, this theorem can be viewed as the ``essence'' of why strong eventual consistency algorithms converge.
@@ -223,6 +224,7 @@ All our Isabelle theory files have been submitted as supplementary material acco
 \input{simple-crdts}
 \input{relwork}
 
+\vspace{-0.9em}
 \section{Discussion}
 \label{sect.discussion}
 
@@ -243,8 +245,8 @@ In particular, we use: around 620 lines for our network model, around 380 lines 
 Additional shared code consists of around 170 lines of source.
 Definitions and proofs of correctness for our three CRDT implementations are pleasingly short: all three are shown to be convergent in fewer than 800 lines of source, using the proof strategy described above. 
 
-Lastly, we note that all three of our CRDT implementations are ``executable'' in the sense that we can use Isabelle's code extraction mechanism to obtain OCaml (or Scala, Haskell, and Standard ML) versions of our CRDTs.
-In experiments, we have used an OCaml extraction of one of our CRDTs---the increment-decrement Counter---sitting above a simple two-node network, communicating over a TCP link between machines, to show that our implementations are usable in practice.
+Lastly, all three of our CRDT implementations are ``executable'' in the sense that we can use Isabelle's code extraction mechanism to obtain OCaml (or Scala, SML, and Haskell) implementations from our definitions.
+We have used an extraction of one of our CRDTs---the counter---sitting above a simple network of $n$ nodes, communicating over TCP links between machines, to show that our implementations are usable in practice.
 
 \section{Conclusion}
 \label{sect.conclusion}

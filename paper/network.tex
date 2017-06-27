@@ -16,6 +16,7 @@ But it is also abstract enough to be able to model a wide range of scenarios: fo
 Our network model is defined using only six axioms, all of which are standard assumptions when modelling distributed systems, and which are satisfied by many systems in practice.
 All theorems in this paper are derived from those axioms; in particular, we show that the causal delivery abstraction satisfies the strict partial ordering assumption of $\isa{hb-consistent}$ (Section~\ref{sect.happens.before}), allowing us to use the convergence theorem in any locales that extend the network.
 
+\vspace{-1em}
 \subsection{Modelling a distributed system}
 
 We model a distributed system as an unbounded number of communicating nodes.
@@ -130,7 +131,7 @@ It is still possible for some message never to be delivered.
 Causal delivery is typically implemented in network protocols using vector timestamps \cite{Schwarz:1994gl,Fidge:1988tv,Raynal:1996jl}.
 As these protocols are widely known and well understood, we elide any further discussion.
 
-\vspace{-0.1em}
+\vspace{-0.6em}
 \subsection{Using operations in the network}\label{sect.network.ops}
 
 We can now include the convergence theorem into our network model by further extending the $\isa{causal-network}$ locale.

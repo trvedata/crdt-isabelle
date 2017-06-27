@@ -10,6 +10,7 @@ theory
 imports
   Network
   Ordered_List
+  "~~/src/HOL/Library/Code_Target_Numeral"
 begin
   
 datatype ('id, 'v) operation =
@@ -19,23 +20,25 @@ datatype ('id, 'v) operation =
 fun interpret_opers :: "('id::linorder, 'v) operation \<Rightarrow> ('id, 'v) elt list \<rightharpoonup> ('id, 'v) elt list" ("\<langle>_\<rangle>" [0] 1000) where
   "interpret_opers (Insert e n) xs  = insert xs e n" |
   "interpret_opers (Delete n)   xs  = delete xs n"
-  
-export_code Insert interpret_opers in OCaml file "ocaml/rga.ml"
 
 definition element_ids :: "('id, 'v) elt list \<Rightarrow> 'id set" where
  "element_ids list \<equiv> set (map fst list)"
 
-definition valid_rga_msg :: "('id, 'v) elt list \<Rightarrow> 'id \<times> ('id::linorder, 'v) operation \<Rightarrow> bool" where
- "valid_rga_msg list msg \<equiv> case msg of
-    (i, Insert e  None     ) \<Rightarrow> fst e = i |
-    (i, Insert e (Some pos)) \<Rightarrow> fst e = i \<and> pos \<in> element_ids list |
-    (i, Delete         pos ) \<Rightarrow> pos \<in> element_ids list"
+definition valid_rga_msgs :: "nat \<Rightarrow> ('id, 'v) elt list \<Rightarrow> ('id \<times> ('id::linorder, 'v) operation) set" where
+ "valid_rga_msgs node list \<equiv> { (i::'id, oper::('id, 'v) operation). case oper of
+    Insert e  None      \<Rightarrow> fst e = i |
+    Insert e (Some pos) \<Rightarrow> fst e = i \<and> pos \<in> element_ids list |
+    Delete         pos  \<Rightarrow> pos \<in> element_ids list }"
+ 
+export_code Insert interpret_opers valid_rga_msgs in OCaml file "ocaml/rga.ml"
 
 (* Replicated Growable Array Network *)
-locale rga = network_with_constrained_ops _ interpret_opers "[]" valid_rga_msg
+locale rga = network_with_constrained_ops _ interpret_opers "[]" valid_rga_msgs
 
+  (* XXX: no longer used?
 locale id_consistent_rga_network = rga +
   assumes ids_consistent: "hb (id1, op1) (id2, op2) \<Longrightarrow> id1 < id2"
+*)
 
 definition indices :: "('id \<times> ('id, 'v) operation) event list \<Rightarrow> 'id list" where
   "indices xs \<equiv>
@@ -139,11 +142,11 @@ using assms apply_opers_idx_elems idx_in_elem_inserted prefix_of_appendD by blas
 lemma (in rga) insert_msg_id:
   assumes "Broadcast (i, Insert e n) \<in> set (history j)"
   shows "fst e = i"
-  apply(subgoal_tac "\<exists>state. valid_rga_msg state (i, Insert e n)")
+  apply(subgoal_tac "\<exists>state. (i, Insert e n) \<in> valid_rga_msgs j state")
   defer
   using assms broadcast_is_valid apply blast
   apply(erule exE)
-  apply(unfold valid_rga_msg_def)
+  apply(unfold valid_rga_msgs_def)
   apply(clarsimp)
   apply(case_tac n)
   apply(simp, simp)
@@ -156,11 +159,11 @@ lemma (in rga) allowed_insert:
   defer
   apply(simp add: assms events_before_exist)
   apply(erule exE)
-  apply(subgoal_tac "\<exists>state. apply_operations pre = Some state \<and> valid_rga_msg state (i, Insert e n)")
+  apply(subgoal_tac "\<exists>state. apply_operations pre = Some state \<and> (i, Insert e n) \<in> valid_rga_msgs j state")
   defer
   apply(simp add: broadcast_only_valid_msgs)
   apply(erule exE, erule conjE)
-  apply(unfold valid_rga_msg_def)
+  apply(unfold valid_rga_msgs_def)
   apply(case_tac n)
   apply simp+
   apply(subgoal_tac "a \<in> element_ids state")
@@ -179,11 +182,11 @@ lemma (in rga) allowed_delete:
   defer
   apply(simp add: assms events_before_exist)
   apply(erule exE)
-  apply(subgoal_tac "\<exists>state. apply_operations pre = Some state \<and> valid_rga_msg state (i, Delete x)")
+  apply(subgoal_tac "\<exists>state. apply_operations pre = Some state \<and> (i, Delete x) \<in> valid_rga_msgs j state")
   defer
   apply(simp add: broadcast_only_valid_msgs)
   apply(erule exE, erule conjE)
-  apply(unfold valid_rga_msg_def)
+  apply(unfold valid_rga_msgs_def)
   apply(subgoal_tac "x \<in> element_ids state")
   defer
   using apply_opers_idx_elems apply simp
@@ -436,8 +439,5 @@ end
   
 interpretation trivial_rga_implementation: rga "\<lambda>x. []"
   by (standard, auto simp add: trivial_node_histories.history_order_def trivial_node_histories.prefix_of_node_history_def)
-
-interpretation non_trivial_rga_implementation: rga "\<lambda>m. if m = 0 then [Broadcast (0, Insert (0, 0, False) None), Deliver (0, Insert (0, 0, False) None)] else []"
-oops
 
 end

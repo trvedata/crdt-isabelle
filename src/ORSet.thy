@@ -12,6 +12,7 @@ theory
   ORSet
 imports
   Network
+  "~~/src/HOL/Library/Code_Target_Numeral"
 begin
 
 datatype ('id, 'a) operation = Add "'id" "'a" | Rem "'id set" "'a"
@@ -26,12 +27,14 @@ definition interpret_op :: "('id, 'a) operation \<Rightarrow> ('id, 'a) state \<
      let before = state (op_elem oper);
          after  = case oper of Add i e \<Rightarrow> before \<union> {i} | Rem is e \<Rightarrow> before - is
      in  Some (state ((op_elem oper) := after))"
-    
-definition valid_behaviours :: "('id, 'a) state \<Rightarrow> 'id \<times> ('id, 'a) operation \<Rightarrow> bool" where
-  "valid_behaviours state msg \<equiv>
-     case msg of
-       (i, Add j  e) \<Rightarrow> i = j |
-       (i, Rem is e) \<Rightarrow> is = state e"
+  
+definition valid_behaviours :: "nat \<Rightarrow> ('id, 'a) state \<Rightarrow> ('id \<times> ('id, 'a) operation) set" where
+  "valid_behaviours node state \<equiv>
+     { (i::'id, oper::('id, 'a) operation). case oper of
+         Add j  e \<Rightarrow> i = j |
+         Rem is e \<Rightarrow> is = state e }"
+
+export_code Add interpret_op valid_behaviours in OCaml file "ocaml/orset.ml"
 
 locale orset = network_with_constrained_ops _ interpret_op "\<lambda>x. {}" valid_behaviours
 
@@ -59,7 +62,7 @@ lemma (in orset) add_id_valid:
   assumes "xs prefix of j"
     and "Deliver (i1, Add i2 e) \<in> set xs"
   shows "i1 = i2"
-  apply(subgoal_tac "\<exists>state. valid_behaviours state (i1, Add i2 e)")
+  apply(subgoal_tac "\<exists>j state. (i1, Add i2 e) \<in> valid_behaviours j state")
   apply(simp add: valid_behaviours_def)
   using assms deliver_in_prefix_is_valid apply blast
 done
@@ -153,8 +156,9 @@ lemma (in orset) Broadcast_Deliver_prefix_closed:
      apply force
     apply(clarsimp)
   using Deliver_added_ids apply blast
-   apply (metis (mono_tags, lifting) broadcast_only_valid_msgs operation.case(2) option.simps(1)
-     valid_behaviours_def case_prodD)
+   apply(subgoal_tac "(r, Rem ix e) \<in> valid_behaviours j y") prefer 2
+  using broadcast_only_valid_msgs apply fastforce
+    apply(simp add: valid_behaviours_def)
   using broadcast_only_valid_msgs apply blast
   done
 

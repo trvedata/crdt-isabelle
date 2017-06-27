@@ -568,14 +568,18 @@ using assms
   apply force
   done
 
-locale network_with_constrained_ops = network_with_ops +
-  fixes valid_msg :: "'c \<Rightarrow> ('a \<times> 'b) \<Rightarrow> bool"
+locale network_with_constrained_ops = network_with_ops history interp initial_state
+  for history :: "nat \<Rightarrow> ('msgid \<times> 'op) event list"
+  and interp :: "'op \<Rightarrow> 'state \<rightharpoonup> 'state"
+  and initial_state :: "'state" +
+  fixes valid_msgs :: "nat \<Rightarrow> 'state \<Rightarrow> ('msgid \<times> 'op) set"
+
   assumes broadcast_only_valid_msgs: "pre @ [Broadcast m] prefix of i \<Longrightarrow>
-             \<exists>state. apply_operations pre = Some state \<and> valid_msg state m"
+             \<exists>state. apply_operations pre = Some state \<and> m \<in> valid_msgs i state"
 
 lemma (in network_with_constrained_ops) broadcast_is_valid:
   assumes "Broadcast m \<in> set (history i)"
-  shows "\<exists>state. valid_msg state m"
+  shows "\<exists>state. m \<in> valid_msgs i state"
   using assms
   apply(subgoal_tac "\<exists>pre. pre @ [Broadcast m] prefix of i")
   using broadcast_only_valid_msgs apply blast
@@ -584,7 +588,7 @@ done
 
 lemma (in network_with_constrained_ops) deliver_is_valid:
   assumes "Deliver m \<in> set (history i)"
-  shows "\<exists>j pre state. pre @ [Broadcast m] prefix of j \<and> apply_operations pre = Some state \<and> valid_msg state m"
+  shows "\<exists>j pre state. pre @ [Broadcast m] prefix of j \<and> apply_operations pre = Some state \<and> m \<in> valid_msgs j state"
   using assms apply -
   apply(drule delivery_has_a_cause)
   apply(erule exE)
@@ -596,11 +600,11 @@ done
 lemma (in network_with_constrained_ops) deliver_in_prefix_is_valid:
   assumes "xs prefix of i"
       and "Deliver m \<in> set xs"
-    shows "\<exists>state. valid_msg state m"
+    shows "\<exists>i state. m \<in> valid_msgs i state"
   using assms apply -
   apply(subgoal_tac "Deliver m \<in> set (history i)")
   apply(drule delivery_has_a_cause)
-  apply(erule exE)
+  apply(erule exE, rule_tac x=j in exI)
   apply(rule broadcast_is_valid, assumption)
   apply(simp add: prefix_elem_to_carriers)
 done
@@ -618,8 +622,8 @@ interpretation trivial_causal_network: causal_network "\<lambda>m. []" id
 
 interpretation trivial_network_with_ops: network_with_ops "\<lambda>m. []" "(\<lambda>x y. Some y)" 0
   by standard auto
-    
-interpretation trivial_network_with_constrained_ops: network_with_constrained_ops "\<lambda>m. []" "(\<lambda>x y. Some y)" 0 "\<lambda>x y. True"
+
+interpretation trivial_network_with_constrained_ops: network_with_constrained_ops "\<lambda>m. []" "(\<lambda>x y. Some y)" 0 "\<lambda>i x. {}"
   by standard (simp add: trivial_node_histories.prefix_of_node_history_def)
 
 end
