@@ -1,6 +1,7 @@
 (* Victor B. F. Gomes, University of Cambridge
    Martin Kleppmann, University of Cambridge
    Dominic P. Mulligan, University of Cambridge
+   Alastair R. Beresford, University of Cambridge
 *)
 
 subsection\<open>Network\<close>
@@ -34,12 +35,7 @@ export_code Insert interpret_opers valid_rga_msg in OCaml file "ocaml/rga.ml"
 
 (* Replicated Growable Array Network *)
 locale rga = network_with_constrained_ops _ interpret_opers "[]" valid_rga_msg
-
-  (* XXX: no longer used?
-locale id_consistent_rga_network = rga +
-  assumes ids_consistent: "hb (id1, op1) (id2, op2) \<Longrightarrow> id1 < id2"
-*)
-
+  
 definition indices :: "('id \<times> ('id, 'v) operation) event list \<Rightarrow> 'id list" where
   "indices xs \<equiv>
      List.map_filter (\<lambda>x. case x of Deliver (i, Insert e n) \<Rightarrow> Some (fst e) | _ \<Rightarrow> None) xs"
@@ -171,7 +167,7 @@ lemma (in rga) allowed_insert:
   using apply_opers_idx_elems apply blast
   apply(subgoal_tac "\<exists>i' v' f' n'. Deliver (i', Insert (a, v', f') n') \<in> set pre")
   defer
-  using deliver_insert_exists apply auto[1]
+  using deliver_insert_exists apply blast
   using events_in_local_order apply blast
 done
 
@@ -192,7 +188,7 @@ lemma (in rga) allowed_delete:
   using apply_opers_idx_elems apply simp
   apply(subgoal_tac "\<exists>i' v' f' n'. Deliver (i', Insert (x, v', f') n') \<in> set pre")
   defer
-  using deliver_insert_exists apply auto[1]
+  using deliver_insert_exists apply blast
   using events_in_local_order apply blast
 done
 
@@ -226,8 +222,7 @@ using assms
   apply clarsimp
   apply(frule local_order_carrier_closed)
   apply clarsimp
-  apply(frule delivery_has_a_cause) back
-  apply clarsimp
+  apply(frule delivery_has_a_cause, clarsimp)
   apply(drule causal_broadcast[rotated, where j=j])
   apply auto
 done
@@ -297,8 +292,7 @@ using assms
   apply(case_tac e')
   apply clarsimp
   apply(frule delivery_has_a_cause)
-  apply(frule delivery_has_a_cause) back
-  apply clarsimp
+  apply(frule delivery_has_a_cause, clarsimp)
   apply(frule allowed_insert)
   apply clarsimp
   apply(metis Insert_equal delivery_has_a_cause fst_conv hb.intros(2) insert_subset

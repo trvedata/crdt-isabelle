@@ -1,6 +1,7 @@
 (* Victor B. F. Gomes, University of Cambridge
    Martin Kleppmann, University of Cambridge
    Dominic P. Mulligan, University of Cambridge
+   Alastair R. Beresford, University of Cambridge
 *)
 
 section\<open>Observed-Remove Set\<close>

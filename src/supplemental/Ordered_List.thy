@@ -1,6 +1,7 @@
 (* Victor B. F. Gomes, University of Cambridge
    Martin Kleppmann, University of Cambridge
    Dominic P. Mulligan, University of Cambridge
+   Alastair R. Beresford, University of Cambridge
 *)
 
 section\<open>Replicated Growable Array\<close>
@@ -307,7 +308,7 @@ lemma split_tuple_list_by_id:
   apply(rule_tac x="aa#pre" in exI)
   apply(rule_tac x="suf" in exI)
   apply(rule conjI)
-  apply auto+
+  apply auto
 done
 
 lemma insert_preserves_order:

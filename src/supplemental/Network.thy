@@ -1,6 +1,7 @@
 (* Victor B. F. Gomes, University of Cambridge
    Martin Kleppmann, University of Cambridge
    Dominic P. Mulligan, University of Cambridge
+   Alastair R. Beresford, University of Cambridge
 *)
 
 section\<open>Axiomatic network models\<close>
@@ -291,7 +292,7 @@ lemma (in causal_network) hb_irrefl:
   shows "m1 \<noteq> m2"
   using assms
   apply(induction rule: hb.induct)
-  using node_total_order_antisym apply auto[1]
+  using node_total_order_antisym apply blast
   apply(meson causal_broadcast insert_subset local_order_carrier_closed
         node_total_order_irrefl)
   apply(subgoal_tac "\<exists>i. Broadcast m3 \<in> set (history i)")
@@ -412,12 +413,9 @@ using assms
   apply clarsimp
   apply(frule prefix_distinct)
   apply clarsimp
-  apply(subst (asm) node_deliver_messages_def) back back back
-  apply(clarsimp simp add: map_filter_def)
+  apply(clarsimp simp add: map_filter_def node_deliver_messages_def)
   apply(case_tac x; clarsimp)
-  apply(subst (asm) node_deliver_messages_def) back
-  apply(clarsimp simp add: map_filter_def)
-  apply(case_tac x; clarsimp)
+  apply(case_tac xb; clarsimp)
 done
 
 lemma (in network) drop_last_message:
