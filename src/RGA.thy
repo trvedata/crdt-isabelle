@@ -171,7 +171,7 @@ lemma (in rga) allowed_insert:
   using apply_opers_idx_elems apply blast
   apply(subgoal_tac "\<exists>i' v' f' n'. Deliver (i', Insert (a, v', f') n') \<in> set pre")
   defer
-  using deliver_insert_exists apply auto[1]
+  using deliver_insert_exists apply blast
   using events_in_local_order apply blast
 done
 
@@ -192,7 +192,7 @@ lemma (in rga) allowed_delete:
   using apply_opers_idx_elems apply simp
   apply(subgoal_tac "\<exists>i' v' f' n'. Deliver (i', Insert (x, v', f') n') \<in> set pre")
   defer
-  using deliver_insert_exists apply auto[1]
+  using deliver_insert_exists apply blast
   using events_in_local_order apply blast
 done
 

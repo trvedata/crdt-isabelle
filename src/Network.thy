@@ -43,6 +43,7 @@ lemma (in node_histories) node_total_order_trans:
     shows "e1 \<sqsubset>\<^sup>i e3"
 using assms unfolding history_order_def
   apply clarsimp
+  apply (rename_tac xs xsa ys ysa zs zsa)
   apply(rule_tac x=xs in exI, rule_tac x="ys @ e2 # ysa" in exI, rule_tac x=zsa in exI)
   apply(subgoal_tac "xs @ e1 # ys = xsa \<and> zs = ysa @ e3 # zsa")
   apply clarsimp
@@ -82,6 +83,7 @@ lemma (in node_histories) carriers_head_lt:
   shows   "\<not>(x \<sqsubset>\<^sup>i y)"
 using assms
   apply(clarsimp simp add: history_order_def)
+  apply (rename_tac xs ysa zs)
   apply (subgoal_tac "xs @ x # ysa = [] \<and> zs = ys")
   apply clarsimp
   apply (rule_tac xs="history i" and ys="[y]" in pre_suf_eq_distinct_list)
@@ -291,7 +293,7 @@ lemma (in causal_network) hb_irrefl:
   shows "m1 \<noteq> m2"
   using assms
   apply(induction rule: hb.induct)
-  using node_total_order_antisym apply auto[1]
+  using node_total_order_antisym apply blast
   apply(meson causal_broadcast insert_subset local_order_carrier_closed
         node_total_order_irrefl)
   apply(subgoal_tac "\<exists>i. Broadcast m3 \<in> set (history i)")
