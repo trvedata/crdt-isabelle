@@ -13,26 +13,26 @@ Although these anecdotes do not constitute a formal evaluation of ease of use, w
 The Increment-Decrement Counter is perhaps the simplest CRDT, and a paradigmatic example of a replicated data structure with commutative operations.
 As the name suggests, the data structure supports two operations: $\isa{increment}$ and $\isa{decrement}$ which respectively increment and decrement a shared integer counter:
 \begin{isabelle}
-\ \ \ \ \ \ \ \ \isacommand{datatype}\ operation {\isacharequal}\ Increment\ {\isacharbar}\ Decrement
+\isacommand{datatype}\ operation {\isacharequal}\ Increment\ {\isacharbar}\ Decrement
 \end{isabelle}
 \noindent The interpretation function for these two operations is straightforward:
 \begin{isabelle}
-\ \ \ \ \ \ \ \ \isacommand{fun}\ counter{\isacharunderscore}op\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}operation\ {\isasymRightarrow}\ int\ {\isasymRightarrow}\ int\ option{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}counter{\isacharunderscore}op\ Increment\ x\ {\isacharequal}\ Some\ {\isacharparenleft}x\ {\isacharplus}\ {\isadigit{1}}{\isacharparenright}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}counter{\isacharunderscore}op\ Decrement\ x\ {\isacharequal}\ Some\ {\isacharparenleft}x\ {\isacharminus}\ {\isadigit{1}}{\isacharparenright}{\isachardoublequoteclose}
+\isacommand{fun}\ counter{\isacharunderscore}op\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}operation\ {\isasymRightarrow}\ int\ {\isasymRightarrow}\ int\ option{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ {\isachardoublequoteopen}counter{\isacharunderscore}op\ Increment\ x\ {\isacharequal}\ Some\ {\isacharparenleft}x\ {\isacharplus}\ {\isadigit{1}}{\isacharparenright}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ {\isachardoublequoteopen}counter{\isacharunderscore}op\ Decrement\ x\ {\isacharequal}\ Some\ {\isacharparenleft}x\ {\isacharminus}\ {\isadigit{1}}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabelle}
 Note that the operations do not fail on under- or overflow, as they are defined on a type of unbounded (mathematical) integers.
 We could also have implemented the counter using fixed-size integers---e.g. signed 32- or 64-bit machine words---with wrap-around on overflow, which would not have impacted the proofs.
 Showing commutativity of the operations is an easy exercise in applying Isabelle's proof automation:
 \begin{isabelle}
-\ \ \ \ \ \ \ \ \isacommand{lemma}\ {\isachardoublequoteopen}counter{\isacharunderscore}op\ x\ {\isasymrhd}\ counter{\isacharunderscore}op\ y\ {\isacharequal}\ counter{\isacharunderscore}op\ y\ {\isasymrhd}\ counter{\isacharunderscore}op\ x{\isachardoublequoteclose}
+\isacommand{lemma}\ {\isachardoublequoteopen}counter{\isacharunderscore}op\ x\ {\isasymrhd}\ counter{\isacharunderscore}op\ y\ {\isacharequal}\ counter{\isacharunderscore}op\ y\ {\isasymrhd}\ counter{\isacharunderscore}op\ x{\isachardoublequoteclose}
 \end{isabelle}
 Unlike more complex CRDTs such as RGA, the operations of the increment-decrement counter commute unconditionally.
 As a result, this CRDT converges in any asynchronous broadcast network, without requiring causally ordered delivery.
 For simplicity, we define $\isa{counter}$ as a simple extension of our existing $\isa{network}{\isacharunderscore}\isa{with}{\isacharunderscore}\isa{ops}$ locale.
 We need only specify the interpretation function and the initial state 0:
 \begin{isabelle}
-\ \ \ \ \ \ \ \ \isacommand{locale}\ counter\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharunderscore}\ counter{\isacharunderscore}op\ {\isadigit{0}}
+\isacommand{locale}\ counter\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharunderscore}\ counter{\isacharunderscore}op\ {\isadigit{0}}
 \end{isabelle}
 It is then straightforward to prove that $\isa{counter}$ is a sublocale of $\isa{strong-eventual-consistency}$ (see Section~\ref{sect.abstract.sec.spec}), from which we obtain concrete convergence and progress theorems for the counter CRDT.
 
@@ -45,7 +45,7 @@ The name derives from the fact that the algorithm ``observes'' the state of a no
 
 We start by defining the two possible operations of the datatype:
 \begin{isabelle}
-\ \ \ \ \ \ \ \ \isacommand{datatype}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isacharequal}\ Add\ {\isachardoublequoteopen}{\isacharprime}id{\isachardoublequoteclose}\ {\isachardoublequoteopen}{\isacharprime}a{\isachardoublequoteclose}\ {\isacharbar}\ Rem\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id\ set{\isacharparenright}{\isachardoublequoteclose}\ {\isachardoublequoteopen}{\isacharprime}a{\isachardoublequoteclose}
+\isacommand{datatype}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isacharequal}\ Add\ {\isachardoublequoteopen}{\isacharprime}id{\isachardoublequoteclose}\ {\isachardoublequoteopen}{\isacharprime}a{\isachardoublequoteclose}\ {\isacharbar}\ Rem\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id\ set{\isacharparenright}{\isachardoublequoteclose}\ {\isachardoublequoteopen}{\isacharprime}a{\isachardoublequoteclose}
 \end{isabelle}
 \noindent Here, $\isacharprime\isa{id}$ is an abstract type of message identifiers, and the type variable $\isacharprime\isa{a}$ represents the type of values that the application wishes to add to the set.
 When an element $\isa{e}$ is added to the set, the operation $\isa{Add}\ i\ e$ is tagged with a unique identifier $\isa{i}$ in order to distinguish it from other operations that may concurrently add the same element $\isa{e}$ to the set.
@@ -53,7 +53,7 @@ When an element $\isa{e}$ is removed from the set, the operation $\isa{Rem}\ is\
 
 The state maintained at each node is a function that maps each element $\isacharprime\isa{a}$ to the set of identifiers of operations that have added that element:
 \begin{isabelle}
-\ \ \ \ \ \ \ \ \isacommand{type{\isacharunderscore}synonym}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ state\ {\isacharequal}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}id\ set{\isachardoublequoteclose}
+\isacommand{type{\isacharunderscore}synonym}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ state\ {\isacharequal}\ {\isachardoublequoteopen}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}id\ set{\isachardoublequoteclose}
 \end{isabelle}
 We consider an element $\isacharprime\isa{a}$ to be a member of the ORSet if the set of addition identifiers is non-empty.
 The initial state of a node---the empty ORSet---is then simply $\isasymlambda\isa{x}\isachardot\ \isacharbraceleft\isacharbraceright$, i.e. the function that maps every possible element $\isacharprime\isa{a}$ to the empty set of identifiers $\isacharbraceleft\isacharbraceright$.
@@ -63,14 +63,14 @@ When interpreting a $\isa{Rem}$ operation, we must update the node state to remo
 If there are no concurrent additions of the same element, this has the effect of making the set of identifiers for that element empty, and thus considering the element as no longer being in the set.
 We express this as follows:
 \begin{isabelle}
-\ \ \ \ \ \ \ \ \isacommand{definition}\ op{\isacharunderscore}elem\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isasymRightarrow}\ {\isacharprime}a{\isachardoublequoteclose}\ \isakeyword{where}\ {\isachardoublequoteopen}op{\isacharunderscore}elem\ oper\ {\isasymequiv}\ case\ oper\ of\ Add\ i\ e\ {\isasymRightarrow}\ e\ {\isacharbar}\ Rem\ is\ e\ {\isasymRightarrow}\ e{\isachardoublequoteclose}
+\isacommand{definition}\ op{\isacharunderscore}elem\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isasymRightarrow}\ {\isacharprime}a{\isachardoublequoteclose}\ \isakeyword{where}\ {\isachardoublequoteopen}op{\isacharunderscore}elem\ oper\ {\isasymequiv}\ case\ oper\ of\ Add\ i\ e\ {\isasymRightarrow}\ e\ {\isacharbar}\ Rem\ is\ e\ {\isasymRightarrow}\ e{\isachardoublequoteclose}
 \end{isabelle}
 \begin{isabelle}
-\ \ \ \ \ \ \ \ \isacommand{definition}\ interpret{\isacharunderscore}op\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ state\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ state\ option{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}interpret{\isacharunderscore}op\ oper\ state\ {\isasymequiv}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ let\ before\ {\isacharequal}\ state\ {\isacharparenleft}op{\isacharunderscore}elem\ oper{\isacharparenright}{\isacharsemicolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ after\ \ {\isacharequal}\ case\ oper\ of\ Add\ i\ e\ {\isasymRightarrow}\ before\ {\isasymunion}\ {\isacharbraceleft}i{\isacharbraceright}\ {\isacharbar}\ Rem\ is\ e\ {\isasymRightarrow}\ before\ {\isacharminus}\ is\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ in\ \ Some\ {\isacharparenleft}state\ {\isacharparenleft}{\isacharparenleft}op{\isacharunderscore}elem\ oper{\isacharparenright}\ {\isacharcolon}{\isacharequal}\ after{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
+\isacommand{definition}\ interpret{\isacharunderscore}op\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ state\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ state\ option{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ {\isachardoublequoteopen}interpret{\isacharunderscore}op\ oper\ state\ {\isasymequiv}\isanewline
+\ \ \ \ \ let\ before\ {\isacharequal}\ state\ {\isacharparenleft}op{\isacharunderscore}elem\ oper{\isacharparenright}{\isacharsemicolon}\isanewline
+\ \ \ \ \ \ \ \ \ after\ \ {\isacharequal}\ case\ oper\ of\ Add\ i\ e\ {\isasymRightarrow}\ before\ {\isasymunion}\ {\isacharbraceleft}i{\isacharbraceright}\ {\isacharbar}\ Rem\ is\ e\ {\isasymRightarrow}\ before\ {\isacharminus}\ is\isanewline
+\ \ \ \ \ in\ \ Some\ {\isacharparenleft}state\ {\isacharparenleft}{\isacharparenleft}op{\isacharunderscore}elem\ oper{\isacharparenright}\ {\isacharcolon}{\isacharequal}\ after{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabelle}
 Here, $\isa{state}{\isacharparenleft}{\isacharparenleft}op{\isacharunderscore}elem\ oper{\isacharparenright}\ {\isacharcolon}{\isacharequal}\ \isa{after}{\isacharparenright}$ is Isabelle's syntax for pointwise function update.
 A remove operation effectively undoes the prior additions of that element of the set, while leaving any concurrent or later additions of the same element unaffected.
@@ -82,59 +82,59 @@ We require the identifier of $\isa{Add}$ operations to be globally unique, which
 A $\isa{Rem}$ operation must contain the set of addition identifiers in the node state at the moment when the $\isa{Rem}$ operation was issued.
 We express these constraints using the following $\isa{valid-behaviours}$ predicate:
 \begin{isabelle}
-\ \ \ \ \ \ \ \ \isacommand{definition}\ valid{\isacharunderscore}behaviours\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ state\ {\isasymRightarrow}\ {\isacharprime}id\ {\isasymtimes}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}valid{\isacharunderscore}behaviours\ state\ msg\ {\isasymequiv}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ case\ msg\ of\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharparenleft}i{\isacharcomma}\ Add\ j\ \ e{\isacharparenright}\ {\isasymRightarrow}\ i\ {\isacharequal}\ j\ {\isacharbar}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ {\isacharparenleft}i{\isacharcomma}\ Rem\ is\ e{\isacharparenright}\ {\isasymRightarrow}\ is\ {\isacharequal}\ state\ e{\isachardoublequoteclose}
+\isacommand{definition}\ valid{\isacharunderscore}behaviours\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ state\ {\isasymRightarrow}\ {\isacharprime}id\ {\isasymtimes}\ {\isacharparenleft}{\isacharprime}id{\isacharcomma}\ {\isacharprime}a{\isacharparenright}\ operation\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ {\isachardoublequoteopen}valid{\isacharunderscore}behaviours\ state\ msg\ {\isasymequiv}\isanewline
+\ \ \ \ \ case\ msg\ of\isanewline
+\ \ \ \ \ \ \ {\isacharparenleft}i{\isacharcomma}\ Add\ j\ \ e{\isacharparenright}\ {\isasymRightarrow}\ i\ {\isacharequal}\ j\ {\isacharbar}\isanewline
+\ \ \ \ \ \ \ {\isacharparenleft}i{\isacharcomma}\ Rem\ is\ e{\isacharparenright}\ {\isasymRightarrow}\ is\ {\isacharequal}\ state\ e{\isachardoublequoteclose}
 \end{isabelle}
 To prove that ORSet satisfies the specification of strong eventual consistency, we follow the same steps as with the previous CRDTs.
 First we define a locale $\isa{orset}$ that extends $\isa{network-with-constrained-ops}$:
 \begin{isabelle}
-\ \ \ \ \ \ \ \ \isacommand{locale}\ orset\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}constrained{\isacharunderscore}ops\ {\isacharunderscore}\ interpret{\isacharunderscore}op\ {\isachardoublequoteopen}{\isacharparenleft}{\isasymlambda}x{\isachardot}\ {\isacharbraceleft}{\isacharbraceright}{\isacharparenright}{\isachardoublequoteclose}\ valid{\isacharunderscore}behaviours
+\isacommand{locale}\ orset\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}constrained{\isacharunderscore}ops\ {\isacharunderscore}\ interpret{\isacharunderscore}op\ {\isachardoublequoteopen}{\isacharparenleft}{\isasymlambda}x{\isachardot}\ {\isacharbraceleft}{\isacharbraceright}{\isacharparenright}{\isachardoublequoteclose}\ valid{\isacharunderscore}behaviours
 \end{isabelle}
 
 \noindent 
 Recall the requirements of the $\isa{strong-eventual-consistency}$ specification (Section~\ref{sect.abstract.sec.spec}).
 Firstly, we must show that $\isa{apply-operations}$ never fails, which is easy in this case, since the interpretation function never returns $\isa{None}$:
 \begin{isabelle}
-\ \ \ \ \ \ \ \ \isacommand{theorem}\ apply{\isacharunderscore}operations{\isacharunderscore}never{\isacharunderscore}fails{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb.apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ i{\isacharparenright}{\isacharparenright}\ {\isasymnoteq}\ None{\isachardoublequoteclose}
+\isacommand{theorem}\ apply{\isacharunderscore}operations{\isacharunderscore}never{\isacharunderscore}fails{\isacharcolon}\isanewline
+\ \ \isakeyword{shows}\ {\isachardoublequoteopen}hb.apply{\isacharunderscore}operations\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ i{\isacharparenright}{\isacharparenright}\ {\isasymnoteq}\ None{\isachardoublequoteclose}
 \end{isabelle}
 \noindent Secondly, we must show that concurrent operations commute.
 Isabelle's proof automation can easily verify that two addition operations commute unconditionally, as do two removal operations:
 \begin{isabelle}
-\ \ \ \ \ \ \ \ \isacommand{lemma}\ add{\isacharunderscore}add{\isacharunderscore}commute{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isasymlangle}Add\ i{\isadigit{1}}\ e{\isadigit{1}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Add\ i{\isadigit{2}}\ e{\isadigit{2}}{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}Add\ i{\isadigit{2}}\ e{\isadigit{2}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Add\ i{\isadigit{1}}\ e{\isadigit{1}}{\isasymrangle}{\isachardoublequoteclose}
+\isacommand{lemma}\ add{\isacharunderscore}add{\isacharunderscore}commute{\isacharcolon}\isanewline
+\ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isasymlangle}Add\ i{\isadigit{1}}\ e{\isadigit{1}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Add\ i{\isadigit{2}}\ e{\isadigit{2}}{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}Add\ i{\isadigit{2}}\ e{\isadigit{2}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Add\ i{\isadigit{1}}\ e{\isadigit{1}}{\isasymrangle}{\isachardoublequoteclose}
 \end{isabelle}
 \begin{isabelle}
-\ \ \ \ \ \ \ \ \isacommand{lemma}\ rem{\isacharunderscore}rem{\isacharunderscore}commute{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isasymlangle}Rem\ i{\isadigit{1}}\ e{\isadigit{1}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Rem\ i{\isadigit{2}}\ e{\isadigit{2}}{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}Rem\ i{\isadigit{2}}\ e{\isadigit{2}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Rem\ i{\isadigit{1}}\ e{\isadigit{1}}{\isasymrangle}{\isachardoublequoteclose}
+\isacommand{lemma}\ rem{\isacharunderscore}rem{\isacharunderscore}commute{\isacharcolon}\isanewline
+\ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isasymlangle}Rem\ i{\isadigit{1}}\ e{\isadigit{1}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Rem\ i{\isadigit{2}}\ e{\isadigit{2}}{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}Rem\ i{\isadigit{2}}\ e{\isadigit{2}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Rem\ i{\isadigit{1}}\ e{\isadigit{1}}{\isasymrangle}{\isachardoublequoteclose}
 \end{isabelle}
 \noindent However, add and remove operations commute only if the identifier of the addition is not one of the identifiers affected by the removal:
 \begin{isabelle}
-\ \ \ \ \ \ \ \ \isacommand{lemma}\ add{\isacharunderscore}rem{\isacharunderscore}commute{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i\ {\isasymnotin}\ is{\isachardoublequoteclose}\ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isasymlangle}Add\ i\ e{\isadigit{1}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Rem\ is\ e{\isadigit{2}}{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}Rem\ is\ e{\isadigit{2}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Add\ i\ e{\isadigit{1}}{\isasymrangle}{\isachardoublequoteclose}
+\isacommand{lemma}\ add{\isacharunderscore}rem{\isacharunderscore}commute{\isacharcolon}\isanewline
+\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}i\ {\isasymnotin}\ is{\isachardoublequoteclose}\ \ \isakeyword{shows}\ {\isachardoublequoteopen}{\isasymlangle}Add\ i\ e{\isadigit{1}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Rem\ is\ e{\isadigit{2}}{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}Rem\ is\ e{\isadigit{2}}{\isasymrangle}\ {\isasymrhd}\ {\isasymlangle}Add\ i\ e{\isadigit{1}}{\isasymrangle}{\isachardoublequoteclose}
 \end{isabelle}
 
 Proving that the assumption $\isa{i} \mathbin{\isasymnotin} \isa{is}$ holds for all concurrent $\isa{Add}$ and $\isa{Rem}$ operations is a bit more laborious.
 We define \isa{added-ids} to be the identifiers of all $\isa{Add}$ operations in a list of delivery events, even if those elements are subsequently removed.
 Then we prove that the set of identifiers in the node state is a subset of \isa{added-ids} (since $\isa{Add}$ operations only ever add identifiers to the node state, and $\isa{Rem}$ operations only ever remove identifiers):
 \begin{isabelle}
-\ \ \ \ \ \ \ \ \isacommand{lemma}\ apply{\isacharunderscore}operations{\isacharunderscore}added{\isacharunderscore}ids{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}{\isasymexists}suf{\isachardot}\ pre\ {\isacharat}\ suf\ {\isacharequal}\ history\ i{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ pre\ {\isacharequal}\ Some\ state{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}state\ e\ {\isasymsubseteq}\ set\ {\isacharparenleft}added{\isacharunderscore}ids\ pre\ e{\isacharparenright}{\isachardoublequoteclose}
+\isacommand{lemma}\ apply{\isacharunderscore}operations{\isacharunderscore}added{\isacharunderscore}ids{\isacharcolon}\isanewline
+\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}{\isasymexists}suf{\isachardot}\ pre\ {\isacharat}\ suf\ {\isacharequal}\ history\ i{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ pre\ {\isacharequal}\ Some\ state{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{shows}\ {\isachardoublequoteopen}state\ e\ {\isasymsubseteq}\ set\ {\isacharparenleft}added{\isacharunderscore}ids\ pre\ e{\isacharparenright}{\isachardoublequoteclose}
 \end{isabelle}
 \noindent From this lemma, we deduce that when an $\isa{Add}$ and a $\isa{Rem}$ operation are concurrent, the identifier of the $\isa{Add}$ cannot be in the set of identifiers removed by $\isa{Rem}$:
 \begin{isabelle}
-\ \ \ \ \ \ \ \ \isacommand{lemma}\ concurrent{\isacharunderscore}add{\isacharunderscore}remove{\isacharunderscore}independent{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}{\isacharparenleft}Add\ i\ e{\isadigit{1}}{\isacharparenright}\ $\|$ {\isacharparenleft}Rem\ is\ e{\isadigit{2}}{\isacharparenright}{\isachardoublequoteclose}\ \isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}Add\ i\ e{\isadigit{1}}\ {\isasymin}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ j{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}Rem\ is\ e{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ j{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}i\ {\isasymnotin}\ is{\isachardoublequoteclose}
+\isacommand{lemma}\ concurrent{\isacharunderscore}add{\isacharunderscore}remove{\isacharunderscore}independent{\isacharcolon}\isanewline
+\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}{\isacharparenleft}Add\ i\ e{\isadigit{1}}{\isacharparenright}\ $\|$ {\isacharparenleft}Rem\ is\ e{\isadigit{2}}{\isacharparenright}{\isachardoublequoteclose}\ \isanewline
+\ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}Add\ i\ e{\isadigit{1}}\ {\isasymin}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ j{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}Rem\ is\ e{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ j{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{shows}\ {\isachardoublequoteopen}i\ {\isasymnotin}\ is{\isachardoublequoteclose}
 \end{isabelle}
 \noindent Now that we have proved that the assumption of $\isa{add-rem-commute}$ holds for all concurrent operations, we can deduce that all concurrent operations commute:
 \begin{isabelle}
-\ \ \ \ \ \ \ \ \isacommand{theorem}\ concurrent{\isacharunderscore}operations{\isacharunderscore}commute{\isacharcolon}\ \isakeyword{shows}\ \ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ i{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
+\isacommand{theorem}\ concurrent{\isacharunderscore}operations{\isacharunderscore}commute{\isacharcolon}\ \isakeyword{shows}\ \ {\isachardoublequoteopen}hb{\isachardot}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharparenleft}node{\isacharunderscore}deliver{\isacharunderscore}messages\ {\isacharparenleft}history\ i{\isacharparenright}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabelle}
 
 Having proved $\isa{apply-operations-never-fails}$ and $\isa{concurrent-operations-commute}$, we can now immediately prove that $\isa{orset}$ is a sublocale of $\isa{strong-eventual-consistency}$, using the familiar proof pattern from the other CRDTs.

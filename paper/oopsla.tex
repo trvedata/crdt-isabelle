@@ -7,6 +7,7 @@
 
 \usepackage[english]{babel}
 \usepackage{setspace}
+\usepackage{calc}
 
 \usepackage{paralist}
 \usepackage{tikz}
@@ -16,13 +17,13 @@
 \isabellestyle{it}
 
 \renewenvironment{isabelle}{%
-  \vspace{0.4em}\par\noindent%
-  \begin{minipage}{1.0\textwidth}% use minipage to prevent page breaks
+  \vspace{0.4em}\par\noindent\hspace{2\parindent}%
+  \begin{minipage}{\textwidth-2\parindent}% use minipage to prevent page breaks
   \begin{isabellebody}%
 }{%
   \end{isabellebody}%
   \end{minipage}%
-  \vspace{0.4em}%
+  \par\vspace{0.4em}%
 }
 
 \hyphenation{App-Jet}
