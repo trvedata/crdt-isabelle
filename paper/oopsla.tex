@@ -1,4 +1,4 @@
-\documentclass[acmsmall,review,anonymous]{acmart}
+\documentclass[acmsmall]{acmart}
 
 \settopmatter{printfolios=true}
 
@@ -7,6 +7,7 @@
 
 \usepackage[english]{babel}
 \usepackage{setspace}
+\usepackage{calc}
 
 \usepackage{paralist}
 \usepackage{tikz}
@@ -14,6 +15,16 @@
 
 \usepackage{isabelle,isabellesym}
 \isabellestyle{it}
+
+\renewenvironment{isabelle}{%
+  \vspace{0.4em}\par\noindent\hspace{2\parindent}%
+  \begin{minipage}{\textwidth-2\parindent}% use minipage to prevent page breaks
+  \begin{isabellebody}%
+}{%
+  \end{isabellebody}%
+  \end{minipage}%
+  \par\vspace{0.4em}%
+}
 
 \hyphenation{App-Jet}
 
@@ -224,7 +235,6 @@ All our Isabelle theory files have been submitted as supplementary material acco
 \input{simple-crdts}
 \input{relwork}
 
-\vspace{-0.9em}
 \section{Discussion}
 \label{sect.discussion}
 
@@ -282,8 +292,6 @@ We leave this to future work.
     and \grantsponsor{GS100000003}{The Boeing Company}{http://dx.doi.org/10.13039/100000003}.
     We thank Peter Sewell and Alan Mycroft for constructive comments on an earlier version of this paper.
 \end{acks}
-
-\pagebreak
 
 \bibliography{references}{}
 \end{document}

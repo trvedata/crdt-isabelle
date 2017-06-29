@@ -32,13 +32,11 @@ Thus, given any two operations $\isa{x}$ and $\isa{y}$, there are three mutually
 As discussed above, the purpose of the happens-before relation is to require that some operations must be applied in a particular order, while allowing concurrent operations to be reordered with respect to each other.
 We assume that each node applies operations in some sequential order (a standard assumption for distributed algorithms), and so we can model the execution history of a node as a list of operations.
 We can then inductively define a list of operations as being \emph{consistent with the happens-before relation}, or simply \emph{hb-consistent}, as follows:
-\vspace{0.25em}
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{inductive} hb{\isacharunderscore}consistent\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ list\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ {\isacharbrackleft}{\isacharbrackright}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}{\isasymlbrakk}\ hb{\isacharunderscore}consistent\ xs{\isacharsemicolon}\ {\isasymforall}x\ {\isasymin}\ set\ xs{\isachardot}\ {\isasymnot}\ y\ {\isasymprec}\ x\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ hb{\isacharunderscore}consistent\ {\isacharparenleft}xs\ {\isacharat}\ {\isacharbrackleft}y{\isacharbrackright}{\isacharparenright}{\isachardoublequoteclose}
-\end{isabellebody}
-\vspace{0.25em}
+\begin{isabelle}
+\isacommand{inductive} hb{\isacharunderscore}consistent\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ list\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ {\isacharbrackleft}{\isacharbrackright}{\isachardoublequoteclose}\ {\isacharbar}\isanewline
+\ \ {\isachardoublequoteopen}{\isasymlbrakk}\ hb{\isacharunderscore}consistent\ xs{\isacharsemicolon}\ {\isasymforall}x\ {\isasymin}\ set\ xs{\isachardot}\ {\isasymnot}\ y\ {\isasymprec}\ x\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ hb{\isacharunderscore}consistent\ {\isacharparenleft}xs\ {\isacharat}\ {\isacharbrackleft}y{\isacharbrackright}{\isacharparenright}{\isachardoublequoteclose}
+\end{isabelle}
 In words: the empty list is hb-consistent; furthermore, given an hb-consistent list $\isa{xs}$, we can append an operation $\isa{y}$ to the end of the list to obtain another hb-consistent list, provided that $\isa{y}$ does not happen-before any existing operation $\isa{x}$ in $\isa{xs}$. As a result, whenever two operations $\isa{x}$ and $\isa{y}$ appear in a hb-consistent list, and $\isa{x}\prec\isa{y}$, then $\isa{x}$ must appear before $\isa{y}$ in the list. However, if $\isa{x}\mathbin{\isasymparallel}\isa{y}$, the operations can appear in the list in either order.
 
 \subsection{Interpretation of operations}\label{sect.ops.interpretation}
@@ -48,13 +46,11 @@ To model state changes, we assume the existence of an \emph{interpretation} func
 If $\isa{x}$ is an operation, we also write $\langle\isa{x}\rangle$ for the state transformer obtained by applying $\isa{x}$ to the interpretation function.
 
 Concretely, these definitions are captured in Isabelle with the following locale declaration:
-\vspace{0.25em}
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{locale} happens{\isacharunderscore}before\ {\isacharequal}\ preorder\ hb{\isacharunderscore}weak\ hb\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{for}\ hb{\isacharunderscore}weak\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ {\isasymRightarrow}\ {\isacharprime}oper\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \ \isakeyword{and}\ hb\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ {\isasymRightarrow}\ {\isacharprime}oper\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ {\isacharplus}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{fixes}\ interp\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ {\isasymRightarrow}\ {\isacharprime}state\ {\isasymRightarrow}\ {\isacharprime}state\ option{\isachardoublequoteclose}
-\end{isabellebody}
-\vspace{0.25em}
+\begin{isabelle}
+\isacommand{locale} happens{\isacharunderscore}before\ {\isacharequal}\ preorder\ hb{\isacharunderscore}weak\ hb\isanewline
+\ \ \isakeyword{for}\ hb{\isacharunderscore}weak\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ {\isasymRightarrow}\ {\isacharprime}oper\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \ \isakeyword{and}\ hb\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ {\isasymRightarrow}\ {\isacharprime}oper\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ {\isacharplus}\isanewline
+\ \ \isakeyword{fixes}\ interp\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ {\isasymRightarrow}\ {\isacharprime}state\ {\isasymRightarrow}\ {\isacharprime}state\ option{\isachardoublequoteclose}
+\end{isabelle}
 The $\isa{happens-before}$ locale extends the $\isa{preorder}$ locale, which is part of Isabelle's standard library and includes various useful lemmas.
 It fixes two constants: a preorder that we call $\isa{hb-weak}$ or $\preceq$, and a strict partial order that we call $\isa{hb}$ or $\prec$.
 We are only interested in the strict partial order and define $\isa{x}\preceq\isa{y}$ to be $\isa{x}\prec\isa{y} \vee \isa{x}=\isa{y}$.
@@ -63,21 +59,17 @@ Moreover, the locale fixes the interpretation function $\isa{interp}$ as describ
 Given two operations $\isa{x}$ and $\isa{y}$, we can now define the composition of state transformers: we write $\langle\isa{x}\rangle \mathbin{\isasymrhd} \langle\isa{y}\rangle$ to denote the state transformer that first applies the effect of $\isa{x}$ to some state, and then applies the effect of $\isa{y}$ to the result.
 If either $\langle\isa{x}\rangle$ or $\langle\isa{y}\rangle$ fails, the combined state transformer also fails.
 The operator $\isasymrhd$ is a specialised form of the \emph{Kleisli arrow composition}, which we define as:
-\vspace{0.25em}
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{definition} kleisli\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ option{\isacharparenright}\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ option{\isacharparenright}\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ option{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}f\ {\isasymrhd}\ g\ {\isasymequiv}\ {\isasymlambda}x{\isachardot}\ f\ x\ {\isasymbind}\ {\isacharparenleft}{\isasymlambda}y{\isachardot}\ g\ y{\isacharparenright}{\isachardoublequoteclose}
-\end{isabellebody}
-\vspace{0.25em}
+\begin{isabelle}
+\isacommand{definition} kleisli\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharparenleft}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ option{\isacharparenright}\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ option{\isacharparenright}\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}a\ {\isasymRightarrow}\ {\isacharprime}a\ option{\isacharparenright}{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ {\isachardoublequoteopen}f\ {\isasymrhd}\ g\ {\isasymequiv}\ {\isasymlambda}x{\isachardot}\ f\ x\ {\isasymbind}\ {\isacharparenleft}{\isasymlambda}y{\isachardot}\ g\ y{\isacharparenright}{\isachardoublequoteclose}
+\end{isabelle}
 \noindent Here, $\isasymbind$ is the \emph{monadic bind} operation, defined on the option type that we are using to implement partial functions.
 We can now define a function $\isa{apply-operations}$ that composes an arbitrary list of operations into a state transformer.
 We first map $\isa{interp}$ across the list to obtain a state transformer for each operation, and then collectively compose them using the Kleisli arrow composition combinator:
-\vspace{0.25em}
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{definition} apply{\isacharunderscore}operations\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ list\ {\isasymRightarrow}\ {\isacharprime}state\ {\isasymRightarrow}\ {\isacharprime}state\ option{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ ops\ {\isasymequiv}\ foldl\ {\isacharparenleft}op\ {\isasymrhd}{\isacharparenright}\ Some\ {\isacharparenleft}map\ interp\ ops{\isacharparenright}{\isachardoublequoteclose}
-\end{isabellebody}
-\vspace{0.25em}
+\begin{isabelle}
+\isacommand{definition} apply{\isacharunderscore}operations\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ list\ {\isasymRightarrow}\ {\isacharprime}state\ {\isasymRightarrow}\ {\isacharprime}state\ option{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ ops\ {\isasymequiv}\ foldl\ {\isacharparenleft}op\ {\isasymrhd}{\isacharparenright}\ Some\ {\isacharparenleft}map\ interp\ ops{\isacharparenright}{\isachardoublequoteclose}
+\end{isabelle}
 \noindent The result is a state transformer that applies the interpretation of each of the operations in the list, in left-to-right order, to some initial state.
 If any of the operations fails, the entire composition returns $\isa{None}$.
 
@@ -86,58 +78,48 @@ If any of the operations fails, the entire composition returns $\isa{None}$.
 We say that two operations $\isa{x}$ and $\isa{y}$ \emph{commute} whenever $\langle\isa{x}\rangle \mathbin{\isasymrhd} \langle\isa{y}\rangle = \langle\isa{y}\rangle \mathbin{\isasymrhd} \langle\isa{x}\rangle$, i.e. when we can swap the order of the composition of their interpretations without changing the resulting state transformer.
 For our purposes, requiring that this property holds for \emph{all} pairs of operations is too strong.
 Rather, the commutation property is only required to hold for operations that are concurrent, as captured in the next definition:
-\vspace{0.25em}
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{definition} concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ list\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
-\ \ \ \ \ \ \ \ \ \ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ xs\ {\isasymequiv} {\isasymforall}x\ y{\isachardot}\ {\isacharbraceleft}x{\isacharcomma}\ y{\isacharbraceright}\ {\isasymsubseteq}\ set\ xs\ {\isasymlongrightarrow}\ x\ {\isasymparallel}\ y\ {\isasymlongrightarrow}\ {\isasymlangle}x{\isasymrangle}{\isasymrhd}{\isasymlangle}y{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}y{\isasymrangle}{\isasymrhd}{\isasymlangle}x{\isasymrangle}{\isachardoublequoteclose}
-\end{isabellebody}
-\vspace{0.25em}
+\begin{isabelle}
+\isacommand{definition} concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ list\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{where}\isanewline
+\ \ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ xs\ {\isasymequiv} {\isasymforall}x\ y{\isachardot}\ {\isacharbraceleft}x{\isacharcomma}\ y{\isacharbraceright}\ {\isasymsubseteq}\ set\ xs\ {\isasymlongrightarrow}\ x\ {\isasymparallel}\ y\ {\isasymlongrightarrow}\ {\isasymlangle}x{\isasymrangle}{\isasymrhd}{\isasymlangle}y{\isasymrangle}\ {\isacharequal}\ {\isasymlangle}y{\isasymrangle}{\isasymrhd}{\isasymlangle}x{\isasymrangle}{\isachardoublequoteclose}
+\end{isabelle}
 Given this definition, we can now state and prove our main theorem, $\isa{convergence}$.
 This theorem states that two hb-consistent lists of distinct operations, which are permutations of each other and in which concurrent operations commute, have the same interpretation:
-\vspace{0.25em}
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{theorem} convergence{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ xs\ {\isacharequal}\ set\ ys{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ ys{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}distinct\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}distinct\ ys{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ ys{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}
-\end{isabellebody}
-\vspace{0.25em}
+\begin{isabelle}
+\isacommand{theorem} convergence{\isacharcolon}\isanewline
+\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ xs\ {\isacharequal}\ set\ ys{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ ys{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \ \ \isakeyword{and}\ {\isachardoublequoteopen}distinct\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}distinct\ ys{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}hb{\isacharunderscore}consistent\ ys{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}
+\end{isabelle}
 \noindent
 A fully mechanised proof of this theorem can be found in the supplementary material of this paper.
 Although this theorem may seem ``obvious'' at first glance---commutativity allows the operation order to be permuted---it is more subtle than it seems.
 The difficulty arises because operations may succeed when applied to some state, but fail when applied to another state (for example, attempting to delete an element that does not exist in the state).
 We find it interesting that it is nevertheless sufficient for the definition of $\isa{concurrent-ops-commute}$ to be expressed only in terms of the Kleisli arrow composition, and without explicitly referring to the state.
 
-\vspace{-0.5em}
 \subsection{Formalising Strong Eventual Consistency}\label{sect.abstract.sec.spec}
 
 Besides convergence, another required property of SEC is \emph{progress}: if a valid operation was issued on one node, then another node that applies the operation must not become stuck in an error state.
 Although the type signature of the interpretation function allows operations to fail, we need to prove that such a failure never occurs in any $\isa{hb-consistent}$ network behaviour.
 We capture this requirement in the $\isa{strong-eventual-consistency}$ locale:
-\vspace{0.25em}
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{locale}\ strong{\isacharunderscore}eventual{\isacharunderscore}consistency\ {\isacharequal}\ happens{\isacharunderscore}before\ {\isacharplus}\ \isakeyword{fixes}\ op{\isacharunderscore}history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ list\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{and}\ initial{\isacharunderscore}state\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}state{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ causality{\isacharcolon}\ {\isasymlbrakk}\ {\isachardoublequoteopen}op{\isacharunderscore}history\ xs\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ hb{\isacharunderscore}consistent\ xs{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ distinctness{\isacharcolon}\ {\isasymlbrakk}\ {\isachardoublequoteopen}op{\isacharunderscore}history\ xs\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ distinct\ xs{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ trunc{\isacharunderscore}history{\isacharcolon}\ {\isasymlbrakk}\ {\isachardoublequoteopen}op{\isacharunderscore}history{\isacharparenleft}xs{\isacharat}{\isacharbrackleft}x{\isacharbrackright}{\isacharparenright}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ op{\isacharunderscore}history\ xs{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ commutativity{\isacharcolon}\ {\isasymlbrakk}\ {\isachardoublequoteopen}op{\isacharunderscore}history\ xs\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ xs{\isachardoublequoteclose}\isanewline
+\begin{isabelle}
+\isacommand{locale}\ strong{\isacharunderscore}eventual{\isacharunderscore}consistency\ {\isacharequal}\ happens{\isacharunderscore}before\ {\isacharplus}\ \isakeyword{fixes}\ op{\isacharunderscore}history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ list\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\ \isakeyword{and}\ initial{\isacharunderscore}state\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}state{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{assumes}\ causality{\isacharcolon}\ {\isasymlbrakk}\ {\isachardoublequoteopen}op{\isacharunderscore}history\ xs\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ hb{\isacharunderscore}consistent\ xs{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \isakeyword{and}\ distinctness{\isacharcolon}\ {\isasymlbrakk}\ {\isachardoublequoteopen}op{\isacharunderscore}history\ xs\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ distinct\ xs{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \isakeyword{and}\ trunc{\isacharunderscore}history{\isacharcolon}\ {\isasymlbrakk}\ {\isachardoublequoteopen}op{\isacharunderscore}history{\isacharparenleft}xs{\isacharat}{\isacharbrackleft}x{\isacharbrackright}{\isacharparenright}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ op{\isacharunderscore}history\ xs{\isachardoublequoteclose}\isanewline
+\ \ \ \ \ \ \isakeyword{and}\ commutativity{\isacharcolon}\ {\isasymlbrakk}\ {\isachardoublequoteopen}op{\isacharunderscore}history\ xs\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ xs{\isachardoublequoteclose}\isanewline
   \ \ \ \ \ \ \ \ \ \ \ \ \ \ \isakeyword{and}\ no{\isacharunderscore}failure{\isacharcolon}\ {\isasymlbrakk}\ {\isachardoublequoteopen}op{\isacharunderscore}history{\isacharparenleft}xs{\isacharat}{\isacharbrackleft}x{\isacharbrackright}{\isacharparenright};\ apply{\isacharunderscore}operations\ xs\ initial{\isacharunderscore}state\ {\isacharequal}\ Some\ state\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ {\isasymlangle}x{\isasymrangle}\ state\ {\isasymnoteq}\ None{\isachardoublequoteclose}
-\end{isabellebody}
-\vspace{0.25em}
+\end{isabelle}
 \noindent Here, $\isa{op-history}$ is an abstract predicate describing any valid operation history of some replication algorithm, encapsulating the assumptions of the $\isa{convergence}$ theorem ($\isa{concurrent-ops-commute}$, $\isa{distinct}$, and $\isa{hb-consistent}$).
 This locale serves as a concise summary of the properties that we require in order to achieve SEC, and from these assumptions and the theorem above we easily obtain the two safety properties of SEC as theorems:
-\vspace{0.25em}
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{theorem}\ sec{\isacharunderscore}convergence{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ xs\ {\isacharequal}\ set\ ys{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}op{\isacharunderscore}history\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}op{\isacharunderscore}history\ ys{\isachardoublequoteclose}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}
-\end{isabellebody}
-\vspace{0.25em}
-\begin{isabellebody}
-\ \ \ \ \ \ \ \ \isacommand{theorem}\ sec{\isacharunderscore}progress{\isacharcolon}\isanewline
-\ \ \ \ \ \ \ \ \ \ \isakeyword{assumes}\ {\isachardoublequoteopen}op{\isacharunderscore}history\ xs{\isachardoublequoteclose}\ \ \ \isakeyword{shows}\ \ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ initial{\isacharunderscore}state\ {\isasymnoteq}\ None{\isachardoublequoteclose}
-\end{isabellebody}
-\vspace{0.25em}
+\begin{isabelle}
+\isacommand{theorem}\ sec{\isacharunderscore}convergence{\isacharcolon}\isanewline
+\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}set\ xs\ {\isacharequal}\ set\ ys{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}op{\isacharunderscore}history\ xs{\isachardoublequoteclose}\ \isakeyword{and}\ {\isachardoublequoteopen}op{\isacharunderscore}history\ ys{\isachardoublequoteclose}\isanewline
+\ \ \isakeyword{shows}\ \ \ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}
+\end{isabelle}
+\begin{isabelle}
+\isacommand{theorem}\ sec{\isacharunderscore}progress{\isacharcolon}\isanewline
+\ \ \isakeyword{assumes}\ {\isachardoublequoteopen}op{\isacharunderscore}history\ xs{\isachardoublequoteclose}\ \ \ \isakeyword{shows}\ \ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ initial{\isacharunderscore}state\ {\isasymnoteq}\ None{\isachardoublequoteclose}
+\end{isabelle}
 
 Thus, in order to prove SEC for some replication algorithm, we only need to show that the five assumptions of the $\isa{strong-eventual-consistency}$ locale are satisfied.
 As we shall see in Section~\ref{sect.network}, the first three assumptions are satisfied by our network model, and do not require any algorithm-specific proofs.
