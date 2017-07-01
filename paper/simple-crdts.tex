@@ -90,8 +90,8 @@ We express these constraints using the following $\isa{valid-behaviours}$ predic
 ~~~~~~~~case\ msg\ of \>{\isacharparenleft}i{\isacharcomma}\ Add\>j\>e{\isacharparenright}\ {\isasymRightarrow}\ i\ {\isacharequal}\ j\ {\isacharbar}\\
 \>{\isacharparenleft}i{\isacharcomma}\ Rem\>is\>e{\isacharparenright}\ {\isasymRightarrow}\ is\ {\isacharequal}\ state\ e{\isachardoublequoteclose}
 \end{isabelle}
-To prove that ORSet satisfies the specification of strong eventual consistency, we follow the same steps as with the previous CRDTs.
-First we define a locale $\isa{orset}$ that extends $\isa{network-with-constrained-ops}$:
+To prove that ORSet satisfies the specification of strong eventual consistency, we follow the same pattern as before.
+We first define a locale $\isa{orset}$ that extends $\isa{network-with-constrained-ops}$:
 \begin{isabelle}
 \isacommand{locale}\ orset\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}constrained{\isacharunderscore}ops\ {\isacharunderscore}\ interpret{\isacharunderscore}op\ {\isachardoublequoteopen}{\isacharparenleft}{\isasymlambda}x{\isachardot}\ {\isacharbraceleft}{\isacharbraceright}{\isacharparenright}{\isachardoublequoteclose}\ valid{\isacharunderscore}behaviours
 \end{isabelle}

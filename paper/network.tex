@@ -79,7 +79,7 @@ The axioms can be understood as follows:
         In practice, these globally unique IDs can by implemented using unique node identifiers, sequence numbers or timestamps.
 \end{description}
 
-In addition, the $\isa{network}$ locale inherits the $\isa{histories-distinct}$ axiom from the parent locale $\isa{node-histories}$.
+The $\isa{network}$ locale also inherits the $\isa{histories-distinct}$ axiom from its parent locale $\isa{node-histories}$.
 Many other properties that we require can be deduced as lemmas from these axioms.
 For example, we can prove that for every message that is delivered by some node, there is exactly one broadcast event (on the same or some other node) that created the message.
 Also, due to the $\isa{histories-distinct}$ axiom we know that the same message is not delivered more than once to each node---an aspect that can be implemented in practical systems by having each node keep track of message IDs it has received, and suppressing any duplicates.
@@ -155,7 +155,7 @@ We can then define the state of some node by using our definition of $\isa{apply
 
 So far we have no restriction on the operations that may be broadcast, except that they must be of some type $\isacharprime\isa{oper}$.
 This suffices for some replication algorithms, but many have additional requirements regarding the contents of messages that cannot be expressed in Isabelle's type system.
-As a general-purpose mechanism for describing such requirements, the locale $\isa{network-with-constrained-ops}$ allows a replication algorithm to define a predicate $\isa{valid-msg}$ to specify whether a node is allowed to broadcast some message when in a particular state:
+As a general-purpose means of describing such requirements, the locale $\isa{network-with-constrained-ops}$ allows a replication algorithm to define a predicate $\isa{valid-msg}$ to specify whether a node is allowed to broadcast some message when in a particular state:
 \begin{isabelle}
 \hspace{6em}\=\kill
 \isacommand{locale}\ network{\isacharunderscore}with{\isacharunderscore}constrained{\isacharunderscore}ops\ {\isacharequal}\ network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharplus}\\
