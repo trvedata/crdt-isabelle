@@ -57,11 +57,12 @@ We assume that users may query the state of any node at any time, and such queri
 We then define a new locale $\isa{network}$ containing three axioms that define how broadcast and deliver events may interact, with these axioms defining the properties of our network model.
 Since $\isa{network}$ is an extension of $\isa{node-histories}$, the aforementioned definitions of $\isa{history}$ and $\sqsubset^\isa{i}$ are available for use in the $\isa{network}$ axioms:
 \begin{isabelle}
-~~~~~~~~\isakeyword{and}\ \=msg{\isacharunderscore}id{\isacharunderscore}unique{\isacharcolon}\ \={\isasymrbrakk}\ \=\hspace{14em}\=\kill
+~~~~~~~~\isakeyword{and}\ \=msg{\isacharunderscore}id{\isacharunderscore}unique{\isacharcolon}\ \={\isasymrbrakk}\ \={\isachardoublequoteopen}Broadcast\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ \=\kill
 \isacommand{locale}\ network\ {\isacharequal}\ node{\isacharunderscore}histories\ history\\
 ~~~~\isakeyword{for}\>history\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharprime}msg\ event\ list{\isachardoublequoteclose}\ {\isacharplus}\\
 ~~~~\isakeyword{fixes}\>msg{\isacharunderscore}id\ {\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}msg\ {\isasymRightarrow}\ {\isacharprime}msgid{\isachardoublequoteclose}\\
-~~~~\isakeyword{assumes}\ delivery{\isacharunderscore}has{\isacharunderscore}a{\isacharunderscore}cause{\isacharcolon}\ {\isasymlbrakk}\ {\isachardoublequoteopen}Deliver\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ \>\>\>\>{\isasymrbrakk}\ {\isasymLongrightarrow}\ {\isasymexists}j{\isachardot}\ Broadcast\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}{\isachardoublequoteclose}\\
+~~~~\isakeyword{assumes}\ delivery{\isacharunderscore}has{\isacharunderscore}a{\isacharunderscore}cause{\isacharcolon}\\
+\>\>{\isasymlbrakk}\ {\isachardoublequoteopen}Deliver\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ \>\>{\isasymrbrakk}\ {\isasymLongrightarrow}\ {\isasymexists}j{\isachardot}\ Broadcast\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}{\isachardoublequoteclose}\\
 ~~~~~~~~\isakeyword{and}\>deliver{\isacharunderscore}locally{\isacharcolon}\ \>{\isasymlbrakk}\ \>{\isachardoublequoteopen}Broadcast\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ \>{\isasymrbrakk}\ {\isasymLongrightarrow}\  Broadcast\ m\ {\isasymsqsubset}\isactrlsup i\ Deliver\ m{\isachardoublequoteclose}\\
 ~~~~~~~~\isakeyword{and}\>msg{\isacharunderscore}id{\isacharunderscore}unique{\isacharcolon}\ \>{\isasymlbrakk}\ \>{\isachardoublequoteopen}Broadcast\ m{\isadigit{1}}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright};\\
 \>\>\>Broadcast\ m{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright};\\
@@ -118,7 +119,8 @@ In addition to the existing $\isa{network}$ axioms, we require that if there are
 Concurrent messages may be delivered in any order.
 \begin{isabelle}
 \isacommand{locale} causal{\isacharunderscore}network\ {\isacharequal}\ network\ {\isacharplus}\\
-~~~~\isakeyword{assumes}\ causal{\isacharunderscore}delivery{\isacharcolon}\ {\isasymlbrakk}\ {\isachardoublequoteopen}Deliver\ m{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright};\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{2}}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ Deliver\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup i\ Deliver\ m{\isadigit{2}}{\isachardoublequoteclose}
+~~~~\isakeyword{assumes}\ causal{\isacharunderscore}delivery{\isacharcolon}\\
+~~~~~~~~{\isasymlbrakk}\ {\isachardoublequoteopen}Deliver\ m{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright};\ m{\isadigit{1}}\ $\prec$\ m{\isadigit{2}}\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ Deliver\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup i\ Deliver\ m{\isadigit{2}}{\isachardoublequoteclose}
 \end{isabelle}
 The $\isa{causal-delivery}$ axiom does not strengthen the reliability assumptions of the network: only in the case where some message $\isa{m2}$ is delivered, it requires that any causally preceding messages are delivered first.
 It is still possible for some message never to be delivered.

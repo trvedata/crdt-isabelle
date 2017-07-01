@@ -112,7 +112,8 @@ We capture this requirement in the $\isa{strong-eventual-consistency}$ locale:
 ~~~~~~~~\isakeyword{and}\>trunc{\isacharunderscore}history{\isacharcolon}\ \>{\isasymlbrakk}\>{\isachardoublequoteopen}op{\isacharunderscore}history{\isacharparenleft}xs{\isacharat}{\isacharbrackleft}x{\isacharbrackright}{\isacharparenright}\ \>{\isasymrbrakk}\ {\isasymLongrightarrow}\ op{\isacharunderscore}history\ xs{\isachardoublequoteclose}\\
 ~~~~~~~~\isakeyword{and}\>commutativity{\isacharcolon}\ \>{\isasymlbrakk}\>{\isachardoublequoteopen}op{\isacharunderscore}history\ xs\ \>{\isasymrbrakk}\ {\isasymLongrightarrow}\ concurrent{\isacharunderscore}ops{\isacharunderscore}commute\ xs{\isachardoublequoteclose}\\
 ~~~~~~~~\isakeyword{and}\>no{\isacharunderscore}failure{\isacharcolon}\ \>{\isasymlbrakk}\>{\isachardoublequoteopen}op{\isacharunderscore}history{\isacharparenleft}xs{\isacharat}{\isacharbrackleft}x{\isacharbrackright}{\isacharparenright};\\
-\>\>\>apply{\isacharunderscore}operations\ xs\ initial{\isacharunderscore}state\ {\isacharequal}\ Some\ state\ {\isasymrbrakk}\ {\isasymLongrightarrow}\ {\isasymlangle}x{\isasymrangle}\ state\ {\isasymnoteq}\ None{\isachardoublequoteclose}
+\>\>\>apply{\isacharunderscore}operations\ xs\ initial{\isacharunderscore}state\ {\isacharequal}\ Some\ state\\
+\>\>\>\>{\isasymrbrakk}\>{\isasymLongrightarrow}\ {\isasymlangle}x{\isasymrangle}\ state\ {\isasymnoteq}\ None{\isachardoublequoteclose}
 \end{isabelle}
 \noindent Here, $\isa{op-history}$ is an abstract predicate describing any valid operation history of some replication algorithm, encapsulating the assumptions of the $\isa{convergence}$ theorem ($\isa{concurrent-ops-commute}$, $\isa{distinct}$, and $\isa{hb-consistent}$).
 This locale serves as a concise summary of the properties that we require in order to achieve SEC, and from these assumptions and the theorem above we easily obtain the two safety properties of SEC as theorems:
