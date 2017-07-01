@@ -17,13 +17,15 @@
 \isabellestyle{it}
 
 \renewenvironment{isabelle}{%
-  \vspace{0.4em}\par\noindent\hspace{2\parindent}%
+  \medbreak\noindent\hspace{2\parindent}%
   \begin{minipage}{\textwidth-2\parindent}% use minipage to prevent page breaks
   \begin{isabellebody}%
+  \begin{tabbing}%
 }{%
+  \end{tabbing}%
   \end{isabellebody}%
   \end{minipage}%
-  \par\vspace{0.4em}%
+  \medbreak%
 }
 
 \hyphenation{App-Jet}
