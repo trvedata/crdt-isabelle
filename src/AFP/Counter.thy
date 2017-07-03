@@ -32,12 +32,10 @@ lemma (in counter) "counter_op x \<rhd> counter_op y = counter_op y \<rhd> count
 lemma (in counter) concurrent_operations_commute:
   assumes "xs prefix of i"
   shows "hb.concurrent_ops_commute (node_deliver_messages xs)"
-  using assms
-  apply(clarsimp simp: hb.concurrent_ops_commute_def)
-  apply(unfold interp_msg_def, simp)
-  apply(case_tac "b"; case_tac "ba")
-   apply(auto simp add: kleisli_def)
-done
+  using assms apply(clarsimp simp: hb.concurrent_ops_commute_def interp_msg_def)
+  apply(rename_tac a b x y)
+  apply(case_tac b; case_tac y; force simp add: interp_msg_def kleisli_def)
+  done
   
 corollary (in counter) counter_convergence:
   assumes "set (node_deliver_messages xs) = set (node_deliver_messages ys)"
@@ -55,7 +53,7 @@ sublocale sec: strong_eventual_consistency weak_hb hb interp_msg
       apply(auto simp add: hb_consistent_prefix drop_last_message node_deliver_messages_distinct concurrent_operations_commute)
    apply(metis (full_types) interp_msg_def counter_op.elims)
   using drop_last_message apply blast
-done
+  done
 
 end
 end

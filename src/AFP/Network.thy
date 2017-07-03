@@ -527,44 +527,37 @@ lemma (in network_with_ops) hb_consistent_technical:
   apply clarsimp
   apply(subst (asm) nth_append, simp)
   apply(meson causal_network.causal_delivery causal_network_axioms insert_subset node_histories.local_order_carrier_closed node_histories_axioms node_total_order_irrefl node_total_order_trans)
-done
-
+  done
+    
 corollary (in network_with_ops)
   shows "hb.hb_consistent (node_deliver_messages (history i))"
   apply(subgoal_tac "history i = [] \<or> (\<exists>c. history i = [c]) \<or> (length (history i) \<ge> 2)")
-  apply(erule disjE, clarsimp simp add: node_deliver_messages_def map_filter_def)
-  apply(erule disjE, clarsimp simp add: node_deliver_messages_def map_filter_def)
-  apply blast
-  apply(cases "history i"; clarsimp; case_tac "list"; clarsimp)
-  apply(rule hb_consistent_technical[where i=i])                                         
+   apply(erule disjE, clarsimp simp add: node_deliver_messages_def map_filter_def)+
+    apply blast
+   apply(cases "history i"; clarsimp)
+   apply (rename_tac x xs)
+   apply (case_tac xs; clarsimp)
+   apply(rule hb_consistent_technical[where i=i])                                         
   apply(subst history_order_def, clarsimp)
   apply(metis list_nth_split One_nat_def Suc_le_mono cancel_comm_monoid_add_class.diff_cancel
           le_imp_less_Suc length_Cons less_Suc_eq_le less_imp_diff_less neq0_conv nth_Cons_pos)
-  apply(cases "history i"; clarsimp; case_tac "list"; clarsimp)
-done
+  apply (metis Suc_leI Suc_pred length_0_conv length_Suc_conv neq0_conv numeral_2_eq_2 zero_less_diff)
+  done
 
 lemma (in network_with_ops) hb_consistent_prefix:
   assumes "xs prefix of i"
-    shows "hb.hb_consistent (node_deliver_messages xs)"
-using assms
-  apply(clarsimp simp: prefix_of_node_history_def)
-  apply(rule_tac i=i in hb_consistent_technical)
-  apply(subst history_order_def)
-  apply(subgoal_tac "xs = [] \<or> (\<exists>c. xs = [c]) \<or> (length (xs) > 1)")
-  apply(erule disjE)
-  apply clarsimp
-  apply(erule disjE)
-  apply clarsimp
-  apply(drule list_nth_split)
-  apply assumption
-  apply clarsimp
-  apply clarsimp
-  apply(rule_tac x=xsa in exI)
-  apply(rule_tac x=ysa in exI)
-  apply(rule_tac x="zs@ys" in exI)
-  apply(metis Cons_eq_appendI append_assoc)
-  apply force
-  done
+  shows "hb.hb_consistent (node_deliver_messages xs)"
+  using assms proof (clarsimp simp: prefix_of_node_history_def)
+  fix ys assume "xs @ ys = history i"
+  moreover hence "xs = [] \<or> (\<exists>c. xs = [c]) \<or> (length (xs) > 1)"
+    by (metis One_nat_def Suc_pred length_Suc_conv length_greater_0_conv zero_less_diff)
+  ultimately show "hb.hb_consistent (node_deliver_messages xs)"
+    apply(rule_tac i=i in hb_consistent_technical)
+    apply(erule disjE, clarsimp)+
+    apply(drule list_nth_split, assumption, clarsimp)
+    apply (metis append.assoc append.simps(2) history_order_def)
+    done
+qed
 
 locale network_with_constrained_ops = network_with_ops +
   fixes valid_msg :: "'c \<Rightarrow> ('a \<times> 'b) \<Rightarrow> bool"
@@ -574,34 +567,20 @@ locale network_with_constrained_ops = network_with_ops +
 lemma (in network_with_constrained_ops) broadcast_is_valid:
   assumes "Broadcast m \<in> set (history i)"
   shows "\<exists>state. valid_msg state m"
-  using assms
-  apply(subgoal_tac "\<exists>pre. pre @ [Broadcast m] prefix of i")
-  using broadcast_only_valid_msgs apply blast
-  using events_before_exist apply blast
-done
+  using assms broadcast_only_valid_msgs events_before_exist by blast
 
 lemma (in network_with_constrained_ops) deliver_is_valid:
   assumes "Deliver m \<in> set (history i)"
   shows "\<exists>j pre state. pre @ [Broadcast m] prefix of j \<and> apply_operations pre = Some state \<and> valid_msg state m"
-  using assms apply -
-  apply(drule delivery_has_a_cause)
-  apply(erule exE)
-  apply(subgoal_tac "\<exists>pre. pre @ [Broadcast m] prefix of j")
-  using broadcast_only_valid_msgs apply blast
-  using events_before_exist apply blast
-done
+  using assms apply (clarsimp dest!: delivery_has_a_cause)
+  using broadcast_only_valid_msgs events_before_exist apply blast
+  done
 
 lemma (in network_with_constrained_ops) deliver_in_prefix_is_valid:
   assumes "xs prefix of i"
       and "Deliver m \<in> set xs"
     shows "\<exists>state. valid_msg state m"
-  using assms apply -
-  apply(subgoal_tac "Deliver m \<in> set (history i)")
-  apply(drule delivery_has_a_cause)
-  apply(erule exE)
-  apply(rule broadcast_is_valid, assumption)
-  apply(simp add: prefix_elem_to_carriers)
-done
+  by (meson assms network_with_constrained_ops.deliver_is_valid network_with_constrained_ops_axioms prefix_elem_to_carriers)
 
 subsection\<open>Dummy network models\<close>
 
