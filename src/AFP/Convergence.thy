@@ -46,16 +46,16 @@ text\<open>We say that two operations $x$ and $y$ are \emph{concurrent}, written
 definition concurrent :: "'a \<Rightarrow> 'a \<Rightarrow> bool" (infix "\<parallel>" 50) where
   "s1 \<parallel> s2 \<equiv> \<not> (s1 \<prec> s2) \<and> \<not> (s2 \<prec> s1)"
 
-lemma [intro!]: "\<not> (s1 \<prec> s2) \<Longrightarrow> \<not> (s2 \<prec> s1) \<Longrightarrow> s1 \<parallel> s2"
+lemma concurrentI [intro!]: "\<not> (s1 \<prec> s2) \<Longrightarrow> \<not> (s2 \<prec> s1) \<Longrightarrow> s1 \<parallel> s2"
   by (auto simp: concurrent_def)
 
-lemma [dest]: "s1 \<parallel> s2 \<Longrightarrow> \<not> (s1 \<prec> s2)"
+lemma concurrentD1 [dest]: "s1 \<parallel> s2 \<Longrightarrow> \<not> (s1 \<prec> s2)"
   by (auto simp: concurrent_def)
 
-lemma [dest]: "s1 \<parallel> s2 \<Longrightarrow> \<not> (s2 \<prec> s1)"
+lemma concurrentD2 [dest]: "s1 \<parallel> s2 \<Longrightarrow> \<not> (s2 \<prec> s1)"
   by (auto simp: concurrent_def)
 
-lemma [intro!, simp]: "s \<parallel> s"
+lemma concurrent_refl [intro!, simp]: "s \<parallel> s"
   by (auto simp: concurrent_def)
 
 lemma concurrent_comm: "s1 \<parallel> s2 \<longleftrightarrow> s2 \<parallel> s1"
@@ -107,10 +107,10 @@ text\<open>As a result, whenever two operations $\isa{x}$ and $\isa{y}$ appear i
 lemma "(x \<prec> y \<or> concurrent x y) = (\<not> y \<prec> x)"
   using less_asym by blast
 
-lemma [intro!]:
+lemma consistentI [intro!]:
   assumes "hb_consistent (xs @ ys)"
   and     "\<forall>x \<in> set (xs @ ys). \<not> z \<prec> x"
-shows   "hb_consistent (xs @ ys @ [z])"
+  shows   "hb_consistent (xs @ ys @ [z])"
   using assms hb_consistent.intros append_assoc by metis
 
 inductive_cases  hb_consistent_elim [elim]:

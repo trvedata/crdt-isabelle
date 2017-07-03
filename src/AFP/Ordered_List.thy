@@ -228,12 +228,18 @@ using assms by simp
 
 lemma insert_body_contains_new_elem:
   shows "\<exists>p s. xs = p @ s \<and> insert_body xs e = p @ e # s"
-  apply (induction xs, force, clarsimp)
-  apply (rename_tac i v b p s)
-  apply (rule conjI; clarsimp)
-   apply (rule_tac x="[]" in exI, rule_tac x="(i, v, b) # p @ s" in exI, force)
-  apply (rule_tac x="(i, v, b) # p" in exI, force)
-  done
+proof (induction xs)
+  case Nil thus ?case by force
+next
+  case (Cons a xs)
+  then obtain p s where "xs = p @ s \<and> insert_body xs e = p @ e # s" by force
+  thus ?case
+    apply clarsimp
+    apply (rule conjI; clarsimp)
+      apply force
+    apply (rule_tac x="a # p" in exI, force)
+    done
+qed
 
 lemma insert_between_elements:
   assumes "xs = pre@ref#suf"
