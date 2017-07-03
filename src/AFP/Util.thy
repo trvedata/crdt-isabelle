@@ -106,7 +106,7 @@ lemma list_two_at_end:
   using assms
   apply(induction xs rule: rev_induct, simp)
   apply(case_tac "length xs = 1", simp)
-   apply (metis append_self_conv2 length_0_conv length_Suc_conv)
+   apply(metis append_self_conv2 length_0_conv length_Suc_conv)
   apply(rule_tac x="butlast xs" in exI, rule_tac x="last xs" in exI, simp)
   done
 
@@ -125,18 +125,31 @@ lemma list_nth_split:
       and "n < m"
       and "1 < length cs"
     shows "\<exists>xs ys zs. cs = xs@(cs!n)#ys@(cs!m)#zs"
-  using assms
-  apply(induction n arbitrary: cs m)
-   apply(case_tac cs; clarsimp)
-   apply(rule_tac x="[]" in exI, clarsimp)
-   apply(rule list_nth_split_technical, simp, force)
-  apply(case_tac cs; clarsimp)
-  apply(rename_tac a as)
-  apply(erule_tac x="as" in meta_allE, erule_tac x="m-1" in meta_allE)
-  apply(subgoal_tac "m-1 < length as", subgoal_tac "n<m-1", clarsimp)
-    apply(rule_tac x="a#xs" in exI, rule_tac x="ys" in exI, rule_tac x="zs" in exI)        
-    apply force+
-  done
+using assms proof(induction n arbitrary: cs m)
+  case 0 thus ?case
+    apply(case_tac cs; clarsimp)
+    apply(rule_tac x="[]" in exI, clarsimp)
+    apply(rule list_nth_split_technical, simp, force)
+    done
+next
+  case (Suc n)
+  thus ?case
+  proof (cases cs)
+    case Nil
+    then show ?thesis
+      using Suc.prems by auto
+  next
+    case (Cons a as)
+    hence "m-1 < length as" "n < m-1"
+      using Suc by force+
+    then obtain xs ys zs where "as = xs @ as ! n # ys @ as ! (m-1) # zs"
+      using Suc by force
+    thus ?thesis
+      apply(rule_tac x="a#xs" in exI) 
+      using Suc Cons apply force
+      done
+   qed
+qed
 
 lemma list_split_two_elems:
   assumes "distinct cs"
@@ -144,30 +157,32 @@ lemma list_split_two_elems:
       and "y \<in> set cs"
       and "x \<noteq> y"
     shows "\<exists>pre mid suf. cs = pre @ x # mid @ y # suf \<or> cs = pre @ y # mid @ x # suf"
-  using assms
-  apply(subgoal_tac "\<exists>xi. xi < length cs \<and> x = cs ! xi")
-   apply(subgoal_tac "\<exists>yi. yi < length cs \<and> y = cs ! yi")
-    apply clarsimp
-    apply(subgoal_tac "xi \<noteq> yi")
-     apply(case_tac "xi < yi")
-      apply(metis list_nth_split One_nat_def less_Suc_eq linorder_neqE_nat not_less_zero)
-     apply(subgoal_tac "yi < xi")
-      apply(metis list_nth_split One_nat_def less_Suc_eq linorder_neqE_nat not_less_zero)
-      using set_elem_nth linorder_neqE_nat apply fastforce+
-  done
+proof -
+  obtain xi yi where *: "xi < length cs \<and> x = cs ! xi" "yi < length cs \<and> y = cs ! yi" "xi \<noteq> yi"
+    using set_elem_nth linorder_neqE_nat assms by metis
+  thus ?thesis
+    by (metis list_nth_split One_nat_def less_Suc_eq linorder_neqE_nat not_less_zero)
+qed
 
 lemma split_list_unique_prefix:
   assumes "x \<in> set xs"
   shows "\<exists>pre suf. xs = pre @ x # suf \<and> (\<forall>y \<in> set pre. x \<noteq> y)"
-using assms
-  apply(induction xs; clarsimp)
-  apply(rename_tac y ys)
-  apply(case_tac "y = x")
-   apply(rule_tac x="[]" in exI, force)
-  apply(subgoal_tac "x \<in> set xs", clarsimp)
-   apply(rule_tac x="y # pre" in exI)
-   apply force+
-  done
+using assms proof(induction xs)
+  case Nil thus ?case by clarsimp
+next
+  case (Cons y ys)
+  then show ?case
+    proof (cases "y=x")
+      case True
+      then show ?thesis by force
+    next
+      case False
+      then obtain pre suf where "ys = pre @ x # suf \<and> (\<forall>y\<in>set pre. x \<noteq> y)"
+        using assms Cons by auto
+      thus ?thesis
+        using split_list_first by force
+    qed
+qed
 
 lemma map_filter_append:
   shows "List.map_filter P (xs @ ys) = List.map_filter P xs @ List.map_filter P ys"
