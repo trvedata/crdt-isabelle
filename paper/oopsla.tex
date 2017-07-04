@@ -276,7 +276,7 @@ Moreover, these convergence theorems were obtained using only a thin layer of CR
 Since informal reasoning about convergent replication algorithms has been shown to difficult and error-prone, as exemplified by various failed proofs (Section~\ref{sect.related.verification}) and the ``a bit of a mystery'' RGA \cite{Attiya:2016kh}, we believe that this formal verification is particularly important.
 
 Our work has been motivated by the desire to support a wider range of strong eventual consistency algorithms in distributed systems.
-Operational Transformation algorithms based on the $\mathit{TP}_1$ property alone are widely used in systems such as Google Docs, but these algorithms require clients to communicate all changes via a single central server.
+Operational Transformation algorithms based on the $\mathit{TP}_1$ property alone are widely used in systems such as Google Docs (see Section~\ref{sect.related.verification}), but these algorithms require clients to communicate all changes via a single central server.
 On the other hand, state-based CRDTs are used in systems such as Riak.
 Both of these approaches are limiting.
 In the case of Operational Transformation, the requirement for a central server increases the risk of faults, and prevents direct collaboration between devices via local wireless network connections.

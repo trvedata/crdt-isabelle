@@ -100,7 +100,7 @@ We find it interesting that it is nevertheless sufficient for the definition of 
 
 \subsection{Formalising Strong Eventual Consistency}\label{sect.abstract.sec.spec}
 
-Besides convergence, another required property of SEC is \emph{progress}: if a valid operation was issued on one node, then another node that applies the operation must not become stuck in an error state.
+Besides convergence, another required property of SEC is \emph{progress}: if one node issues a valid operation, and another node applies that operation, then it must not become stuck in an error state.
 Although the type signature of the interpretation function allows operations to fail, we need to prove that such a failure never occurs in any $\isa{hb-consistent}$ network behaviour.
 We capture this requirement in the $\isa{strong-eventual-consistency}$ locale:
 \begin{isabelle}

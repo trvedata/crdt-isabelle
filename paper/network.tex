@@ -39,8 +39,8 @@ A node's history is finite, and at the end of a node's history we assume that a 
 We treat node failure as permanent, and model it by the absence of any further events in its history.
 This \emph{crash-stop} abstraction is commonly used by distributed algorithms \cite{Cachin:2011wt}.
 
-In the $\isa{node{\isacharunderscore}histories}$ locale we may write $\isa{x} \sqsubset^\isa{i} \isa{y}$ when event $\isa{x}$ \emph{comes before} event $\isa{y}$ in the history of node $\isa{i}$.
-More formally, $\isa{x} \sqsubset^\isa{i} \isa{y}$ whenever there exist lists $\isa{xs}$, $\isa{ys}$, and $\isa{zs}$ such that $\isa{xs}\mathbin{@}[\isa{x}]\mathbin{@}\isa{ys}\mathbin{@}[\isa{y}]\mathbin{@}\isa{zs} = \isa{history\ i}$.
+In the $\isa{node{\isacharunderscore}histories}$ locale we may write $\isa{x} \sqsubset^\isa{i} \isa{y}$, which means that event $\isa{x}$ \emph{comes before} event $\isa{y}$ in the history of node $\isa{i}$.
+More formally, $\isa{x} \sqsubset^\isa{i} \isa{y}$ if and only if there exist lists $\isa{xs}$, $\isa{ys}$, and $\isa{zs}$ such that $\isa{xs}\mathbin{@}[\isa{x}]\mathbin{@}\isa{ys}\mathbin{@}[\isa{y}]\mathbin{@}\isa{zs} = \isa{history\ i}$.
 
 \subsection{An asynchronous broadcast network}\label{sect.network.broadcast}
 
@@ -136,7 +136,7 @@ As these protocols are widely known and well understood, we elide any further di
 
 We can now include the convergence theorem into our network model by further extending the $\isa{causal-network}$ locale.
 In the new locale $\isa{network-with-ops}$ we do not assume any additional axioms; we only specialise the type variable of messages $\isacharprime\isa{msg}$ to be a pair of $\isacharprime\isa{msgid} \mathbin{\isasymtimes} \isacharprime\isa{oper}$, and we instantiate the $\isa{msg-id}$ function fixed by the $\isa{network}$ locale to be $\isa{fst}$, i.e., to return the first component $\isacharprime\isa{msgid}$ of the pair.
-We also assume the existence of an interpretation function (see Section~\ref{sect.ops.interpretation}) and some fixed initial node state:
+We also assume the existence of an interpretation function (see Section~\ref{sect.ops.interpretation}) and a fixed initial node state:
 \begin{isabelle}
 ~~~~\isakeyword{fixes}\ \=history\ \=\kill
 \isacommand{locale}\ network{\isacharunderscore}with{\isacharunderscore}ops\ {\isacharequal}\ causal{\isacharunderscore}network\ history\ fst\\

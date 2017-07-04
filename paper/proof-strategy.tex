@@ -22,7 +22,7 @@ By keeping the general-purpose modules abstract and implementation-independent, 
 We describe our formalisation of strong eventual consistency in Section~\ref{sect.abstract.convergence}.
 In particular, we define what we mean by convergence, and prove an \emph{abstract convergence theorem}, which shows that the state of nodes converges if concurrent operations commute.
 We are able to prove this fact without mentioning networks or any particular CRDT, but merely by reasoning about the ordering and properties of operations.
-This definition constitutes an abstract specification of what we mean by strong eventual consistency.
+This definition constitutes a formal specification of what we mean by strong eventual consistency.
 
 In Section~\ref{sect.network} we describe an axiomatic model of asynchronous networks.
 The definition of the network is important because it allows us to prove that the desired properties hold in \emph{all} possible network behaviours, and that we are not making any dangerous assumptions that might be violated---an aspect that has dogged previous verification efforts for related algorithms (see Section~\ref{sect.related.verification}).
