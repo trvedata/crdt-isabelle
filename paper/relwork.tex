@@ -27,11 +27,19 @@ OT algorithms for text documents include dOPT \cite{Ellis:1989ue}, Jupiter \cite
 The approach has also been generalised to other data structures such as XML trees \cite{Ignat:2003jy,Davis:2002iv,Jungnickel:2015ua} and vector graphics documents \cite{Sun:2002jb}.
 
 Many OT algorithms assume that operations are sequenced through a central server and delivered to all clients in the same order.
-This design was originally pioneered by the Jupiter system \cite{Nichols:1995fd} and is now used by all widely-deployed OT-based collaboration systems, including Google Docs \cite{DayRichter:2010tt}, Microsoft Word Online, Etherpad \cite{Etherpad:2011um}, Apache (formerly Google) Wave \cite{Wang:2015vo}, and Novell Vibe \cite{Spiewak:2010vw}.
-With a central server, each client only needs to reorder its operations with respect to the server's operation sequence, which simplifies the algorithm.
+This design was originally pioneered by the Jupiter system \cite{Nichols:1995fd} and is now used by all widely-deployed OT-based collaboration systems, including Google Docs \cite{DayRichter:2010tt}, Microsoft Word Online, Etherpad \cite{Etherpad:2011um}, Google Wave/Apache Wave \cite{Wang:2015vo}, and Novell Vibe \cite{Spiewak:2010vw}.
 
-However, as discussed in the introduction, we are interested in replication algorithms for decentralised systems.
-In Section~\ref{sect.related.verification} we show that, although OT algorithms have been successful in conjunction with a central server, they have had a poor track record in decentralised settings.
+OT algorithms track the version of the document in which each operation applies, and if an operation needs to be applied to a later document version (because another, concurrent operation has already been applied), the operation must be transformed.
+\citet{Ressel:1996wx} introduced two properties that the OT transformation function must satisfy, which are known as $\mathit{TP}_1$ and $\mathit{TP}_2$.
+
+Given two concurrent operations $x$ and $y$ that modify the same initial state, $\mathit{TP}_1$ requires that $y$ can be transformed into an operation $y'$ that performs an equivalent modification on a state where $x$ has already been applied, and vice versa, such that $x \circ y' = y \circ x'$.
+Systems that sequence operations through a central server need only satisfy $\mathit{TP}_1$ because each client only needs to reorder its operations with respect to the server's operation sequence.
+
+However, as discussed in the introduction, we are interested in replication algorithms for decentralised systems without any central server.
+If there are three concurrent operations $x$, $y$, and $z$ that modify the same initial state, and those operations can be applied in any order, $\mathit{TP}_1$ does not suffice, and the $\mathit{TP}_2$ property must also be satisfied.
+$\mathit{TP}_2$ requires that if transformations of $x$ and $y$ are applied in either order, the same transformation of $z$ can be applied to the result: $x \circ y' \circ z' = y \circ x' \circ z'$.
+Since transformed operations may be different from original operations, this property demands much more than just commutativity, making it difficult to implement correctly.
+We show in Section~\ref{sect.related.verification} how almost all OT algorithms have failed to satisfy $\mathit{TP}_2$.
 
 Instead, \emph{conflict-free replicated data types} (CRDTs) have been developed to achieve SEC in decentralised systems.
 As we have noted, CRDTs make operations commutative by design by attaching additional metadata to the data structure.
@@ -47,10 +55,8 @@ Cloud types \cite{Burckhardt:2012jy} have similarities to CRDTs, using a relatio
 \subsection{Formal verification}\label{sect.related.verification}
 
 The history of algorithms for achieving convergence in a distributed setting has been fraught with difficulty.
-Informal reasoning has repeatedly produced approaches that fail to converge in certain scenarios, and even several formal ``proofs'' later turned out to be false.
-
-For OT, the properties that the transformation function must satisfy were first formalised by \citet{Ressel:1996wx}.
-These properties are known as $\mathit{TP}_1$ and $\mathit{TP}_2$; systems that sequence operations through a central server need only satisfy $\mathit{TP}_1$, whereas decentralised systems must satisfy both properties in order to ensure convergence.
+Informal reasoning has repeatedly produced approaches that fail to converge in certain scenarios, and even several formal ``proofs'' later turned out to be false, as explained below.
+For OT, as described in Section~\ref{sect.related.ot.crdts}, convergence in this setting requires satisfying the $\mathit{TP}_1$ and $\mathit{TP}_2$ properties.
 While $\mathit{TP}_1$ has proved to be readily achievable in practice, and all the aforementioned widely-deployed OT systems rely on it, the $\mathit{TP}_2$ property has been a significant source of problems.
 
 The original peer-reviewed publications of dOPT, adOPTed, IMOR, SOCT2, and SDT all claimed that their transformation functions satisfied $\mathit{TP}_2$, but those claims were subsequently shown to be false by giving counter-examples \cite{Imine:2003ks,Imine:2006kn,Oster:2005vi}.

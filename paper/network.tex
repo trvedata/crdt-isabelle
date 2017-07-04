@@ -51,10 +51,15 @@ Each event contains a message of some abstract type $\isacharprime\isa{msg}$:
 \begin{isabelle}
 \isacommand{datatype} {\isacharprime}msg\ event\ {\isacharequal}\ Broadcast\ {\isacharprime}msg\ {\isacharbar}\ Deliver\ {\isacharprime}msg
 \end{isabelle}
+
 Intuitively, a node can be regarded as a deterministic state machine where each state transition corresponds to a broadcast or deliver event.
 We assume that users may query the state of any node at any time, and such queries need not be reflected as events, since they neither modify the node state nor send or receive any messages.
 
-We then define a new locale $\isa{network}$ containing three axioms that define how broadcast and deliver events may interact, with these axioms defining the properties of our network model.
+A broadcast abstraction is the standard network model for operation-based CRDTs because it best fits the replication pattern: any node can accept writes, and propagate them to the other nodes through broadcast.
+In practical systems, broadcast abstractions are often implemented as overlay networks on top of unicast TCP links, for example as a fully connected graph (each node is connected to every other node), using a spanning tree protocol, a gossip protocol, or some other network topology.
+Such protocols have already been studied extensively, for example by \citet{Leitao:2007gq}, so we leave the implementation of the overlay network out of the scope of this paper.
+
+To formally specify the properties of a broadcast network, we define a new locale $\isa{network}$ containing three axioms that define how broadcast and deliver events may interact.
 Since $\isa{network}$ is an extension of $\isa{node-histories}$, the aforementioned definitions of $\isa{history}$ and $\sqsubset^\isa{i}$ are available for use in the $\isa{network}$ axioms:
 \begin{isabelle}
 ~~~~~~~~\isakeyword{and}\ \=msg{\isacharunderscore}id{\isacharunderscore}unique{\isacharcolon}\ \={\isasymrbrakk}\ \={\isachardoublequoteopen}Broadcast\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ \=\kill
@@ -170,6 +175,9 @@ As a general-purpose means of describing such requirements, the locale $\isa{net
 $\isa{broadcast-only-valid-msgs}$ is our final axiom, and it simply requires that if a node broadcasts some message, it must be valid according to the $\isa{valid-msg}$ predicate.
 Since the choice of messages to broadcast is under the control of the replication algorithm, and the algorithm defines this predicate, this assumption is reasonable.
 
-Note that the axioms of $\isa{network}{\isacharunderscore}\isa{with}{\isacharunderscore}\isa{constrained}{\isacharunderscore}\isa{ops}$, and by extension the axioms of all locales that it extends, are consistent in the sense that that we are unable to prove $\isa{False}$ by assuming the axioms.
-This is demonstrated by building a trivial model of $\isa{network}{\isacharunderscore}\isa{with}{\isacharunderscore}\isa{constrained}{\isacharunderscore}\isa{ops}$, and all superlocales, within Isabelle and showing that it satisfies all of the locale's axioms.
+Although these six axioms are simple and uncontroversial, we believe that the set of axioms could be reduced further by defining some of the aforementioned algorithms (such as vector timestamps for causal delivery, or sequence numbers for message uniqueness) within Isabelle, and proving that the algorithms guarantee the required properties within some weaker network model.
+However, doing so would lead us too far astray from the goal of proving the strong eventual consistency of CRDTs, so we leave it for future work.
+
+The axioms of $\isa{network}{\isacharunderscore}\isa{with}{\isacharunderscore}\isa{constrained}{\isacharunderscore}\isa{ops}$ and its superlocales are consistent (in the sense that that we are unable to prove $\isa{False}$ by assuming the axioms).
+We demonstrate this fact by building a trivial model of $\isa{network}{\isacharunderscore}\isa{with}{\isacharunderscore}\isa{constrained}{\isacharunderscore}\isa{ops}$ within Isabelle and showing that it satisfies all of the locale's axioms.
 We elide these models here.

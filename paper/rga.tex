@@ -78,7 +78,7 @@ It is straightforward to demonstrate that $\isa{delete}$ always commutes with it
 ~~~~{\isachardoublequoteopen}delete\ xs\ i{\isadigit{1}}\ {\isasymbind}\ {\isacharparenleft}{\isasymlambda}ys{\isachardot}\ delete\ ys\ i{\isadigit{2}}{\isacharparenright}\ {\isacharequal}\ delete\ xs\ i{\isadigit{2}}\ {\isasymbind}\ {\isacharparenleft}{\isasymlambda}ys{\isachardot}\ delete\ ys\ i{\isadigit{1}}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabelle}
 
-Is a little more complex to demonstrate that two $\isa{insert}$ operations commute.
+It is a little more complex to demonstrate that two $\isa{insert}$ operations commute.
 Let $\isa{e1}$ and $\isa{e2}$ be the two new list elements being inserted, each of which is a $\isacharprime\isa{id} \mathbin{\isasymtimes} \isacharprime\isa{v} \mathbin{\isasymtimes} \isa{bool}$ triple.
 Further, let $\isa{i1} \mathbin{\isacharcolon\isacharcolon} \isacharprime\isa{id option}$ be the position after which $\isa{e1}$ should be inserted (either $\isa{None}$ for the head of the list, or $\isa{Some i}$ where $\isa{i}$ is the ID of an existing list element), and similarly let $\isa{i2}$ be the position after which $\isa{e2}$ should be inserted.
 Then the two insertions commute only under certain assumptions:

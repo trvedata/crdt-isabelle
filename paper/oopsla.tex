@@ -198,7 +198,7 @@ Large-scale deployments of SEC algorithms include datacentre-based applications 
 
 Unlike strong consistency models, it is possible to implement SEC in decentralised settings without any central server or leader, and it allows local execution at each node to proceed without waiting for communication with other nodes.
 However, algorithms for achieving decentralised SEC are currently poorly understood: several such algorithms, published in peer-reviewed venues, were subsequently shown to violate their supposed guarantees \cite{Imine:2003ks,Imine:2006kn,Oster:2005vi}.
-As we show in Section~\ref{sect.relatedwork}, informal reasoning has repeatedly produced plausible-looking but incorrect algorithms, and there have even been examples of mechanised formal proofs of SEC algorithm correctness later being shown to be flawed.
+As we show in Section~\ref{sect.relatedwork}, informal reasoning has repeatedly produced plausible-looking but incorrect algorithms, and there have even been examples of mechanised formal proofs of SEC algorithm correctness later being shown to be flawed \cite{Oster:2005vi}.
 These mechanised proofs failed because, in formalising the algorithm, they made false assumptions about the execution environment.
 
 In this work we use the Isabelle/HOL proof assistant~\cite{DBLP:conf/tphol/WenzelPN08} to create a framework for reliably reasoning about the correctness of a particular class of decentralised replication algorithms.
@@ -258,7 +258,9 @@ Additional shared code consists of around 170 lines of source.
 Definitions and proofs of correctness for our three CRDT implementations are pleasingly short: all three are shown to be convergent in fewer than 800 lines of source, using the proof strategy described above. 
 
 Lastly, all three of our CRDT implementations are ``executable'' in the sense that we can use Isabelle's code extraction mechanism to obtain OCaml (or Scala, SML, and Haskell) implementations from our definitions.
-We have used an extraction of one of our CRDTs---the counter---sitting above a simple network of $n$ nodes, communicating over TCP links between machines, to show that our implementations are usable in practice.
+We have run an extraction of one of our CRDTs---the counter---on a simple network of $n$ nodes, communicating over TCP links between machines.
+The purpose of this extraction is to demonstrate that we have not used any uncomputable functions in our Isabelle definitions.
+We leave a detailed empirical evaluation of the algorithms, such as tests of their performance and fault tolerance, for future work.
 
 \section{Conclusion}
 \label{sect.conclusion}
