@@ -20,8 +20,10 @@ Terms of list type are introduced using one of two constructors: the empty list 
 We use $[t_1, \ldots, t_n]$ as syntactic sugar for a list literal, and $\isa{xs} \mathbin{\isacharat} \isa{ys}$ to express the concatenation (appending) of two lists $\isa{xs}$ and $\isa{ys}$.
 We write $\{\,\}$ for the empty set, and use usual mathematical notation for set union, disjunction, membership tests, and so on: $\isa{t} \cup \isa{u}$, $\isa{t} \cap \isa{u}$, and $\isa{x} \in \isa{t}$.
 We write $t \longrightarrow s$ for logical implication between formulae (terms of type $\isa{bool}$).
-An alternative implication arrow $\isa{t} \Longrightarrow \isa{u}$ is used by Isabelle in certain contexts; it is subtly different from standard implication $\isa{t} \longrightarrow \isa{u}$, but for purposes of an intuitive understanding, the two forms of implication can be regarded as equivalent.
-We use the shorthand ${\isasymlbrakk}\isa{H}_1{\isacharsemicolon}\ \ldots{\isacharsemicolon}\ \isa{H}_n{\isasymrbrakk}\ {\isasymLongrightarrow}\ C$ instead of iterated implications, i.e., $H_1\ {\isasymLongrightarrow}\ \ldots\ {\isasymLongrightarrow}\ H_n\ {\isasymLongrightarrow}\ C$.
+Strictly speaking Isabelle is a logical framework, providing a weak meta-logic within which object logics are embedded, including the Isabelle/HOL object logic that we use in this work.
+Accordingly, the implication arrow of Isabelle's meta-logic, $\isa{t} \Longrightarrow \isa{u}$, is required in certain contexts over the object-logic implication arrow, $t \longrightarrow s$, already introduced.
+However, for purposes of an intuitive understanding, the two forms of implication can be regarded as equivalent by the reader, with the requirement to use one over the other merely being an implementation detail of Isabelle itself.
+We will sometimes use the shorthand ${\isasymlbrakk}\isa{H}_1{\isacharsemicolon}\ \ldots{\isacharsemicolon}\ \isa{H}_n{\isasymrbrakk}\ {\isasymLongrightarrow}\ C$ instead of iterated meta-logic implications, i.e., $H_1\ {\isasymLongrightarrow}\ \ldots\ {\isasymLongrightarrow}\ H_n\ {\isasymLongrightarrow}\ C$.
 
 \paragraph{Definitions and theorems.}
 
