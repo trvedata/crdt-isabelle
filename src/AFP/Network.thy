@@ -43,27 +43,27 @@ lemma (in node_histories) node_total_order_trans:
       and "e2 \<sqsubset>\<^sup>i e3"
     shows "e1 \<sqsubset>\<^sup>i e3"
 proof - 
-  obtain xs1 xs2 ys1 ys2 zs1 zs2 where *: "xs1 @ e1 # ys1 @ e2 # zs1 = history i" "xs2 @ e2 # ys2 @ e3 # zs2 = history i"
+  obtain xs1 xs2 ys1 ys2 zs1 zs2 where *: "xs1 @ e1 # ys1 @ e2 # zs1 = history i"
+      "xs2 @ e2 # ys2 @ e3 # zs2 = history i"
     using history_order_def assms by auto
   hence "xs1 @ e1 # ys1 = xs2 \<and> zs1 = ys2 @ e3 # zs2"
     by(rule_tac xs="history i" and ys="[e2]" in pre_suf_eq_distinct_list) auto
   thus ?thesis
-    apply(clarsimp simp: history_order_def)
-    apply(rule_tac x=xs1 in exI, rule_tac x="ys1 @ e2 # ys2" in exI, rule_tac x=zs2 in exI)
-    using * apply clarsimp
-    done
+    by(clarsimp simp: history_order_def) (metis "*"(2) append.assoc append_Cons)
 qed
 
 lemma (in node_histories) local_order_carrier_closed:
   assumes "e1 \<sqsubset>\<^sup>i e2"
     shows "{e1,e2} \<subseteq> set (history i)"
-using assms by (clarsimp simp add: history_order_def)
-  (metis in_set_conv_decomp Un_iff Un_subset_iff insert_subset list.simps(15) set_append set_subset_Cons)+
+  using assms by (clarsimp simp add: history_order_def)
+    (metis in_set_conv_decomp Un_iff Un_subset_iff insert_subset list.simps(15)
+        set_append set_subset_Cons)+
 
 lemma (in node_histories) node_total_order_irrefl:
   shows "\<not> (e \<sqsubset>\<^sup>i e)"
-by(clarsimp simp add: history_order_def)
-  (metis Un_iff histories_distinct distinct_append distinct_set_notin list.set_intros(1) set_append)
+  by(clarsimp simp add: history_order_def)
+    (metis Un_iff histories_distinct distinct_append distinct_set_notin
+        list.set_intros(1) set_append)
 
 lemma (in node_histories) node_total_order_antisym:
   assumes "e1 \<sqsubset>\<^sup>i e2"
