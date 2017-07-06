@@ -137,7 +137,6 @@ proof(induction es arbitrary: xs rule: rev_induct, clarsimp)
     qed    
   qed
 qed
-  
 
 lemma (in rga) insert_in_apply_set:
   assumes "es @ [Deliver (i, Insert e (Some a))] prefix of j"
@@ -149,15 +148,12 @@ using assms apply_opers_idx_elems idx_in_elem_inserted prefix_of_appendD by blas
 lemma (in rga) insert_msg_id:
   assumes "Broadcast (i, Insert e n) \<in> set (history j)"
   shows "fst e = i"
-  apply(subgoal_tac "\<exists>state. valid_rga_msg state (i, Insert e n)")
-  defer
-  using assms broadcast_is_valid apply blast
-  apply(erule exE)
-  apply(unfold valid_rga_msg_def)
-  apply(clarsimp)
-  apply(case_tac n)
-  apply(simp, simp)
-done
+proof -
+  obtain state where 1: "valid_rga_msg state (i, Insert e n)"
+    using assms broadcast_is_valid by blast
+  thus "fst e = i"
+    by(clarsimp simp add: valid_rga_msg_def split: option.split_asm)
+qed
 
 lemma (in rga) allowed_insert:
   assumes "Broadcast (i, Insert e n) \<in> set (history j)"
