@@ -213,19 +213,26 @@ by(metis (no_types, lifting) Un_insert_right insert_iff list.simps(15) assms
 lemma (in rga) allowed_insert_deliver:
   assumes "Deliver (i, Insert e n) \<in> set (history j)"
   shows   "n = None \<or> (\<exists>i' n' n'' v b. n = Some n' \<and> Deliver (i', Insert (n', v, b) n'') \<sqsubset>\<^sup>j Deliver (i, Insert e n))"
-using assms
-  apply -
-  apply(frule delivery_has_a_cause)
-  apply(erule exE)
-  apply(cases n; clarsimp)
-  apply(frule allowed_insert)
-  apply clarsimp
-  apply(frule local_order_carrier_closed)
-  apply clarsimp
-  apply(frule delivery_has_a_cause, clarsimp)
-  apply(drule causal_broadcast[rotated, where j=j])
-  apply auto
-done
+proof -
+  obtain ja where 1: "Broadcast (i, Insert e n) \<in> set (history ja)"
+    using assms delivery_has_a_cause by blast
+  show "n = None \<or> (\<exists>i' n' n'' v b. n = Some n' \<and> Deliver (i', Insert (n', v, b) n'') \<sqsubset>\<^sup>j Deliver (i, Insert e n))"
+  proof(cases n)
+    fix a
+    assume 3: "n = Some a"
+    from this obtain i' e' n' where 4: "Some a = Some (fst e')" and
+        2: "Deliver (i', Insert e' n') \<sqsubset>\<^sup>ja Broadcast (i, Insert e (Some a))"
+      using allowed_insert 1 by blast
+    hence "Deliver (i', Insert e' n') \<in> set (history ja)" and "Broadcast (i, Insert e (Some a)) \<in> set (history ja)"
+      using local_order_carrier_closed by simp+
+    from this obtain jaa where "Broadcast (i, Insert e (Some a)) \<in> set (history jaa)"
+      using delivery_has_a_cause by simp
+    have "\<exists>i' n' n'' v b. n = Some n' \<and> Deliver (i', Insert (n', v, b) n'') \<sqsubset>\<^sup>j Deliver (i, Insert e n)"
+      using 2 3 4 by(metis assms causal_broadcast prod.collapse)
+    thus "n = None \<or> (\<exists>i' n' n'' v b. n = Some n' \<and> Deliver (i', Insert (n', v, b) n'') \<sqsubset>\<^sup>j Deliver (i, Insert e n))"
+      by auto
+  qed simp
+qed
 
 lemma (in rga) allowed_insert_deliver_in_set:
   assumes "(es@[Deliver (i, Insert e m)]) prefix of j"
@@ -244,14 +251,17 @@ lemma (in rga) delete_no_failure:
   assumes "es @ [Deliver (i, Delete n)] prefix of j"
       and "apply_operations es = Some s"
     shows "\<exists>ys. delete s n = Some ys"
-using assms 
-  apply -
-  apply(frule allowed_delete_deliver_in_set)
-  apply clarsimp
-  apply(rule delete_no_failure)
-  apply(drule idx_in_elem_inserted)
-  apply(metis apply_opers_idx_elems element_ids_def prefix_of_appendD prod.sel(1) set_map)
-done
+proof -
+  obtain i' na v b where 1: "Deliver (i', Insert (n, v, b) na) \<in> set es"
+    using assms allowed_delete_deliver_in_set by blast
+  also have "fst (n, v, b) \<in> set (indices es)"
+    using assms idx_in_elem_inserted calculation by blast
+  from this assms and 1 show "\<exists>ys. delete s n = Some ys"
+    apply -
+    apply(rule delete_no_failure)
+    apply(metis apply_opers_idx_elems element_ids_def prefix_of_appendD prod.sel(1) set_map)
+    done
+qed
 
 lemma (in rga) Insert_equal:
   assumes "fst e1 = fst e2"
