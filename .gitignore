@@ -15,3 +15,5 @@ src/output
 _build
 *.native
 src/ocaml/wrapper.js
+/paper/ms.tex
+/paper/arxiv.zip
