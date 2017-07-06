@@ -70,7 +70,7 @@ algorithm for which no counter-example is known, and it circumvents the impossib
 \citet{Randolph:2015gj} by using a different formulation of the transformation
 \cite{Oster:2006tr,Levien:2016wz}.
 
-Formal proofs of the $\mathit{TP}_1$ property have been more successful: \citet{Sinchuk:2016cf} and \citet{Jungnickel:2015ua} verify that their algorithms satisfy $\mathit{TP}_1$ using Coq and Isabelle/HOL respectively.
+Formal proofs of the $\mathit{TP}_1$ property have been more successful: \citet{Sinchuk:2016cf} use Coq to verify that their algorithm satisfies $\mathit{TP}_1$, and \citet{Jungnickel:2015ua} use Isabelle/HOL for the same purpose.
 For CRDTs, the only machine-checked verification of which we are aware is an Isabelle formalisation of state-based sets, registers, and counters by \citet{Zeller:2014fl}; this work does not consider any list datatypes or any operation-based CRDTs.
 
 The convergence of the RGA CRDT for ordered lists, which we study in this paper, has previously been
