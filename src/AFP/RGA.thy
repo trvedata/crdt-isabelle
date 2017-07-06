@@ -270,26 +270,29 @@ lemma (in rga) same_insert:
       and "(i1, Insert e1 n1) \<in> set (node_deliver_messages xs)"
       and "(i2, Insert e2 n2) \<in> set (node_deliver_messages xs)"
     shows "Insert e1 n1 = Insert e2 n2"
-using assms
-  apply -
-  apply(subgoal_tac "Deliver (i1, Insert e1 n1) \<in> set (history i)")
-  apply(subgoal_tac "Deliver (i2, Insert e2 n2) \<in> set (history i)")
-  apply(subgoal_tac "\<exists>j. Broadcast (i1, Insert e1 n1) \<in> set (history j)")
-  apply(subgoal_tac "\<exists>j. Broadcast (i2, Insert e2 n2) \<in> set (history j)")
-  apply(erule exE)+
-  apply(rule Insert_equal, force, force, force) 
-  apply(simp add: delivery_has_a_cause)
-  apply(simp add: delivery_has_a_cause)
-  apply(auto simp add: node_deliver_messages_def prefix_msg_in_history)
-done
-
+proof -
+  have "Deliver (i1, Insert e1 n1) \<in> set (history i)"
+    using assms by(auto simp add: node_deliver_messages_def prefix_msg_in_history)
+  from this obtain j where 1: "Broadcast (i1, Insert e1 n1) \<in> set (history j)"
+    using delivery_has_a_cause by blast
+  have "Deliver (i2, Insert e2 n2) \<in> set (history i)"
+    using assms by(auto simp add: node_deliver_messages_def prefix_msg_in_history)
+  from this obtain k where 2: "Broadcast (i2, Insert e2 n2) \<in> set (history k)"
+    using delivery_has_a_cause by blast
+  show "Insert e1 n1 = Insert e2 n2"
+    apply(rule Insert_equal)
+      apply(simp add: assms)
+     apply(rule 1, rule 2)
+    done
+qed
+  
 lemma (in rga) insert_commute_assms:
   assumes "{Deliver (i, Insert e n), Deliver (i', Insert e' n')} \<subseteq> set (history j)"
       and "hb.concurrent (i, Insert e n) (i', Insert e' n')"
     shows "n = None \<or> n \<noteq> Some (fst e')"
 using assms
   apply(clarsimp simp: hb.concurrent_def)
-  apply(case_tac e')
+  apply(cases e')
   apply clarsimp
   apply(frule delivery_has_a_cause)
   apply(frule delivery_has_a_cause, clarsimp)
@@ -308,12 +311,13 @@ lemma (in rga) Insert_Insert_concurrent:
   assumes "{Deliver (i, Insert e k), Deliver (i', Insert e' (Some m))} \<subseteq> set (history j)"
       and "hb.concurrent (i, Insert e k) (i', Insert e' (Some m))"
     shows "fst e \<noteq> m"
-by(metis assms subset_reorder hb.concurrent_comm insert_commute_assms option.simps(3))
+  by(metis assms subset_reorder hb.concurrent_comm insert_commute_assms option.simps(3))
 
 lemma (in rga) insert_valid_assms:
  assumes "Deliver (i, Insert e n) \<in> set (history j)"
    shows "n = None \<or> n \<noteq> Some (fst e)"
-using assms by(meson allowed_insert_deliver hb.concurrent_def hb.less_asym insert_subset local_order_carrier_closed rga.insert_commute_assms rga_axioms)
+  using assms by(meson allowed_insert_deliver hb.concurrent_def hb.less_asym insert_subset
+      local_order_carrier_closed rga.insert_commute_assms rga_axioms)
 
 lemma (in rga) Insert_Delete_concurrent:
   assumes "{Deliver (i, Insert e n), Deliver (i', Delete n')} \<subseteq> set (history j)"
@@ -321,12 +325,6 @@ lemma (in rga) Insert_Delete_concurrent:
     shows "n' \<noteq> fst e"
 by (metis assms Insert_equal allowed_delete delivery_has_a_cause fst_conv hb.concurrent_def
   hb.intros(2) insert_subset local_order_carrier_closed rga.insert_msg_id rga_axioms)
-
-lemma (in rga) apply_operations_distinct:
-  assumes "xs prefix of i"
-      and "apply_operations xs = Some ys"
-    shows "distinct (map fst ys)"
-oops
 
 lemma (in rga) concurrent_operations_commute:
   assumes "xs prefix of i"
@@ -391,29 +389,63 @@ by (meson concurrent_operations_commute append.right_neutral prefix_of_node_hist
 lemma (in rga) apply_operations_never_fails:
   assumes "xs prefix of i"
   shows "apply_operations xs \<noteq> None"
-  using assms
-  apply(induction xs rule: rev_induct)
-   apply clarsimp
-  apply(case_tac "x"; clarsimp)
-   apply force
-  apply(case_tac "b"; clarsimp)
-  apply(metis bind.bind_lunit interpret_opers.simps(1) prefix_of_appendD rga.Insert_no_failure
-    rga_axioms interp_msg_def prod.sel(2))
-  apply(metis bind.bind_lunit interpret_opers.simps(2) local.delete_no_failure prefix_of_appendD
-    interp_msg_def prod.sel(2))
-done
+using assms proof(induction xs rule: rev_induct)
+  show "apply_operations [] \<noteq> None"
+    by clarsimp
+next
+  fix x xs
+  assume 1: "xs prefix of i \<Longrightarrow> apply_operations xs \<noteq> None"
+    and 2: "xs @ [x] prefix of i"
+  hence 3: "xs prefix of i"
+    by auto
+  show "apply_operations (xs @ [x]) \<noteq> None"
+  proof(cases x)
+    fix b
+    assume "x = Broadcast b"
+    thus "apply_operations (xs @ [x]) \<noteq> None"
+      using 1 3 by clarsimp
+  next
+    fix d
+    assume 4: "x = Deliver d"
+    thus "apply_operations (xs @ [x]) \<noteq> None"
+    proof(cases d; clarify)
+      fix a b
+      assume 5: "x = Deliver (a, b)"
+      show "\<exists>y. apply_operations (xs @ [Deliver (a, b)]) = Some y"
+      proof(cases b; clarify)
+        fix aa aaa ba x12
+        assume 6: "b = Insert (aa, aaa, ba) x12"
+        show "\<exists>y. apply_operations (xs @ [Deliver (a, Insert (aa, aaa, ba) x12)]) = Some y"
+          apply(clarsimp simp add: 1 interp_msg_def split!: bind_splits)
+           apply(simp add: "1" "3")
+          apply(rule rga.Insert_no_failure, rule rga_axioms)
+          using 4 5 6 2 apply force+
+          done
+      next
+        fix x2
+        assume 6: "b = Delete x2"
+        show "\<exists>y. apply_operations (xs @ [Deliver (a, Delete x2)]) = Some y"
+          apply(clarsimp simp add: interp_msg_def split!: bind_splits)
+           apply(simp add: 1 3)
+          apply(rule delete_no_failure)
+          using 4 5 6 2 apply force+
+          done
+      qed
+    qed
+  qed
+qed
 
 lemma (in rga) apply_operations_never_fails':
   shows "apply_operations (history i) \<noteq> None"
-by (meson apply_operations_never_fails append.right_neutral prefix_of_node_history_def)
+by(meson apply_operations_never_fails append.right_neutral prefix_of_node_history_def)
 
 corollary (in rga) rga_convergence:
   assumes "set (node_deliver_messages xs) = set (node_deliver_messages ys)"
       and "xs prefix of i"
       and "ys prefix of j"
     shows "apply_operations xs = apply_operations ys"
-using assms by(auto simp add: apply_operations_def intro: hb.convergence_ext concurrent_operations_commute
-                node_deliver_messages_distinct hb_consistent_prefix)
+  using assms by(auto simp add: apply_operations_def intro: hb.convergence_ext
+      concurrent_operations_commute node_deliver_messages_distinct hb_consistent_prefix)
 
 subsection\<open>Strong eventual consistency\<close>
               
@@ -421,17 +453,41 @@ context rga begin
 
 sublocale sec: strong_eventual_consistency weak_hb hb interp_msg
   "\<lambda>ops.\<exists>xs i. xs prefix of i \<and> node_deliver_messages xs = ops" "[]"
-  apply(standard; clarsimp)
-      apply(auto simp add: hb_consistent_prefix node_deliver_messages_distinct
-        concurrent_operations_commute apply_operations_def)
-   apply(metis (no_types, lifting) apply_operations_def bind.bind_lunit not_None_eq
-     hb.apply_operations_Snoc kleisli_def apply_operations_never_fails interp_msg_def)
-  using drop_last_message apply blast
-  done
+proof(standard; clarsimp)
+  fix xsa i
+  assume "xsa prefix of i"
+  thus "hb.hb_consistent (node_deliver_messages xsa)"
+    by(auto simp add: hb_consistent_prefix)
+next
+  fix xsa i
+  assume "xsa prefix of i"
+  thus "distinct (node_deliver_messages xsa)"
+    by(auto simp add: node_deliver_messages_distinct)
+next
+  fix xsa i
+  assume "xsa prefix of i"
+  thus "hb.concurrent_ops_commute (node_deliver_messages xsa)"
+    by(auto simp add: concurrent_operations_commute)
+next
+  fix xs a b state xsa x
+  assume "hb.apply_operations xs [] = Some state"
+    and "node_deliver_messages xsa = xs @ [(a, b)]"
+    and "xsa prefix of x"
+  thus "\<exists>y. interp_msg (a, b) state = Some y"
+   by(metis (no_types, lifting) apply_operations_def bind.bind_lunit not_None_eq
+       hb.apply_operations_Snoc kleisli_def apply_operations_never_fails interp_msg_def)
+next
+  fix xs a b xsa x
+  assume "node_deliver_messages xsa = xs @ [(a, b)]"
+    and "xsa prefix of x"
+  thus "\<exists>xsa. Ex (op prefix of xsa) \<and> node_deliver_messages xsa = xs"
+    using drop_last_message by blast
+qed
 
 end
   
 interpretation trivial_rga_implementation: rga "\<lambda>x. []"
-  by (standard, auto simp add: trivial_node_histories.history_order_def trivial_node_histories.prefix_of_node_history_def)
+  by(standard, auto simp add: trivial_node_histories.history_order_def
+      trivial_node_histories.prefix_of_node_history_def)
 
 end
