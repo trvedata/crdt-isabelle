@@ -162,46 +162,40 @@ done
 lemma (in rga) allowed_insert:
   assumes "Broadcast (i, Insert e n) \<in> set (history j)"
   shows "n = None \<or> (\<exists>i' e' n'. n = Some (fst e') \<and> Deliver (i', Insert e' n') \<sqsubset>\<^sup>j Broadcast (i, Insert e n))"
-  apply(subgoal_tac "\<exists>pre. pre @ [Broadcast (i, Insert e n)] prefix of j")
-  defer
-  apply(simp add: assms events_before_exist)
-  apply(erule exE)
-  apply(subgoal_tac "\<exists>state. apply_operations pre = Some state \<and> valid_rga_msg state (i, Insert e n)")
-  defer
-  apply(simp add: broadcast_only_valid_msgs)
-  apply(erule exE, erule conjE)
-  apply(unfold valid_rga_msg_def)
-  apply(case_tac n)
-  apply simp+
-  apply(subgoal_tac "a \<in> element_ids state")
-  defer
-  using apply_opers_idx_elems apply blast
-  apply(subgoal_tac "\<exists>i' v' f' n'. Deliver (i', Insert (a, v', f') n') \<in> set pre")
-  defer
-  using deliver_insert_exists apply blast
-  using events_in_local_order apply blast
-done
-
+proof -
+  obtain pre where 1: "pre @ [Broadcast (i, Insert e n)] prefix of j"
+    using assms events_before_exist by blast
+  from this obtain state where 2: "apply_operations pre = Some state" and 3: "valid_rga_msg state (i, Insert e n)"
+    using broadcast_only_valid_msgs by blast
+  show "n = None \<or> (\<exists>i' e' n'. n = Some (fst e') \<and> Deliver (i', Insert e' n') \<sqsubset>\<^sup>j Broadcast (i, Insert e n))"
+  proof(cases n)
+    fix a
+    assume 4: "n = Some a"
+    hence "a \<in> element_ids state" and 5: "fst e = i"
+      using 3 by(clarsimp simp add: valid_rga_msg_def)+
+    from this have "\<exists>i' v' f' n'. Deliver (i', Insert (a, v', f') n') \<in> set pre"
+      using deliver_insert_exists 2 1 by blast
+    thus "n = None \<or> (\<exists>i' e' n'. n = Some (fst e') \<and> Deliver (i', Insert e' n') \<sqsubset>\<^sup>j Broadcast (i, Insert e n))"
+      using events_in_local_order 1 4 5 by(metis fst_conv)
+  qed simp
+qed
+    
 lemma (in rga) allowed_delete:
   assumes "Broadcast (i, Delete x) \<in> set (history j)"
   shows "\<exists>i' n' v b. Deliver (i', Insert (x, v, b) n') \<sqsubset>\<^sup>j Broadcast (i, Delete x)"
-  apply(subgoal_tac "\<exists>pre. pre @ [Broadcast (i, Delete x)] prefix of j")
-  defer
-  apply(simp add: assms events_before_exist)
-  apply(erule exE)
-  apply(subgoal_tac "\<exists>state. apply_operations pre = Some state \<and> valid_rga_msg state (i, Delete x)")
-  defer
-  apply(simp add: broadcast_only_valid_msgs)
-  apply(erule exE, erule conjE)
-  apply(unfold valid_rga_msg_def)
-  apply(subgoal_tac "x \<in> element_ids state")
-  defer
-  using apply_opers_idx_elems apply simp
-  apply(subgoal_tac "\<exists>i' v' f' n'. Deliver (i', Insert (x, v', f') n') \<in> set pre")
-  defer
-  using deliver_insert_exists apply blast
-  using events_in_local_order apply blast
-done
+proof -
+  obtain pre where 1: "pre @ [Broadcast (i, Delete x)] prefix of j"
+    using assms events_before_exist by blast
+  from this obtain state where 2: "apply_operations pre = Some state"
+      and "valid_rga_msg state (i, Delete x)"
+    using broadcast_only_valid_msgs by blast
+  hence "x \<in> element_ids state"
+    using apply_opers_idx_elems by(simp add: valid_rga_msg_def)
+  hence "\<exists>i' v' f' n'. Deliver (i', Insert (x, v', f') n') \<in> set pre"
+    using deliver_insert_exists 1 2 by blast
+  thus "\<exists>i' n' v b. Deliver (i', Insert (x, v, b) n') \<sqsubset>\<^sup>j Broadcast (i, Delete x)"
+    using events_in_local_order 1 by blast
+qed
 
 lemma (in rga) insert_id_unique:
   assumes "fst e1 = fst e2"
@@ -224,19 +218,26 @@ by(metis (no_types, lifting) Un_insert_right insert_iff list.simps(15) assms
 lemma (in rga) allowed_insert_deliver:
   assumes "Deliver (i, Insert e n) \<in> set (history j)"
   shows   "n = None \<or> (\<exists>i' n' n'' v b. n = Some n' \<and> Deliver (i', Insert (n', v, b) n'') \<sqsubset>\<^sup>j Deliver (i, Insert e n))"
-using assms
-  apply -
-  apply(frule delivery_has_a_cause)
-  apply(erule exE)
-  apply(cases n; clarsimp)
-  apply(frule allowed_insert)
-  apply clarsimp
-  apply(frule local_order_carrier_closed)
-  apply clarsimp
-  apply(frule delivery_has_a_cause, clarsimp)
-  apply(drule causal_broadcast[rotated, where j=j])
-  apply auto
-done
+proof -
+  obtain ja where 1: "Broadcast (i, Insert e n) \<in> set (history ja)"
+    using assms delivery_has_a_cause by blast
+  show "n = None \<or> (\<exists>i' n' n'' v b. n = Some n' \<and> Deliver (i', Insert (n', v, b) n'') \<sqsubset>\<^sup>j Deliver (i, Insert e n))"
+  proof(cases n)
+    fix a
+    assume 3: "n = Some a"
+    from this obtain i' e' n' where 4: "Some a = Some (fst e')" and
+        2: "Deliver (i', Insert e' n') \<sqsubset>\<^sup>ja Broadcast (i, Insert e (Some a))"
+      using allowed_insert 1 by blast
+    hence "Deliver (i', Insert e' n') \<in> set (history ja)" and "Broadcast (i, Insert e (Some a)) \<in> set (history ja)"
+      using local_order_carrier_closed by simp+
+    from this obtain jaa where "Broadcast (i, Insert e (Some a)) \<in> set (history jaa)"
+      using delivery_has_a_cause by simp
+    have "\<exists>i' n' n'' v b. n = Some n' \<and> Deliver (i', Insert (n', v, b) n'') \<sqsubset>\<^sup>j Deliver (i, Insert e n)"
+      using 2 3 4 by(metis assms causal_broadcast prod.collapse)
+    thus "n = None \<or> (\<exists>i' n' n'' v b. n = Some n' \<and> Deliver (i', Insert (n', v, b) n'') \<sqsubset>\<^sup>j Deliver (i, Insert e n))"
+      by auto
+  qed simp
+qed
 
 lemma (in rga) allowed_insert_deliver_in_set:
   assumes "(es@[Deliver (i, Insert e m)]) prefix of j"
@@ -255,25 +256,24 @@ lemma (in rga) delete_no_failure:
   assumes "es @ [Deliver (i, Delete n)] prefix of j"
       and "apply_operations es = Some s"
     shows "\<exists>ys. delete s n = Some ys"
-using assms 
-  apply -
-  apply(frule allowed_delete_deliver_in_set)
-  apply clarsimp
-  apply(rule delete_no_failure)
-  apply(drule idx_in_elem_inserted)
-  apply(metis apply_opers_idx_elems element_ids_def prefix_of_appendD prod.sel(1) set_map)
-done
+proof -
+  obtain i' na v b where 1: "Deliver (i', Insert (n, v, b) na) \<in> set es"
+    using assms allowed_delete_deliver_in_set by blast
+  also have "fst (n, v, b) \<in> set (indices es)"
+    using assms idx_in_elem_inserted calculation by blast
+  from this assms and 1 show "\<exists>ys. delete s n = Some ys"
+    apply -
+    apply(rule delete_no_failure)
+    apply(metis apply_opers_idx_elems element_ids_def prefix_of_appendD prod.sel(1) set_map)
+    done
+qed
 
 lemma (in rga) Insert_equal:
   assumes "fst e1 = fst e2"
       and "Broadcast (i1, Insert e1 n1) \<in> set (history i)"
       and "Broadcast (i2, Insert e2 n2) \<in> set (history j)"
     shows "Insert e1 n1 = Insert e2 n2"
-using assms
-  apply(subgoal_tac "e1 = e2")
-  apply(metis insert_id_unique)
-  apply(cases e1, cases e2; clarsimp)
-  using insert_id_unique by force
+using insert_id_unique assms by simp
 
 lemma (in rga) same_insert:
   assumes "fst e1 = fst e2"
@@ -291,10 +291,7 @@ proof -
   from this obtain k where 2: "Broadcast (i2, Insert e2 n2) \<in> set (history k)"
     using delivery_has_a_cause by blast
   show "Insert e1 n1 = Insert e2 n2"
-    apply(rule Insert_equal)
-      apply(simp add: assms)
-     apply(rule 1, rule 2)
-    done
+    by(rule Insert_equal; force simp add: assms intro: 1 2)
 qed
   
 lemma (in rga) insert_commute_assms:
