@@ -169,28 +169,23 @@ lemma (in rga) allowed_insert:
   defer
   using deliver_insert_exists apply blast
   using events_in_local_order apply blast
-done
-
+  done
+    
 lemma (in rga) allowed_delete:
   assumes "Broadcast (i, Delete x) \<in> set (history j)"
   shows "\<exists>i' n' v b. Deliver (i', Insert (x, v, b) n') \<sqsubset>\<^sup>j Broadcast (i, Delete x)"
-  apply(subgoal_tac "\<exists>pre. pre @ [Broadcast (i, Delete x)] prefix of j")
-  defer
-  apply(simp add: assms events_before_exist)
-  apply(erule exE)
-  apply(subgoal_tac "\<exists>state. apply_operations pre = Some state \<and> valid_rga_msg state (i, Delete x)")
-  defer
-  apply(simp add: broadcast_only_valid_msgs)
-  apply(erule exE, erule conjE)
-  apply(unfold valid_rga_msg_def)
-  apply(subgoal_tac "x \<in> element_ids state")
-  defer
-  using apply_opers_idx_elems apply simp
-  apply(subgoal_tac "\<exists>i' v' f' n'. Deliver (i', Insert (x, v', f') n') \<in> set pre")
-  defer
-  using deliver_insert_exists apply blast
-  using events_in_local_order apply blast
-done
+proof -
+  obtain pre where 1: "pre @ [Broadcast (i, Delete x)] prefix of j"
+    using assms events_before_exist by blast
+  from this obtain state where 2: "apply_operations pre = Some state" and "valid_rga_msg state (i, Delete x)"
+    using broadcast_only_valid_msgs by blast
+  hence "x \<in> element_ids state"
+    using apply_opers_idx_elems by(simp add: valid_rga_msg_def)
+  hence "\<exists>i' v' f' n'. Deliver (i', Insert (x, v', f') n') \<in> set pre"
+    using deliver_insert_exists 1 2 by blast
+  thus "\<exists>i' n' v b. Deliver (i', Insert (x, v, b) n') \<sqsubset>\<^sup>j Broadcast (i, Delete x)"
+    using events_in_local_order 1 by blast
+qed
 
 lemma (in rga) insert_id_unique:
   assumes "fst e1 = fst e2"
