@@ -333,6 +333,77 @@ by (metis assms Insert_equal allowed_delete delivery_has_a_cause fst_conv hb.con
 lemma (in rga) concurrent_operations_commute:
   assumes "xs prefix of i"
   shows "hb.concurrent_ops_commute (node_deliver_messages xs)"
+proof -
+  have "\<And>x y. {x, y} \<subseteq> set (node_deliver_messages xs) \<Longrightarrow> hb.concurrent x y \<Longrightarrow> interp_msg x \<rhd> interp_msg y = interp_msg y \<rhd> interp_msg x"
+  proof
+    fix x y i
+    assume "{x, y} \<subseteq> set (node_deliver_messages xs)"
+      and C: "hb.concurrent x y"
+    hence X: "x \<in> set (node_deliver_messages xs)" and Y: "y \<in> set (node_deliver_messages xs)"
+      by auto
+    obtain x1 x2 y1 y2 where 1: "x = (x1, x2)" and 2: "y = (y1, y2)"
+      by fastforce
+    have "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) i = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) i"
+    proof(cases x2; cases y2)
+      fix ix1 ix2 iy1 iy2
+      assume X2: "x2 = Insert ix1 ix2" and Y2: "y2 = Insert iy1 iy2"
+      show "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) i = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) i"
+      proof(cases "fst ix1 = fst iy1")
+        assume "fst ix1 = fst iy1"
+        hence "Insert ix1 ix2 = Insert iy1 iy2"
+          apply(rule same_insert)
+            apply(rule assms)
+          using 1 2 X Y X2 Y2 apply auto
+          done
+        hence "ix1 = iy1" and "ix2 = iy2"
+          by auto
+        from this and X2 Y2 show "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) i = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) i"
+          by(clarsimp simp add: kleisli_def interp_msg_def)
+      next
+        assume NEQ: "fst ix1 \<noteq> fst iy1"
+        have "ix2 = None \<or> ix2 \<noteq> Some (fst iy1)"
+          apply(rule insert_commute_assms)
+          using prefix_msg_in_history[OF assms] X Y X2 Y2 1 2
+           apply(clarsimp, blast)
+          using C 1 2 X2 Y2 apply blast
+          done
+        also have "iy2 = None \<or> iy2 \<noteq> Some (fst ix1)"
+          apply(rule insert_commute_assms)
+          using prefix_msg_in_history[OF assms] X Y X2 Y2 1 2
+           apply(clarsimp, blast)
+          using "1" "2" C X2 Y2 apply blast
+          done
+        ultimately have "insert i ix1 ix2 \<bind> (\<lambda>x. insert x iy1 iy2) = insert i iy1 iy2 \<bind> (\<lambda>x. insert x ix1 ix2)"
+          using NEQ insert_commutes by blast
+        thus "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) i = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) i"
+          by(clarsimp simp add: interp_msg_def X2 Y2 kleisli_def)
+      qed
+    next
+      fix ix1 ix2 yd
+      assume "x2 = Insert ix1 ix2" and "y2 = Delete yd"
+      show "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) i = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) i"
+        sorry
+    next
+      fix xd iy1 iy2
+      assume "x2 = Delete xd" and "y2 = Insert iy1 iy2"
+      show "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) i = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) i"
+        sorry
+    next
+      fix xd yd
+      assume "x2 = Delete xd" and "y2 = Delete yd"
+      show "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) i = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) i"
+        sorry
+    qed   
+    thus "(interp_msg x \<rhd> interp_msg y) i = (interp_msg y \<rhd> interp_msg x) i"
+      using 1 2 by auto
+  qed
+  thus "hb.concurrent_ops_commute (node_deliver_messages xs)"
+    by(auto simp add: hb.concurrent_ops_commute_def)
+qed
+(*
+lemma (in rga) concurrent_operations_commute:
+  assumes "xs prefix of i"
+  shows "hb.concurrent_ops_commute (node_deliver_messages xs)"
 using assms
   apply(clarsimp simp: hb.concurrent_ops_commute_def)
   apply(rule ext)
@@ -385,6 +456,7 @@ using assms
   apply(rule delete_commutes)
   using same_insert apply force
 done
+*)
 
 corollary (in rga) concurrent_operations_commute':
   shows "hb.concurrent_ops_commute (node_deliver_messages (history i))"
