@@ -70,19 +70,18 @@ lemma (in rga) apply_opers_idx_elems:
       and "apply_operations es = Some xs"
     shows "element_ids xs = set (indices es)"
 using assms unfolding element_ids_def
-  apply(induction es arbitrary: xs rule: rev_induct; clarsimp)
-  apply(case_tac x; clarsimp)
-  apply blast
-  apply(case_tac "b"; clarsimp)
-  apply(auto split: bind_splits simp add: interp_msg_def)
-  apply(metis (no_types, hide_lams) Un_insert_right image_eqI insert_iff insert_preserve_indices
-        option.sel prefix_of_appendD prod.sel(1) sup_bot.comm_neutral)
-  apply(metis Un_insert_right fst_conv insert_iff insert_preserve_indices option.sel)
-  apply(metis (no_types, hide_lams) Un_insert_right insert_iff insert_preserve_indices' option.sel
-        prefix_of_appendD sup_bot.comm_neutral)
-  apply(metis delete_preserve_indices fst_conv image_eqI prefix_of_appendD)
-  using delete_preserve_indices apply blast
-done
+proof(induction es arbitrary: xs rule: rev_induct, clarsimp)
+  case (snoc x xs) thus ?case
+  proof (cases x, clarsimp, blast)
+    case (Deliver e)
+    moreover obtain a b where "e = (a, b)" by force
+    ultimately show ?thesis
+      using snoc assms apply (cases b; clarsimp split: bind_splits simp add: interp_msg_def)
+       apply (metis Un_insert_right append.right_neutral insert_preserve_indices' list.set(1)
+              option.sel prefix_of_appendD prod.sel(1) set_append)
+      by (metis delete_preserve_indices prefix_of_appendD)
+  qed
+qed
 
 lemma (in rga) delete_does_not_change_element_ids:
   assumes "es @ [Deliver (i, Delete n)] prefix of j"
@@ -111,22 +110,34 @@ lemma (in rga) deliver_insert_exists:
       and "a \<in> element_ids xs"
     shows "\<exists>i v f n. Deliver (i, Insert (a, v, f) n) \<in> set es"
 using assms unfolding element_ids_def
-  apply(induction es arbitrary: xs rule: rev_induct; clarsimp)
-  apply(case_tac x; clarsimp)
-  apply(metis image_eqI prefix_of_appendD prod.sel(1))
-  apply(case_tac "bb"; clarsimp)
-  defer
-  apply(drule prefix_of_appendD, clarsimp simp add: bind_eq_Some_conv interp_msg_def)
-  apply(metis delete_preserve_indices image_eqI prod.sel(1))
-  apply(case_tac "aba=a")
-  apply blast
-  apply(subgoal_tac "\<exists>xs'. apply_operations xsa = Some xs'")
-  defer
-  apply(meson bind_eq_Some_conv)
-  apply(erule exE)
-  apply(metis (no_types, lifting) someone_inserted_id apply_operations_Deliver element_ids_def
-    image_eqI prefix_of_appendD prod.sel(1) set_map)
-done
+proof(induction es arbitrary: xs rule: rev_induct, clarsimp)
+  case (snoc x xs ys) thus ?case
+  proof (cases x)
+    case (Broadcast e) thus ?thesis
+      using snoc by(clarsimp, metis image_eqI prefix_of_appendD prod.sel(1))
+  next
+    case (Deliver e)
+    moreover then obtain xs' where *: "apply_operations xs = Some xs'"
+        using snoc by fastforce
+    moreover obtain k v where **: "e = (k, v)" by force
+    ultimately show ?thesis
+      using assms snoc proof (cases v)
+      case (Insert el _) thus ?thesis
+        using snoc Deliver * **
+        apply (cases el; cases "fst el = a"; clarsimp)
+        apply (blast, metis (no_types, lifting) element_ids_def prefix_of_appendD set_map snoc.prems(2)
+                      snoc.prems(3) someone_inserted_id)
+        done
+      next
+      case (Delete _) thus ?thesis
+        using snoc Deliver ** apply clarsimp
+        apply(drule prefix_of_appendD, clarsimp simp add: bind_eq_Some_conv interp_msg_def)
+        apply(metis delete_preserve_indices image_eqI prod.sel(1))
+        done
+    qed    
+  qed
+qed
+  
 
 lemma (in rga) insert_in_apply_set:
   assumes "es @ [Deliver (i, Insert e (Some a))] prefix of j"

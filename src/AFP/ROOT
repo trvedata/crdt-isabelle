@@ -3,6 +3,7 @@ session "CRDT" = "HOL" +
   theories [document = false]
     "~~/src/Tools/Adhoc_Overloading"
     "~~/src/HOL/Library/Monad_Syntax"
+    "~~/src/HOL/Library/Code_Target_Numeral"
   theories
     Network
     RGA
