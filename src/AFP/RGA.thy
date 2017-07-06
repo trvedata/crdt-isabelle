@@ -151,25 +151,23 @@ done
 lemma (in rga) allowed_insert:
   assumes "Broadcast (i, Insert e n) \<in> set (history j)"
   shows "n = None \<or> (\<exists>i' e' n'. n = Some (fst e') \<and> Deliver (i', Insert e' n') \<sqsubset>\<^sup>j Broadcast (i, Insert e n))"
-  apply(subgoal_tac "\<exists>pre. pre @ [Broadcast (i, Insert e n)] prefix of j")
-  defer
-  apply(simp add: assms events_before_exist)
-  apply(erule exE)
-  apply(subgoal_tac "\<exists>state. apply_operations pre = Some state \<and> valid_rga_msg state (i, Insert e n)")
-  defer
-  apply(simp add: broadcast_only_valid_msgs)
-  apply(erule exE, erule conjE)
-  apply(unfold valid_rga_msg_def)
-  apply(case_tac n)
-  apply simp+
-  apply(subgoal_tac "a \<in> element_ids state")
-  defer
-  using apply_opers_idx_elems apply blast
-  apply(subgoal_tac "\<exists>i' v' f' n'. Deliver (i', Insert (a, v', f') n') \<in> set pre")
-  defer
-  using deliver_insert_exists apply blast
-  using events_in_local_order apply blast
-  done
+proof -
+  obtain pre where 1: "pre @ [Broadcast (i, Insert e n)] prefix of j"
+    using assms events_before_exist by blast
+  from this obtain state where 2: "apply_operations pre = Some state" and 3: "valid_rga_msg state (i, Insert e n)"
+    using broadcast_only_valid_msgs by blast
+  show "n = None \<or> (\<exists>i' e' n'. n = Some (fst e') \<and> Deliver (i', Insert e' n') \<sqsubset>\<^sup>j Broadcast (i, Insert e n))"
+  proof(cases n)
+    fix a
+    assume 4: "n = Some a"
+    hence "a \<in> element_ids state" and 5: "fst e = i"
+      using 3 by(clarsimp simp add: valid_rga_msg_def)+
+    from this have "\<exists>i' v' f' n'. Deliver (i', Insert (a, v', f') n') \<in> set pre"
+      using deliver_insert_exists 2 1 by blast
+    thus "n = None \<or> (\<exists>i' e' n'. n = Some (fst e') \<and> Deliver (i', Insert e' n') \<sqsubset>\<^sup>j Broadcast (i, Insert e n))"
+      using events_in_local_order 1 4 5 by(metis fst_conv)
+  qed simp
+qed
     
 lemma (in rga) allowed_delete:
   assumes "Broadcast (i, Delete x) \<in> set (history j)"
@@ -177,7 +175,8 @@ lemma (in rga) allowed_delete:
 proof -
   obtain pre where 1: "pre @ [Broadcast (i, Delete x)] prefix of j"
     using assms events_before_exist by blast
-  from this obtain state where 2: "apply_operations pre = Some state" and "valid_rga_msg state (i, Delete x)"
+  from this obtain state where 2: "apply_operations pre = Some state"
+      and "valid_rga_msg state (i, Delete x)"
     using broadcast_only_valid_msgs by blast
   hence "x \<in> element_ids state"
     using apply_opers_idx_elems by(simp add: valid_rga_msg_def)
