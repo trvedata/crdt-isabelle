@@ -258,11 +258,7 @@ lemma (in rga) Insert_equal:
       and "Broadcast (i1, Insert e1 n1) \<in> set (history i)"
       and "Broadcast (i2, Insert e2 n2) \<in> set (history j)"
     shows "Insert e1 n1 = Insert e2 n2"
-using assms
-  apply(subgoal_tac "e1 = e2")
-  apply(metis insert_id_unique)
-  apply(cases e1, cases e2; clarsimp)
-  using insert_id_unique by force
+using insert_id_unique assms by simp
 
 lemma (in rga) same_insert:
   assumes "fst e1 = fst e2"
@@ -280,10 +276,7 @@ proof -
   from this obtain k where 2: "Broadcast (i2, Insert e2 n2) \<in> set (history k)"
     using delivery_has_a_cause by blast
   show "Insert e1 n1 = Insert e2 n2"
-    apply(rule Insert_equal)
-      apply(simp add: assms)
-     apply(rule 1, rule 2)
-    done
+    by(rule Insert_equal; force simp add: assms intro: 1 2)
 qed
   
 lemma (in rga) insert_commute_assms:
