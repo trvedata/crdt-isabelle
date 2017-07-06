@@ -134,7 +134,7 @@ lemma (in rga) insert_in_apply_set:
       and "apply_operations es = Some s"
     shows "fst e' \<in> element_ids s"
 using assms apply_opers_idx_elems idx_in_elem_inserted prefix_of_appendD by blast
-
+  
 lemma (in rga) insert_msg_id:
   assumes "Broadcast (i, Insert e n) \<in> set (history j)"
   shows "fst e = i"
