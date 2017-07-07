@@ -11,7 +11,6 @@ theory
 imports
   Network
   Ordered_List
-  "~~/src/HOL/Library/Code_Target_Numeral"
 begin
   
 datatype ('id, 'v) operation =
