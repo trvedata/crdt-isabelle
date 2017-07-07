@@ -411,9 +411,11 @@ proof -
         by(clarsimp simp add: interp_msg_def kleisli_def X2 Y2)
     next
       fix xd yd
-      assume "x2 = Delete xd" and "y2 = Delete yd"
-      show "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) ii = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) ii"
-        sorry
+      assume X2: "x2 = Delete xd" and Y2: "y2 = Delete yd"
+      have "delete ii xd \<bind> (\<lambda>x. delete x yd) = delete ii yd \<bind> (\<lambda>x. delete x xd)"
+        by(rule delete_commutes)
+      thus "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) ii = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) ii"
+        by(clarsimp simp add: interp_msg_def kleisli_def X2 Y2)
     qed   
     thus "(interp_msg x \<rhd> interp_msg y) ii = (interp_msg y \<rhd> interp_msg x) ii"
       using 1 2 by auto
@@ -421,62 +423,6 @@ proof -
   thus "hb.concurrent_ops_commute (node_deliver_messages xs)"
     by(auto simp add: hb.concurrent_ops_commute_def)
 qed
-
-lemma (in rga) concurrent_operations_commute:
-  assumes "xs prefix of i"
-  shows "hb.concurrent_ops_commute (node_deliver_messages xs)"
-using assms
-  apply(clarsimp simp: hb.concurrent_ops_commute_def)
-  apply(rule ext)
-  apply(simp add: kleisli_def interp_msg_def)
-  apply(case_tac b; case_tac ba)
-  apply clarsimp
-  apply(case_tac "ab = ad")
-  apply(subgoal_tac "(ab, ac, bb) = (ad, ae, bc) \<and> x12a = x12")
-  apply force
-  defer
-  apply(subgoal_tac "Ordered_List.insert x (ab, ac, bb) x12 \<bind> (\<lambda>x. Ordered_List.insert x (ad, ae, bc) x12a) = Ordered_List.insert x (ad, ae, bc) x12a \<bind> (\<lambda>x. Ordered_List.insert x (ab, ac, bb) x12)")
-  apply(metis (no_types, lifting) Option.bind_cong interpret_opers.simps(1))
-  apply(rule insert_commutes)
-  apply simp
-  prefer 2
-  apply(subst (asm) hb.concurrent_comm)
-  apply(rule insert_commute_assms)
-  prefer 2
-  apply assumption
-  apply clarsimp
-  apply(rule conjI)
-  apply(rule prefix_msg_in_history, assumption, force)
-  apply(rule prefix_msg_in_history, assumption, force)
-  apply(rule insert_commute_assms)
-  prefer 2
-  apply assumption
-  apply clarsimp
-  apply(rule conjI)
-  apply(rule prefix_msg_in_history, assumption, force)
-  apply(rule prefix_msg_in_history, assumption, force)
-  apply(clarsimp simp del: delete.simps)
-  apply(subgoal_tac "Ordered_List.insert x (ab, ac, bb) x12 \<bind> (\<lambda>x. Ordered_List.delete x x2) = delete x x2 \<bind> (\<lambda>x. Ordered_List.insert x (ab, ac, bb) x12)")
-  apply(metis (no_types, lifting) Option.bind_cong interpret_opers.simps)
-  apply(rule insert_delete_commute)
-  apply(rule Insert_Delete_concurrent)
-  apply clarsimp
-  using prefix_msg_in_history apply blast
-  apply(clarsimp)
-  apply(clarsimp simp del: delete.simps)
-  apply(subgoal_tac "delete x x2 \<bind> (\<lambda>x. insert x (ab, ac, bb) x12) = Ordered_List.insert x (ab, ac, bb) x12 \<bind> (\<lambda>x. delete x x2)")
-  apply(metis (no_types, lifting) Option.bind_cong interpret_opers.simps)
-  apply(rule insert_delete_commute[symmetric])
-  apply(rule Insert_Delete_concurrent)
-  using prefix_msg_in_history apply blast
-  apply(subst (asm) hb.concurrent_comm)
-  apply assumption
-  apply(clarsimp simp del: delete.simps)
-  apply(subgoal_tac "delete x x2 \<bind> (\<lambda>x. delete x x2a) = delete x x2a \<bind> (\<lambda>x. delete x x2)")
-  apply(metis (mono_tags, lifting) Option.bind_cong interpret_opers.simps(2))
-  apply(rule delete_commutes)
-  using same_insert apply force
-done
 
 corollary (in rga) concurrent_operations_commute':
   shows "hb.concurrent_ops_commute (node_deliver_messages (history i))"
