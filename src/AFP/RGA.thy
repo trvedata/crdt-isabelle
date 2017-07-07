@@ -336,28 +336,27 @@ lemma (in rga) concurrent_operations_commute:
 proof -
   have "\<And>x y. {x, y} \<subseteq> set (node_deliver_messages xs) \<Longrightarrow> hb.concurrent x y \<Longrightarrow> interp_msg x \<rhd> interp_msg y = interp_msg y \<rhd> interp_msg x"
   proof
-    fix x y i
+    fix x y ii
     assume "{x, y} \<subseteq> set (node_deliver_messages xs)"
       and C: "hb.concurrent x y"
     hence X: "x \<in> set (node_deliver_messages xs)" and Y: "y \<in> set (node_deliver_messages xs)"
       by auto
     obtain x1 x2 y1 y2 where 1: "x = (x1, x2)" and 2: "y = (y1, y2)"
       by fastforce
-    have "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) i = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) i"
+    have "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) ii = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) ii"
     proof(cases x2; cases y2)
       fix ix1 ix2 iy1 iy2
       assume X2: "x2 = Insert ix1 ix2" and Y2: "y2 = Insert iy1 iy2"
-      show "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) i = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) i"
+      show "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) ii = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) ii"
       proof(cases "fst ix1 = fst iy1")
         assume "fst ix1 = fst iy1"
         hence "Insert ix1 ix2 = Insert iy1 iy2"
           apply(rule same_insert)
-            apply(rule assms)
-          using 1 2 X Y X2 Y2 apply auto
+          using 1 2 X Y X2 Y2 assms apply auto
           done
         hence "ix1 = iy1" and "ix2 = iy2"
           by auto
-        from this and X2 Y2 show "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) i = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) i"
+        from this and X2 Y2 show "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) ii = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) ii"
           by(clarsimp simp add: kleisli_def interp_msg_def)
       next
         assume NEQ: "fst ix1 \<noteq> fst iy1"
@@ -373,34 +372,56 @@ proof -
            apply(clarsimp, blast)
           using "1" "2" C X2 Y2 apply blast
           done
-        ultimately have "insert i ix1 ix2 \<bind> (\<lambda>x. insert x iy1 iy2) = insert i iy1 iy2 \<bind> (\<lambda>x. insert x ix1 ix2)"
+        ultimately have "insert ii ix1 ix2 \<bind> (\<lambda>x. insert x iy1 iy2) = insert ii iy1 iy2 \<bind> (\<lambda>x. insert x ix1 ix2)"
           using NEQ insert_commutes by blast
-        thus "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) i = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) i"
+        thus "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) ii = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) ii"
           by(clarsimp simp add: interp_msg_def X2 Y2 kleisli_def)
       qed
     next
       fix ix1 ix2 yd
-      assume "x2 = Insert ix1 ix2" and "y2 = Delete yd"
-      show "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) i = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) i"
-        sorry
+      assume X2: "x2 = Insert ix1 ix2" and Y2: "y2 = Delete yd"
+                thm insert_delete_commute
+                thm Insert_Delete_concurrent
+      have "hb.concurrent (x1, Insert ix1 ix2) (y1, Delete yd)"
+        using C X2 Y2 1 2 by simp
+      also have "{Deliver (x1, Insert ix1 ix2), Deliver (y1, Delete yd)} \<subseteq> set (history i)"
+        using prefix_msg_in_history assms X2 Y2 X Y 1 2 by blast
+      ultimately have "yd \<noteq> fst ix1"
+        apply -
+        apply(rule Insert_Delete_concurrent; force)
+        done
+      hence "insert ii ix1 ix2 \<bind> (\<lambda>x. delete x yd) = delete ii yd \<bind> (\<lambda>x. insert x ix1 ix2)"
+        by(rule insert_delete_commute)
+      thus "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) ii = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) ii"
+        by(clarsimp simp add: interp_msg_def kleisli_def X2 Y2)
     next
       fix xd iy1 iy2
-      assume "x2 = Delete xd" and "y2 = Insert iy1 iy2"
-      show "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) i = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) i"
-        sorry
+      assume X2: "x2 = Delete xd" and Y2: "y2 = Insert iy1 iy2"
+      have "hb.concurrent (x1, Delete xd) (y1, Insert iy1 iy2)"
+        using C X2 Y2 1 2 by simp
+      also have "{Deliver (x1, Delete xd), Deliver (y1, Insert iy1 iy2)} \<subseteq> set (history i)"
+        using prefix_msg_in_history assms X2 Y2 X Y 1 2 by blast
+      ultimately have "xd \<noteq> fst iy1"
+        apply -
+        apply(rule Insert_Delete_concurrent; force)
+        done
+      hence "delete ii xd \<bind> (\<lambda>x. insert x iy1 iy2) = insert ii iy1 iy2 \<bind> (\<lambda>x. delete x xd)"
+        by(rule insert_delete_commute[symmetric])
+      thus "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) ii = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) ii"
+        by(clarsimp simp add: interp_msg_def kleisli_def X2 Y2)
     next
       fix xd yd
       assume "x2 = Delete xd" and "y2 = Delete yd"
-      show "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) i = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) i"
+      show "(interp_msg (x1, x2) \<rhd> interp_msg (y1, y2)) ii = (interp_msg (y1, y2) \<rhd> interp_msg (x1, x2)) ii"
         sorry
     qed   
-    thus "(interp_msg x \<rhd> interp_msg y) i = (interp_msg y \<rhd> interp_msg x) i"
+    thus "(interp_msg x \<rhd> interp_msg y) ii = (interp_msg y \<rhd> interp_msg x) ii"
       using 1 2 by auto
   qed
   thus "hb.concurrent_ops_commute (node_deliver_messages xs)"
     by(auto simp add: hb.concurrent_ops_commute_def)
 qed
-(*
+
 lemma (in rga) concurrent_operations_commute:
   assumes "xs prefix of i"
   shows "hb.concurrent_ops_commute (node_deliver_messages xs)"
@@ -456,7 +477,6 @@ using assms
   apply(rule delete_commutes)
   using same_insert apply force
 done
-*)
 
 corollary (in rga) concurrent_operations_commute':
   shows "hb.concurrent_ops_commute (node_deliver_messages (history i))"
