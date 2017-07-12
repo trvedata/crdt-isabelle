@@ -93,8 +93,7 @@ This theorem states that two hb-consistent lists of distinct operations, which a
 ~~~~\isakeyword{shows}\ {\isachardoublequoteopen}apply{\isacharunderscore}operations\ xs\ {\isacharequal}\ apply{\isacharunderscore}operations\ ys{\isachardoublequoteclose}
 \end{isabelle}
 \noindent
-A fully mechanised proof of this theorem can be found in the supplementary material of this paper.
-% TODO link to the actual Isabelle files and reference AFP submission
+A fully mechanised proof of this theorem can be found in our submission to the Archive of Formal Proofs \cite{CRDT-AFP}.
 Although this theorem may seem ``obvious'' at first glance---commutativity allows the operation order to be permuted---it is more subtle than it seems.
 The difficulty arises because operations may succeed when applied to some state, but fail when applied to another state (for example, attempting to delete an element that does not exist in the state).
 We find it interesting that it is nevertheless sufficient for the definition of $\isa{concurrent-ops-commute}$ to be expressed only in terms of the Kleisli arrow composition, and without explicitly referring to the state.
