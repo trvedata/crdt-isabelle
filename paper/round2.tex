@@ -1,0 +1,31 @@
+\documentclass{letter}
+\usepackage[margin=1in]{geometry}
+\usepackage{url}
+\address{OOPSLA Paper \#94: \\ Verifying Strong Eventual Consistency \\ in Distributed Systems}
+\signature{The authors}
+\begin{document}
+\begin{letter}{}
+\opening{Dear reviewers,}
+
+Thank you for your helpful comments on our paper in the first round.
+We enclose a revised version and trust that it addresses your comments.
+Our changes compared to the last round are as follows:
+
+\begin{itemize}
+\item Our full proof is now published on the Isabelle Archive of Formal Proofs (\url{https://www.isa-afp.org/entries/CRDT.shtml}), and we have referenced it from the paper.
+\item As requested by reviewer A, we now back up our claim of flawed proofs of SEC algorithms in the introduction by including a literature reference and a forward reference to Section 8.
+\item As requested by reviewer B, we included a brief explanation of the distinction between the $\longrightarrow$ and $\Longrightarrow$ arrows in Isabelle at the bottom of page 5.
+It is difficult to explain concisely, because the distinction amounts essentially to an implementation detail of Isabelle, and a full explanation would require several pages of digression into Isabelle's internals.
+However, we hope that the brief explanation will nevertheless be useful.
+\item Addressing a question by reviewer A, we added the second paragraph of Section 5.2 to explain why our network uses a broadcast abstraction, and to outline how it is often implemented in practice (as an overlay network atop unicast TCP).
+\item Reviewer B also suggested discussing the robustness of algorithms to minor variations in infrastructure assumptions, which we have done briefly in the penultimate paragraph of Section 5, on page 14.
+\item In Section 8.1 we added the 4th, 5th and 6th paragraphs (top half of page 22) to explain the $\mathit{TP}_1$ and $\mathit{TP}_2$ properties, as requested by reviewer A.
+\item Following on from reviewer A's comment on Jepsen testing, we added a final paragraph to Section 9 to explain that the purpose of generating executable OCaml code is not to perform an empirical evaluation, but merely to demonstrate that we have not used any uncomputable functions.
+\item We have made the inline Isabelle code snippets easier to read by making the presentation neater (indentation, spacing, line breaks, font size).
+The content of the snippets is unchanged.
+\item Improved clarity through minor (semantically neutral) rewordings throughout the paper.
+\end{itemize}
+
+\closing{Regards,}
+\end{letter}
+\end{document}
