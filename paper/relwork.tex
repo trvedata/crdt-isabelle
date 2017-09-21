@@ -1,4 +1,4 @@
-\section{Related work}\label{sect.relatedwork}
+\section{Related Work}\label{sect.relatedwork}
 
 In a system where different nodes may concurrently perform updates without coordinating with each other, strong eventual consistency requires a conflict resolution algorithm to reconcile concurrent updates. 
 In some cases, a trivial algorithm is used, for example:
@@ -18,7 +18,7 @@ However, there are also algorithms that achieve convergence automatically, witho
 In Section~\ref{sect.related.ot.crdts} we summarise two main lines of work, CRDTs and OT, which have the same fundamental goal of conflict resolution and convergence, but which take different approaches towards achieving it.
 In Section~\ref{sect.related.verification} we discuss existing work on formal verification of those algorithms.
 
-\subsection{Operational Transformation (OT) and Conflict-free Replicated Data Types (CRDTs)}\label{sect.related.ot.crdts}
+\subsection{Operational Transformation and Conflict-free Replicated Data Types}\label{sect.related.ot.crdts}
 
 Algorithms for achieving strong eventual consistency have been studied extensively in the context of collaborative editing and groupware.
 The \emph{operational transformation} (OT) approach was developed to allow several users to concurrently modify a document, applying edits immediately to their local copy, propagating them asynchronously to other users, and automatically resolving any conflicts such that all nodes converge towards the same state.
@@ -52,7 +52,7 @@ Other datatypes include registers and counters \cite{Shapiro:2011wy,Shapiro:2011
 Cloud types \cite{Burckhardt:2012jy} have similarities to CRDTs, using a relational data model.
 
 
-\subsection{Formal verification}\label{sect.related.verification}
+\subsection{Formal Verification}\label{sect.related.verification}
 
 The history of algorithms for achieving convergence in a distributed setting has been fraught with difficulty.
 Informal reasoning has repeatedly produced approaches that fail to converge in certain scenarios, and even several formal ``proofs'' later turned out to be false, as explained below.

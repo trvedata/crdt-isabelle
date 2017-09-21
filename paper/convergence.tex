@@ -1,4 +1,4 @@
-\section{Abstract convergence}
+\section{Abstract Convergence}
 \label{sect.abstract.convergence}
 
 Strong eventual consistency (SEC) requires \emph{convergence} of all copies of the shared state: whenever two nodes have received the same set of updates, they must be in the same state.
@@ -10,7 +10,7 @@ We now use Isabelle to formalise the notion of strong eventual consistency.
 In this section we do not make any assumptions about networks or data structures; instead, we use an abstract model of operations that may be reordered, and we reason about the properties that those operations must satisfy.
 We then provide concrete implementations of that abstract model in later sections.
 
-\subsection{The happens-before relation and causality}\label{sect.happens.before}
+\subsection{The Happens-before Relation and Causality}\label{sect.happens.before}
 
 The simplest way of achieving convergence is to require all operations to be commutative, but this definition is too strong to be useful for many datatypes.
 For example, in a set, an element may first be added and then subsequently removed again.
@@ -39,7 +39,7 @@ We can then inductively define a list of operations as being \emph{consistent wi
 \end{isabelle}
 In words: the empty list is hb-consistent; furthermore, given an hb-consistent list $\isa{xs}$, we can append an operation $\isa{y}$ to the end of the list to obtain another hb-consistent list, provided that $\isa{y}$ does not happen-before any existing operation $\isa{x}$ in $\isa{xs}$. As a result, whenever two operations $\isa{x}$ and $\isa{y}$ appear in a hb-consistent list, and $\isa{x}\prec\isa{y}$, then $\isa{x}$ must appear before $\isa{y}$ in the list. However, if $\isa{x}\mathbin{\isasymparallel}\isa{y}$, the operations can appear in the list in either order.
 
-\subsection{Interpretation of operations}\label{sect.ops.interpretation}
+\subsection{Interpretation of Operations}\label{sect.ops.interpretation}
 
 We describe the state of a node using an abstract type variable $\isacharprime\isa{state}$.
 To model state changes, we assume the existence of an \emph{interpretation} function of type $\isa{interp} \mathbin{\isacharcolon\isacharcolon} \isacharprime\isa{oper} \mathbin{\isasymRightarrow} \isacharprime\isa{state} \mathbin{\isasymRightarrow} \isacharprime\isa{state}\ \isa{option}$, which lifts an operation into a \emph{state transformer}---a function that either maps an old state to a new state, or fails by returning $\isa{None}$.
@@ -75,7 +75,7 @@ We first map $\isa{interp}$ across the list to obtain a state transformer for ea
 \noindent The result is a state transformer that applies the interpretation of each of the operations in the list, in left-to-right order, to some initial state.
 If any of the operations fails, the entire composition returns $\isa{None}$.
 
-\subsection{Commutativity and convergence}\label{sect.ops.commute}
+\subsection{Commutativity and Convergence}\label{sect.ops.commute}
 
 We say that two operations $\isa{x}$ and $\isa{y}$ \emph{commute} whenever $\langle\isa{x}\rangle \mathbin{\isasymrhd} \langle\isa{y}\rangle = \langle\isa{y}\rangle \mathbin{\isasymrhd} \langle\isa{x}\rangle$, i.e. when we can swap the order of the composition of their interpretations without changing the resulting state transformer.
 For our purposes, requiring that this property holds for \emph{all} pairs of operations is too strong.

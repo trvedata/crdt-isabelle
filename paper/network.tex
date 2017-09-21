@@ -1,4 +1,4 @@
-\section{An axiomatic network model}
+\section{An Axiomatic Network Model}
 \label{sect.network}
 
 In this section we develop a formal definition of an \emph{asynchronous unreliable causal broadcast network}.
@@ -16,7 +16,7 @@ But it is also abstract enough to be able to model a wide range of scenarios: fo
 Our network model is defined using only six axioms, all of which are standard assumptions when modelling distributed systems, and which are satisfied by many systems in practice.
 All theorems in this paper are derived from those axioms; in particular, we show that the causal delivery abstraction satisfies the strict partial ordering assumption of $\isa{hb-consistent}$ (Section~\ref{sect.happens.before}), allowing us to use the convergence theorem in any locales that extend the network.
 
-\subsection{Modelling a distributed system}
+\subsection{Modelling a Distributed System}
 
 We model a distributed system as an unbounded number of communicating nodes.
 We assume nothing about the communication pattern of nodes---we assume only that each node is uniquely identified by a natural number, and that the flow of execution at each node consists of a finite, totally ordered sequence of execution steps (events).
@@ -42,7 +42,7 @@ This \emph{crash-stop} abstraction is commonly used by distributed algorithms \c
 In the $\isa{node{\isacharunderscore}histories}$ locale we may write $\isa{x} \sqsubset^\isa{i} \isa{y}$, which means that event $\isa{x}$ \emph{comes before} event $\isa{y}$ in the history of node $\isa{i}$.
 More formally, $\isa{x} \sqsubset^\isa{i} \isa{y}$ if and only if there exist lists $\isa{xs}$, $\isa{ys}$, and $\isa{zs}$ such that $\isa{xs}\mathbin{@}[\isa{x}]\mathbin{@}\isa{ys}\mathbin{@}[\isa{y}]\mathbin{@}\isa{zs} = \isa{history\ i}$.
 
-\subsection{An asynchronous broadcast network}\label{sect.network.broadcast}
+\subsection{An Asynchronous Broadcast Network}\label{sect.network.broadcast}
 
 We now extend the $\isa{node-histories}$ locale by defining how nodes can communicate.
 We specialise $\isacharprime\isa{a}$ to be one of two kinds of event: either \emph{broadcast} or \emph{deliver}.
@@ -95,7 +95,7 @@ If one node broadcasts a message, it \emph{may} be delivered by other nodes, but
 Messages may be arbitrarily delayed, reordered, or even lost entirely.
 It is even acceptable for a node to never deliver any messages besides those it broadcasts itself, modelling a node that is permanently disconnected from the network.
 
-\subsection{Causally ordered delivery}\label{sect.network.causal}
+\subsection{Causally Ordered Delivery}\label{sect.network.causal}
 
 As discussed in Section~\ref{sect.happens.before}, some replication algorithms require that some operations be applied in a particular order because the later operation has a causal dependency on the earlier one.
 We previously characterised these dependencies using the \emph{happens-before} relation $\prec$, which we required to be a strict partial order, but otherwise kept abstract.
@@ -132,7 +132,7 @@ It is still possible for some message never to be delivered.
 Causal delivery is typically implemented in network protocols using vector timestamps \cite{Schwarz:1994gl,Fidge:1988tv,Raynal:1996jl}.
 As these protocols are widely known and well understood, we elide any further discussion.
 
-\subsection{Using operations in the network}\label{sect.network.ops}
+\subsection{Using Operations in the Network}\label{sect.network.ops}
 
 We can now include the convergence theorem into our network model by further extending the $\isa{causal-network}$ locale.
 In the new locale $\isa{network-with-ops}$ we do not assume any additional axioms; we only specialise the type variable of messages $\isacharprime\isa{msg}$ to be a pair of $\isacharprime\isa{msgid} \mathbin{\isasymtimes} \isacharprime\isa{oper}$, and we instantiate the $\isa{msg-id}$ function fixed by the $\isa{network}$ locale to be $\isa{fst}$, i.e., to return the first component $\isacharprime\isa{msgid}$ of the pair.

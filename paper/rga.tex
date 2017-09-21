@@ -9,7 +9,7 @@ We perform this proof within the causal broadcast model defined in Section~\ref{
 Since the axioms of our network model are easily justified, we have confidence in the correctness of our formalisation.
 Our proof makes extensive use of the general-purpose framework that we have established in the last two sections.
 
-\subsection{Specifying insertion and deletion}\label{sect.rga.spec}
+\subsection{Specifying Insertion and Deletion}\label{sect.rga.spec}
 
 In an ordered list, each insertion and deletion operation must identify the position at which the modification should take place.
 In a non-replicated setting, the position is commonly expressed as an index into the list.
@@ -69,7 +69,7 @@ The delete operation searches for the element with a given ID, and sets its flag
 Note that the operations presented here are deliberately inefficient in order to make them easier to reason about.
 One can see our implementations of $\isa{insert-body}$, $\isa{insert}$, and $\isa{delete}$ as functional specifications for RGAs, which could be optimised into more efficient algorithms using data refinement, if desired.
 
-\subsection{Commutativity of insertion and deletion}
+\subsection{Commutativity of Insertion and Deletion}
 
 Recall from Section~\ref{sect.ops.commute} that in order to prove the convergence theorem we need to show that for the datatype in question, all its concurrent operations commute.
 It is straightforward to demonstrate that $\isa{delete}$ always commutes with itself, on concurrent and non-concurrent operations alike:
@@ -101,7 +101,7 @@ Finally, $\isa{delete}$ commutes with $\isa{insert}$ whenever the element to be 
 ~~~~\isakeyword{shows}\>{\isachardoublequoteopen}insert\ xs\ e\ i{\isadigit{1}}\ {\isasymbind}\ {\isacharparenleft}{\isasymlambda}ys{\isachardot}\ delete\ ys\ i{\isadigit{2}}{\isacharparenright}\ {\isacharequal}\ delete\ xs\ i{\isadigit{2}}\ {\isasymbind}\ {\isacharparenleft}{\isasymlambda}ys{\isachardot}\ insert\ ys\ e\ i{\isadigit{1}}{\isacharparenright}{\isachardoublequoteclose}
 \end{isabelle}
 
-\subsection{Embedding RGA in the network model}
+\subsection{Embedding RGA in the Network Model}
 
 In order to obtain a proof of the strong eventual consistency of RGA, we embed the insertion and deletion operations in the network model of Section~\ref{sect.network}.
 We first define a datatype for operations (which are sent across the network in messages), and an interpretation function as introduced in Section~\ref{sect.ops.interpretation}:
