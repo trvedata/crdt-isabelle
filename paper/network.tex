@@ -181,3 +181,25 @@ However, doing so would lead us too far astray from the goal of proving the stro
 The axioms of $\isa{network}{\isacharunderscore}\isa{with}{\isacharunderscore}\isa{constrained}{\isacharunderscore}\isa{ops}$ and its superlocales are consistent (in the sense that that we are unable to prove $\isa{False}$ by assuming the axioms).
 We demonstrate this fact by building a trivial model of $\isa{network}{\isacharunderscore}\isa{with}{\isacharunderscore}\isa{constrained}{\isacharunderscore}\isa{ops}$ within Isabelle and showing that it satisfies all of the locale's axioms.
 We elide these models here.
+
+%To summarise, the six axioms that define our network model are as follows:
+%\begin{isabelle}
+%~~~~~~~~\isakeyword{and}\ \=initial{\isacharunderscore}state{\isacharcolon}\ \=~~~~~~\={\isasymrbrakk}\ \={\isachardoublequoteopen}Broadcast\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ \=\kill
+%\isacommand{locale}\ network{\isacharunderscore}with{\isacharunderscore}constrained{\isacharunderscore}ops\ {\isacharequal}\\
+%~~~~\isakeyword{fixes}\ \>history\ \>{\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}nat\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}msgid\ {\isasymtimes}\ {\isacharprime}oper{\isacharparenright}\ event\ list{\isachardoublequoteclose}\\
+%~~~~~~~~\isakeyword{and}\ \>interp\ \>{\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}oper\ {\isasymRightarrow}\ {\isacharprime}state\ {\isasymRightarrow}\ {\isacharprime}state\ option{\isachardoublequoteclose}\\
+%~~~~~~~~\isakeyword{and}\ \>initial{\isacharunderscore}state\ \>{\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}state{\isachardoublequoteclose}\\
+%~~~~~~~~\isakeyword{and}\ \>valid{\isacharunderscore}msg\ \>{\isacharcolon}{\isacharcolon}\ {\isachardoublequoteopen}{\isacharprime}state\ {\isasymRightarrow}\ {\isacharparenleft}{\isacharprime}msgid\ {\isasymtimes}\ {\isacharprime}oper{\isacharparenright}\ {\isasymRightarrow}\ bool{\isachardoublequoteclose}\\
+%~~~~\isakeyword{assumes}\ histories{\isacharunderscore}distinct{\isacharcolon}\ {\isachardoublequoteopen}distinct\ {\isacharparenleft}history\ i{\isacharparenright}{\isachardoublequoteclose}\\
+%~~~~~~~~\isakeyword{and}\>delivery{\isacharunderscore}has{\isacharunderscore}a{\isacharunderscore}cause{\isacharcolon}\\
+%\>\>\>{\isasymlbrakk}\ {\isachardoublequoteopen}Deliver\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ \>\>{\isasymrbrakk}\ {\isasymLongrightarrow}\ {\isasymexists}j{\isachardot}\ Broadcast\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright}{\isachardoublequoteclose}\\
+%~~~~~~~~\isakeyword{and}\>deliver{\isacharunderscore}locally{\isacharcolon}\ \>\>{\isasymlbrakk}\ \>{\isachardoublequoteopen}Broadcast\ m\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright}\ \>{\isasymrbrakk}\ {\isasymLongrightarrow}\  Broadcast\ m\ {\isasymsqsubset}\isactrlsup i\ Deliver\ m{\isachardoublequoteclose}\\
+%~~~~~~~~\isakeyword{and}\>msg{\isacharunderscore}id{\isacharunderscore}unique{\isacharcolon}\ \>\>{\isasymlbrakk}\ \>{\isachardoublequoteopen}Broadcast\ m{\isadigit{1}}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright};\\
+%\>\>\>\>Broadcast\ m{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}history\ j{\isacharparenright};\\
+%\>\>\>\>msg{\isacharunderscore}id\ m{\isadigit{1}}\ {\isacharequal}\ msg{\isacharunderscore}id\ m{\isadigit{2}}\ \>{\isasymrbrakk}\ {\isasymLongrightarrow}\ i\ {\isacharequal}\ j\ {\isasymand}\ m{\isadigit{1}}\ {\isacharequal}\ m{\isadigit{2}}{\isachardoublequoteclose}\\
+%~~~~~~~~\isakeyword{and}\>causal{\isacharunderscore}delivery{\isacharcolon}\ \>\>{\isasymlbrakk}\ \>{\isachardoublequoteopen}Deliver\ m{\isadigit{2}}\ {\isasymin}\ set\ {\isacharparenleft}history\ i{\isacharparenright};\\
+%\>\>\>\>m{\isadigit{1}}\ $\prec$\ m{\isadigit{2}}\>{\isasymrbrakk}\ {\isasymLongrightarrow}\ Deliver\ m{\isadigit{1}}\ {\isasymsqsubset}\isactrlsup i\ Deliver\ m{\isadigit{2}}{\isachardoublequoteclose}\\
+%~~~~~~~~\isakeyword{and}\>broadcast{\isacharunderscore}only{\isacharunderscore}valid{\isacharunderscore}ops{\isacharcolon}\\
+%\>\>\>{\isasymlbrakk}\ \>{\isachardoublequoteopen}{\isasymexists}suf{\isachardot}\ pre\ {\isacharat}\ {\isacharbrackleft}Broadcast\ m{\isacharbrackright}\ {\isacharat}\ suf\ {\isacharequal}\ history\ i\ {\isasymrbrakk}\\
+%\>\>\>\>{\isasymLongrightarrow}\ {\isasymexists}state{\isachardot}\ apply{\isacharunderscore}operations\ pre\ {\isacharequal}\ Some\ state\ {\isasymand}\ valid{\isacharunderscore}msg\ state\ m{\isachardoublequoteclose}
+%\end{isabelle}
