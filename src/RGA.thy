@@ -10,7 +10,6 @@ theory
 imports
   Network
   Ordered_List
-  "~~/src/HOL/Library/Code_Target_Numeral"
 begin
   
 datatype ('id, 'v) operation =
@@ -30,8 +29,6 @@ definition valid_rga_msgs :: "nat \<Rightarrow> ('id, 'v) elt list \<Rightarrow>
     Insert e (Some pos) \<Rightarrow> fst e = i \<and> pos \<in> element_ids list |
     Delete         pos  \<Rightarrow> pos \<in> element_ids list }"
  
-export_code Insert interpret_opers valid_rga_msgs in OCaml file "ocaml/rga.ml"
-
 (* Replicated Growable Array Network *)
 locale rga = network_with_constrained_ops _ interpret_opers "[]" valid_rga_msgs
 

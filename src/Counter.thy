@@ -12,7 +12,6 @@ theory
   Counter
 imports
   Network
-  "~~/src/HOL/Library/Code_Target_Numeral"
 begin
 
 datatype operation = Increment | Decrement

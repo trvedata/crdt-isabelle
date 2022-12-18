@@ -116,7 +116,7 @@ done
 
 lemma (in executions) config_evolution_fold:
   assumes "execution conf"
-  shows "\<exists>steps. conf = fold (op \<circ>) steps id initial_conf"
+  shows "\<exists>steps. conf = fold (\<lambda>x y. x \<circ> y) steps id initial_conf"
   using assms unfolding config_evolution_def
   apply(induction rule: execution.induct)
   apply(rule_tac x="[]" in exI, simp)

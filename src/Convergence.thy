@@ -220,7 +220,7 @@ text\<open>We can now define a function \isa{apply-operations} that composes an 
      for each operation, and then collectively compose them using the Kleisli arrow composition combinator.\<close>
   
 definition apply_operations :: "'a list \<Rightarrow> 'b \<rightharpoonup> 'b" where
-  "apply_operations es \<equiv> foldl (op \<rhd>) Some (map interp es)"
+  "apply_operations es \<equiv> foldl (\<lambda>x y. x \<rhd> y) Some (map interp es)"
 
 lemma apply_operations_empty [simp]: "apply_operations [] s = Some s"
   by(auto simp: apply_operations_def)

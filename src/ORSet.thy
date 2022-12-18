@@ -12,7 +12,6 @@ theory
   ORSet
 imports
   Network
-  "~~/src/HOL/Library/Code_Target_Numeral"
 begin
 
 datatype ('id, 'a) operation = Add "'id" "'a" | Rem "'id set" "'a"
@@ -33,8 +32,6 @@ definition valid_behaviours :: "nat \<Rightarrow> ('id, 'a) state \<Rightarrow> 
      { (i::'id, oper::('id, 'a) operation). case oper of
          Add j  e \<Rightarrow> i = j |
          Rem is e \<Rightarrow> is = state e }"
-
-export_code Add interpret_op valid_behaviours in OCaml file "ocaml/orset.ml"
 
 locale orset = network_with_constrained_ops _ interpret_op "\<lambda>x. {}" valid_behaviours
 
