@@ -1,6 +1,7 @@
 (* Victor B. F. Gomes, University of Cambridge
    Martin Kleppmann, University of Cambridge
    Dominic P. Mulligan, University of Cambridge
+   Alastair R. Beresford, University of Cambridge
 *)
 
 section\<open>Strong Eventual Consistency\<close>
@@ -45,16 +46,16 @@ text\<open>We say that two operations $x$ and $y$ are \emph{concurrent}, written
 definition concurrent :: "'a \<Rightarrow> 'a \<Rightarrow> bool" (infix "\<parallel>" 50) where
   "s1 \<parallel> s2 \<equiv> \<not> (s1 \<prec> s2) \<and> \<not> (s2 \<prec> s1)"
 
-lemma [intro!]: "\<not> (s1 \<prec> s2) \<Longrightarrow> \<not> (s2 \<prec> s1) \<Longrightarrow> s1 \<parallel> s2"
+lemma concurrentI [intro!]: "\<not> (s1 \<prec> s2) \<Longrightarrow> \<not> (s2 \<prec> s1) \<Longrightarrow> s1 \<parallel> s2"
   by (auto simp: concurrent_def)
 
-lemma [dest]: "s1 \<parallel> s2 \<Longrightarrow> \<not> (s1 \<prec> s2)"
+lemma concurrentD1 [dest]: "s1 \<parallel> s2 \<Longrightarrow> \<not> (s1 \<prec> s2)"
   by (auto simp: concurrent_def)
 
-lemma [dest]: "s1 \<parallel> s2 \<Longrightarrow> \<not> (s2 \<prec> s1)"
+lemma concurrentD2 [dest]: "s1 \<parallel> s2 \<Longrightarrow> \<not> (s2 \<prec> s1)"
   by (auto simp: concurrent_def)
 
-lemma [intro!, simp]: "s \<parallel> s"
+lemma concurrent_refl [intro!, simp]: "s \<parallel> s"
   by (auto simp: concurrent_def)
 
 lemma concurrent_comm: "s1 \<parallel> s2 \<longleftrightarrow> s2 \<parallel> s1"
@@ -71,7 +72,7 @@ lemma concurrent_set_ConsE [elim!]:
   assumes "concurrent_set a (x#xs)"
       and "concurrent_set a xs \<Longrightarrow> concurrent x a \<Longrightarrow> G"
     shows "G"
-using assms by (auto simp: concurrent_set_def)
+  using assms by (auto simp: concurrent_set_def)
 
 lemma concurrent_set_ConsI [intro!]:
   "concurrent_set a xs \<Longrightarrow> concurrent a x \<Longrightarrow> concurrent_set a (x#xs)"
@@ -106,11 +107,11 @@ text\<open>As a result, whenever two operations $\isa{x}$ and $\isa{y}$ appear i
 lemma "(x \<prec> y \<or> concurrent x y) = (\<not> y \<prec> x)"
   using less_asym by blast
 
-lemma [intro!]:
+lemma consistentI [intro!]:
   assumes "hb_consistent (xs @ ys)"
   and     "\<forall>x \<in> set (xs @ ys). \<not> z \<prec> x"
   shows   "hb_consistent (xs @ ys @ [z])"
-using assms hb_consistent.intros append_assoc by metis
+  using assms hb_consistent.intros append_assoc by metis
 
 inductive_cases  hb_consistent_elim [elim]:
   "hb_consistent []"
@@ -124,27 +125,26 @@ inductive_cases  hb_consistent_elim_gen:
 lemma hb_consistent_append_D1 [dest]:
   assumes "hb_consistent (xs @ ys)"
   shows   "hb_consistent xs"
-using assms by(induction ys arbitrary: xs rule: List.rev_induct) auto
+  using assms by(induction ys arbitrary: xs rule: List.rev_induct) auto
 
 lemma hb_consistent_append_D2 [dest]:
   assumes "hb_consistent (xs @ ys)"
   shows   "hb_consistent ys"
-using assms
-  by(induction ys arbitrary: xs rule: List.rev_induct) fastforce+
+  using assms by(induction ys arbitrary: xs rule: List.rev_induct) fastforce+
 
 lemma hb_consistent_append_elim_ConsD [elim]:
   assumes "hb_consistent (y#ys)"
   shows   "hb_consistent ys"
-using assms hb_consistent_append_D2 by(metis append_Cons append_Nil)
+  using assms hb_consistent_append_D2 by(metis append_Cons append_Nil)
 
 lemma hb_consistent_remove1 [intro]:
   assumes "hb_consistent xs"
   shows   "hb_consistent (remove1 x xs)"
-using assms by (induction rule: hb_consistent.induct) (auto simp: remove1_append)
+  using assms by (induction rule: hb_consistent.induct) (auto simp: remove1_append)
 
 lemma hb_consistent_singleton [intro!]:
   shows "hb_consistent [x]"
-using hb_consistent.intros by fastforce
+  using hb_consistent.intros by fastforce
 
 lemma hb_consistent_prefix_suffix_exists:
   assumes "hb_consistent ys"
@@ -220,7 +220,7 @@ text\<open>We can now define a function \isa{apply-operations} that composes an 
      for each operation, and then collectively compose them using the Kleisli arrow composition combinator.\<close>
   
 definition apply_operations :: "'a list \<Rightarrow> 'b \<rightharpoonup> 'b" where
-  "apply_operations es \<equiv> foldl (\<lambda>x y. x \<rhd> y) Some (map interp es)"
+  "apply_operations es \<equiv> foldl (\<rhd>) Some (map interp es)"
 
 lemma apply_operations_empty [simp]: "apply_operations [] s = Some s"
   by(auto simp: apply_operations_def)
@@ -365,21 +365,21 @@ theorem sec_convergence:
           "op_history xs"
           "op_history ys"
   shows   "apply_operations xs = apply_operations ys"
-by (meson assms convergence causality commutativity distinctness)
+  by (meson assms convergence causality commutativity distinctness)
 
 theorem sec_progress:
   assumes "op_history xs"
   shows   "apply_operations xs initial_state \<noteq> None"
-using assms
-  apply(induction xs rule: rev_induct, simp)
-  apply(subgoal_tac "apply_operations xs initial_state \<noteq> None")
-  apply(subgoal_tac "apply_operations (xs @ [x]) = apply_operations xs \<rhd> \<langle>x\<rangle>")
-  apply(simp add: kleisli_def bind_def)
-  apply(erule exE, case_tac "\<langle>x\<rangle> y")
-  using no_failure apply blast
-  apply simp+
-  using trunc_history apply blast
-done
+using assms proof(induction xs rule: rev_induct, simp)
+  case (snoc x xs)
+  have "apply_operations xs initial_state \<noteq> None"
+    using snoc.IH snoc.prems trunc_history kleisli_def bind_def by blast
+  moreover have "apply_operations (xs @ [x]) = apply_operations xs \<rhd> \<langle>x\<rangle>"
+    by simp
+  ultimately show ?case
+    using no_failure snoc.prems by (clarsimp simp add: kleisli_def split: bind_splits)
+qed
+
 
 end
 end

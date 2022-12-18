@@ -1,6 +1,7 @@
 (* Victor B. F. Gomes, University of Cambridge
    Martin Kleppmann, University of Cambridge
    Dominic P. Mulligan, University of Cambridge
+   Alastair R. Beresford, University of Cambridge
 *)
 
 section\<open>Replicated Growable Array\<close>
@@ -162,36 +163,12 @@ next
      and "Some i = None \<or> Some i \<noteq> Some (fst e2)"
      and "i2 = None \<or> i2 \<noteq> Some (fst e)"
   thus "insert (x # xs) e (Some i) \<bind> (\<lambda>ys. insert ys e2 i2) = insert (x # xs) e2 i2 \<bind> (\<lambda>ys. insert ys e (Some i))"
-   apply -
-   apply(erule disjE)
-      apply clarsimp
-      apply clarsimp
-      apply(case_tac "fst x = i")
-        apply clarsimp
-        apply(case_tac "i2")
-          apply clarsimp
-        apply(force simp add: insert_body_commutes)
-        apply (rename_tac a)
-        apply clarsimp
-      apply(case_tac "fst x = a")
-        apply clarsimp
-        apply(force simp add: insert_body_commutes)
-        apply clarsimp
-        apply(force simp add: insert_insert_body_commute)
-        apply clarsimp
-        apply(case_tac i2)
-          apply(force cong: Option.bind_cong simp add: insert_insert_body)
-          apply clarsimp
-          apply(case_tac "a = i")
-            apply clarsimp
-            apply(metis bind_assoc)
-            apply clarsimp
-            apply(case_tac "fst x = a")
-              apply clarsimp
-              apply(force cong: Option.bind_cong simp add: insert_insert_body)
-              apply clarsimp
-              apply(metis bind_assoc)
-  done
+    apply -
+    apply(erule disjE, clarsimp, simp, rule conjI)
+     apply(case_tac i2; force simp add: insert_body_commutes insert_insert_body_commute)
+    apply(case_tac i2; clarsimp cong: Option.bind_cong simp add: insert_insert_body split: bind_splits)
+    apply force
+    done
 qed
 
 lemma delete_commutes:
@@ -251,89 +228,68 @@ using assms by simp
 
 lemma insert_body_contains_new_elem:
   shows "\<exists>p s. xs = p @ s \<and> insert_body xs e = p @ e # s"
-  apply (induction xs)
-  apply force
-  apply clarsimp
-  apply (rule conjI)
-  apply clarsimp
-  apply (rule_tac x="[]" in exI)
-  apply fastforce
-  apply clarsimp
-  apply (rename_tac a b c p s)
-  apply (rule_tac x="(a, b, c) # p" in exI)
-  apply clarsimp
-done
+proof (induction xs)
+  case Nil thus ?case by force
+next
+  case (Cons a xs)
+  then obtain p s where "xs = p @ s \<and> insert_body xs e = p @ e # s" by force
+  thus ?case
+    apply clarsimp
+    apply (rule conjI; clarsimp)
+      apply force
+    apply (rule_tac x="a # p" in exI, force)
+    done
+qed
 
 lemma insert_between_elements:
   assumes "xs = pre@ref#suf"
       and "distinct (map fst xs)"
       and "\<And>i'. i' \<in> fst ` set xs \<Longrightarrow> i' < fst e"
     shows "insert xs e (Some (fst ref)) = Some (pre @ ref # e # suf)"
-  using assms
-  apply(induction xs arbitrary: pre ref suf)
-  apply force
-  apply(clarsimp)
-  apply(case_tac pre)
-  apply(clarsimp)
-  apply(case_tac suf)
-  apply force
-  apply force
-  apply clarsimp
-done
+  using assms by(induction xs arbitrary: pre ref suf, force) (case_tac pre; case_tac suf; force)
 
 lemma insert_position_element_technical:
   assumes "\<forall>x\<in>set as. a \<noteq> fst x"
     and "insert_body (cs @ ds) e = cs @ e # ds"
   shows "insert (as @ (a, aa, b) # cs @ ds) e (Some a) = Some (as @ (a, aa, b) # cs @ e # ds)"
-using assms
-  apply(induction as arbitrary: cs ds)
-  apply simp
-  apply clarsimp
-done
+using assms by (induction as arbitrary: cs ds; clarsimp)
 
 lemma split_tuple_list_by_id:
   assumes "(a,b,c) \<in> set xs"
     and "distinct (map fst xs)"
   shows "\<exists>pre suf. xs = pre @ (a,b,c) # suf \<and> (\<forall>y \<in> set pre. fst y \<noteq> a)"
-  using assms
-  apply(induction xs)
-  apply clarsimp
-  apply (rename_tac x xs)  
-  apply(case_tac "x = (a,b,c)")
-  apply(rule_tac x="[]" in exI)
-  apply(rule_tac x="xs" in exI)
-  apply force
-  apply(subgoal_tac "\<exists>pre suf. xs = pre @ (a, b, c) # suf \<and> (\<forall>y\<in>set pre. fst y \<noteq> a)")
-  apply(erule exE)+
-  apply(rule_tac x="x#pre" in exI)
-  apply(rule_tac x="suf" in exI)
-  apply(rule conjI)
-  apply auto
-done
+using assms proof(induction xs, clarsimp)
+  case (Cons x xs)
+  { assume "x \<noteq> (a, b, c)"
+    hence "(a, b, c) \<in> set xs" "distinct (map fst xs)"
+      using Cons.prems by force+
+    then obtain pre suf where "xs = pre @ (a, b, c) # suf \<and> (\<forall>y\<in>set pre. fst y \<noteq> a)"
+      using Cons.IH by force
+    hence ?case
+      apply(rule_tac x="x#pre" in exI)
+      using Cons.prems(2) by auto
+  } thus ?case
+    by force
+qed
 
 lemma insert_preserves_order:
   assumes "i = None \<or> (\<exists>i'. i = Some i' \<and> i' \<in> fst ` set xs)"
       and "distinct (map fst xs)"
     shows "\<exists>pre suf. xs = pre@suf \<and> insert xs e i = Some (pre @ e # suf)"
-  using assms
-  apply -
-  apply(erule disjE)
-  apply clarsimp
-  using insert_body_contains_new_elem apply metis
-  apply(erule exE, clarsimp)
-  apply(rename_tac a b c)
-  apply(subgoal_tac "\<exists>as bs. xs = as@(a,b,c)#bs \<and> (\<forall>x \<in> set as. fst x \<noteq> a)")
-  apply clarsimp
-  apply(rename_tac as bs) 
-  apply(subgoal_tac "\<exists>cs ds. insert_body bs e = cs@e#ds \<and> cs@ds = bs")
-  apply clarsimp
-  apply(rename_tac cs ds) 
-  apply(rule_tac x="as@(a,b,c)#cs" in exI)
-  apply(rule_tac x="ds" in exI)
-  apply clarsimp
-  apply(metis insert_position_element_technical)
-  apply(metis insert_body_contains_new_elem)
-  using split_tuple_list_by_id apply fastforce
-done
-
+  using assms proof -
+  { assume "i = None"
+    hence ?thesis
+      by clarsimp (metis insert_body_contains_new_elem)
+  } moreover {
+    assume "\<exists>i'. i = Some i' \<and> i' \<in> fst ` set xs"
+    then obtain j v b where "i = Some j" "(j, v, b) \<in> set xs" by force
+    moreover then obtain as bs where "xs = as@(j,v,b)#bs" "\<forall>x \<in> set as. fst x \<noteq> j"
+      using assms by (metis split_tuple_list_by_id)
+    moreover then obtain cs ds where "insert_body bs e = cs@e#ds" "cs@ds = bs"
+      by(metis insert_body_contains_new_elem)
+    ultimately have ?thesis
+      by(rule_tac x="as@(j,v,b)#cs" in exI; clarsimp)(metis insert_position_element_technical)
+  } ultimately show ?thesis
+    using assms by force
+qed
 end

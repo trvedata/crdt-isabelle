@@ -1,6 +1,7 @@
 (* Victor B. F. Gomes, University of Cambridge
    Martin Kleppmann, University of Cambridge
    Dominic P. Mulligan, University of Cambridge
+   Alastair R. Beresford, University of Cambridge
 *)
 
 section\<open>Axiomatic network models\<close>
@@ -41,26 +42,28 @@ lemma (in node_histories) node_total_order_trans:
   assumes "e1 \<sqsubset>\<^sup>i e2"
       and "e2 \<sqsubset>\<^sup>i e3"
     shows "e1 \<sqsubset>\<^sup>i e3"
-using assms unfolding history_order_def
-  apply clarsimp
-  apply (rename_tac xs xsa ys ysa zs zsa)
-  apply(rule_tac x=xs in exI, rule_tac x="ys @ e2 # ysa" in exI, rule_tac x=zsa in exI)
-  apply(subgoal_tac "xs @ e1 # ys = xsa \<and> zs = ysa @ e3 # zsa")
-  apply clarsimp
-  apply(rule_tac xs="history i" and ys="[e2]" in pre_suf_eq_distinct_list)
-  apply auto
-done
+proof - 
+  obtain xs1 xs2 ys1 ys2 zs1 zs2 where *: "xs1 @ e1 # ys1 @ e2 # zs1 = history i"
+      "xs2 @ e2 # ys2 @ e3 # zs2 = history i"
+    using history_order_def assms by auto
+  hence "xs1 @ e1 # ys1 = xs2 \<and> zs1 = ys2 @ e3 # zs2"
+    by(rule_tac xs="history i" and ys="[e2]" in pre_suf_eq_distinct_list) auto
+  thus ?thesis
+    by(clarsimp simp: history_order_def) (metis "*"(2) append.assoc append_Cons)
+qed
 
 lemma (in node_histories) local_order_carrier_closed:
   assumes "e1 \<sqsubset>\<^sup>i e2"
     shows "{e1,e2} \<subseteq> set (history i)"
-using assms by (clarsimp simp add: history_order_def)
-  (metis in_set_conv_decomp Un_iff Un_subset_iff insert_subset list.simps(15) set_append set_subset_Cons)+
+  using assms by (clarsimp simp add: history_order_def)
+    (metis in_set_conv_decomp Un_iff Un_subset_iff insert_subset list.simps(15)
+        set_append set_subset_Cons)+
 
 lemma (in node_histories) node_total_order_irrefl:
   shows "\<not> (e \<sqsubset>\<^sup>i e)"
-by(clarsimp simp add: history_order_def)
-  (metis Un_iff histories_distinct distinct_append distinct_set_notin list.set_intros(1) set_append)
+  by(clarsimp simp add: history_order_def)
+    (metis Un_iff histories_distinct distinct_append distinct_set_notin
+        list.set_intros(1) set_append)
 
 lemma (in node_histories) node_total_order_antisym:
   assumes "e1 \<sqsubset>\<^sup>i e2"
@@ -83,81 +86,83 @@ lemma (in node_histories) carriers_head_lt:
   shows   "\<not>(x \<sqsubset>\<^sup>i y)"
 using assms
   apply(clarsimp simp add: history_order_def)
-  apply (rename_tac xs ysa zs)
-  apply (subgoal_tac "xs @ x # ysa = [] \<and> zs = ys")
+  apply(rename_tac xs1 ys1 zs1)
+   apply (subgoal_tac "xs1 @ x # ys1 = [] \<and> zs1 = ys")
   apply clarsimp
   apply (rule_tac xs="history i" and ys="[y]" in pre_suf_eq_distinct_list)
-  apply auto
-done
+   apply auto
+  done
 
 lemma (in node_histories) prefix_of_ConsD [dest]:
   assumes "x # xs prefix of i"
     shows "[x] prefix of i"
-using assms by(auto simp: prefix_of_node_history_def)
+  using assms by(auto simp: prefix_of_node_history_def)
 
 lemma (in node_histories) prefix_of_appendD [dest]:
   assumes "xs @ ys prefix of i"
     shows "xs prefix of i"
-using assms by(auto simp: prefix_of_node_history_def)
+  using assms by(auto simp: prefix_of_node_history_def)
 
 lemma (in node_histories) prefix_distinct:
   assumes "xs prefix of i"
     shows "distinct xs"
-using assms by(clarsimp simp: prefix_of_node_history_def) (metis histories_distinct distinct_append)
+  using assms by(clarsimp simp: prefix_of_node_history_def) (metis histories_distinct distinct_append)
 
 lemma (in node_histories) prefix_to_carriers [intro]:
   assumes "xs prefix of i"
     shows "set xs \<subseteq> set (history i)"
-using assms by(clarsimp simp: prefix_of_node_history_def) (metis Un_iff set_append)
+  using assms by(clarsimp simp: prefix_of_node_history_def) (metis Un_iff set_append)
 
 lemma (in node_histories) prefix_elem_to_carriers:
   assumes "xs prefix of i"
       and "x \<in> set xs"
     shows "x \<in> set (history i)"
-using assms by(clarsimp simp: prefix_of_node_history_def) (metis Un_iff set_append)
+  using assms by(clarsimp simp: prefix_of_node_history_def) (metis Un_iff set_append)
 
 lemma (in node_histories) local_order_prefix_closed:
   assumes "x \<sqsubset>\<^sup>i y"
       and "xs prefix of i"
       and "y \<in> set xs"
     shows "x \<in> set xs"
-using assms
-  apply -
-  apply (frule prefix_distinct)
-  apply (insert histories_distinct[where i=i])
-  apply (clarsimp simp: history_order_def prefix_of_node_history_def)
-  apply (frule split_list)
-  apply clarsimp
-  apply (subgoal_tac "ysb = xsa @ x # ysa \<and> zsa @ ys = zs")
-  apply clarsimp
-  apply (rule_tac xs="history i" and ys="[y]" in pre_suf_eq_distinct_list)
-  apply auto
-done
+proof -
+  obtain ys where "xs @ ys = history i"
+    using assms prefix_of_node_history_def by blast
+  moreover obtain as bs cs where "as @ x # bs @ y # cs = history i"
+    using assms history_order_def by blast
+  moreover obtain pre suf where *: "xs = pre @ y # suf"
+    using assms split_list by fastforce
+  ultimately have "pre = as @ x # bs \<and> suf @ ys = cs"
+    by (rule_tac xs="history i" and ys="[y]" in pre_suf_eq_distinct_list) auto
+  thus ?thesis
+    using assms * by clarsimp
+qed
 
 lemma (in node_histories) local_order_prefix_closed_last:
   assumes "x \<sqsubset>\<^sup>i y"
       and "xs@[y] prefix of i"
     shows "x \<in> set xs"
-using assms
-  apply -
-  apply(frule local_order_prefix_closed, assumption, force)
-  apply(auto simp add: node_total_order_irrefl prefix_to_carriers)
-done
+proof -
+  have "x \<in> set (xs @ [y])"
+    using assms by (force dest: local_order_prefix_closed)
+  thus ?thesis
+    using assms by(force simp add: node_total_order_irrefl prefix_to_carriers)
+qed
 
 lemma (in node_histories) events_before_exist:
   assumes "x \<in> set (history i)"
   shows "\<exists>pre. pre @ [x] prefix of i"
-  using assms unfolding prefix_of_node_history_def apply -
-  apply(subgoal_tac "\<exists>idx. idx < length (history i) \<and> (history i) ! idx = x")
-  apply(metis append_take_drop_id  take_Suc_conv_app_nth)
-  apply(simp add: set_elem_nth)
-done
+proof -
+  have "\<exists>idx. idx < length (history i) \<and> (history i) ! idx = x"
+    using assms by(simp add: set_elem_nth)
+  thus ?thesis
+    by(metis append_take_drop_id take_Suc_conv_app_nth prefix_of_node_history_def)
+qed
 
 lemma (in node_histories) events_in_local_order:
   assumes "pre @ [e2] prefix of i"
   and "e1 \<in> set pre"
   shows "e1 \<sqsubset>\<^sup>i e2"
-using assms split_list unfolding history_order_def prefix_of_node_history_def by fastforce
+  using assms split_list unfolding history_order_def prefix_of_node_history_def by fastforce
 
 subsection\<open>Asynchronous broadcast networks\<close>
   
@@ -213,9 +218,9 @@ text\<open>Based on the well-known definition by \cite{Lamport:1978jq}, we say t
     \end{enumerate}\<close>
 
 inductive (in network) hb :: "'msg \<Rightarrow> 'msg \<Rightarrow> bool" where
-  "\<lbrakk> Broadcast m1 \<sqsubset>\<^sup>i Broadcast m2 \<rbrakk> \<Longrightarrow> hb m1 m2" |
-  "\<lbrakk> Deliver m1 \<sqsubset>\<^sup>i Broadcast m2 \<rbrakk> \<Longrightarrow> hb m1 m2" |
-  "\<lbrakk> hb m1 m2; hb m2 m3 \<rbrakk> \<Longrightarrow> hb m1 m3"
+  hb_broadcast: "\<lbrakk> Broadcast m1 \<sqsubset>\<^sup>i Broadcast m2 \<rbrakk> \<Longrightarrow> hb m1 m2" |
+  hb_deliver:   "\<lbrakk> Deliver m1 \<sqsubset>\<^sup>i Broadcast m2 \<rbrakk> \<Longrightarrow> hb m1 m2" |
+  hb_trans:     "\<lbrakk> hb m1 m2; hb m2 m3 \<rbrakk> \<Longrightarrow> hb m1 m3"
   
 inductive_cases (in network) hb_elim: "hb x y"
         
@@ -236,20 +241,20 @@ lemma (in network) hb_broadcast_exists1:
   shows "\<exists>i. Broadcast m1 \<in> set (history i)"
   using assms
   apply(induction rule: hb.induct)
-  apply(meson insert_subset node_histories.local_order_carrier_closed node_histories_axioms)
-  apply(meson delivery_has_a_cause insert_subset local_order_carrier_closed)
+    apply(meson insert_subset node_histories.local_order_carrier_closed node_histories_axioms)
+   apply(meson delivery_has_a_cause insert_subset local_order_carrier_closed)
   apply simp
-done
+  done
     
 lemma (in network) hb_broadcast_exists2:
   assumes "hb m1 m2"
   shows "\<exists>i. Broadcast m2 \<in> set (history i)"
   using assms
   apply(induction rule: hb.induct)
-  apply(meson insert_subset node_histories.local_order_carrier_closed node_histories_axioms)
-  apply(meson delivery_has_a_cause insert_subset local_order_carrier_closed)
+    apply(meson insert_subset node_histories.local_order_carrier_closed node_histories_axioms)
+   apply(meson delivery_has_a_cause insert_subset local_order_carrier_closed)
   apply simp
-done
+  done
     
 subsection\<open>Causal networks\<close>
 
@@ -257,17 +262,11 @@ lemma (in causal_network) hb_has_a_reason:
   assumes "hb m1 m2"
     and "Broadcast m2 \<in> set (history i)"
   shows "Deliver m1 \<in> set (history i) \<or> Broadcast m1 \<in> set (history i)"
-  using assms
-  apply(induction rule: hb.induct)
-  apply(metis insert_subset local_order_carrier_closed network.broadcasts_unique network_axioms)
-  apply(metis insert_subset local_order_carrier_closed network.broadcasts_unique network_axioms)
-  apply(case_tac "Deliver m2 \<in> set (history i)")
-  apply(subgoal_tac "Deliver m1 \<in> set (history i)")
-  apply blast
-  using causal_delivery local_order_carrier_closed apply blast
-  apply(subgoal_tac "Broadcast m2 \<in> set (history i)")
-  apply blast+
-done
+  using assms apply (induction rule: hb.induct)
+    apply(metis insert_subset local_order_carrier_closed network.broadcasts_unique network_axioms)
+   apply(metis insert_subset local_order_carrier_closed network.broadcasts_unique network_axioms)
+  using hb_trans causal_delivery local_order_carrier_closed apply blast
+  done
 
 lemma (in causal_network) hb_cross_node_delivery:
   assumes "hb m1 m2"
@@ -277,55 +276,57 @@ lemma (in causal_network) hb_cross_node_delivery:
   shows "Deliver m1 \<in> set (history j)"
   using assms
   apply(induction rule: hb.induct)
-  apply(metis broadcasts_unique insert_subset local_order_carrier_closed)
-  apply(metis insert_subset local_order_carrier_closed network.broadcasts_unique network_axioms)
-  apply(case_tac "Deliver m2 \<in> set (history j)")
-  apply(subgoal_tac "Deliver m1 \<in> set (history j)")
-  apply blast
+    apply(metis broadcasts_unique insert_subset local_order_carrier_closed)
+   apply(metis insert_subset local_order_carrier_closed network.broadcasts_unique network_axioms)
   using broadcasts_unique hb.intros(3) hb_has_a_reason apply blast
-  apply(subgoal_tac "Broadcast m2 \<in> set (history j)")
-  apply blast
-  using hb_has_a_reason apply blast      
   done
     
 lemma (in causal_network) hb_irrefl:
   assumes "hb m1 m2"
   shows "m1 \<noteq> m2"
-  using assms
-  apply(induction rule: hb.induct)
-  using node_total_order_antisym apply blast
-  apply(meson causal_broadcast insert_subset local_order_carrier_closed
-        node_total_order_irrefl)
-  apply(subgoal_tac "\<exists>i. Broadcast m3 \<in> set (history i)")
-  apply(subgoal_tac "\<exists>j. Broadcast m2 \<in> set (history j)")
-  apply clarsimp
-  apply(subgoal_tac "Deliver m2 \<in> set (history j) \<and> Deliver m3 \<in> set (history i)")
-  apply(meson causal_delivery hb.intros(3) insert_subset local_order_carrier_closed
-        network.broadcast_before_delivery network_axioms node_total_order_irrefl)
-    apply(meson deliver_locally insert_subset local_order_carrier_closed)
-  apply(simp add: hb_broadcast_exists2)+
-done
+using assms proof(induction rule: hb.induct)
+  case (hb_broadcast m1 i m2) thus ?case
+    using node_total_order_antisym by blast
+next
+  case (hb_deliver m1 i m2) thus ?case
+    by(meson causal_broadcast insert_subset local_order_carrier_closed node_total_order_irrefl)
+next
+  case (hb_trans m1 m2 m3)
+  then obtain i j where "Broadcast m3 \<in> set (history i)" "Broadcast m2 \<in> set (history j)"
+    using hb_broadcast_exists2 by blast
+  then show ?case
+    using assms hb_trans by (meson causal_network.causal_delivery causal_network_axioms
+        deliver_locally insert_subset network.hb.intros(3) network_axioms 
+        node_histories.local_order_carrier_closed assms hb_trans
+        node_histories_axioms node_total_order_irrefl)
+qed
 
 lemma (in causal_network) hb_broadcast_broadcast_order:
   assumes "hb m1 m2"
     and "Broadcast m1 \<in> set (history i)"
     and "Broadcast m2 \<in> set (history i)"
   shows "Broadcast m1 \<sqsubset>\<^sup>i Broadcast m2"
-  using assms
-  apply(induction rule: hb.induct)
-  apply(metis insertI1 local_order_carrier_closed network.broadcasts_unique
-        network_axioms subsetCE)
-  apply(metis broadcasts_unique insert_subset local_order_carrier_closed
-        network.broadcast_before_delivery network_axioms node_total_order_trans)
-  apply(case_tac "Broadcast m2 \<in> set (history i)")
-  using node_total_order_trans apply blast
-  apply(subgoal_tac "Deliver m2 \<in> set (history i)")
-  apply(subgoal_tac "m1 \<noteq> m2 \<and> m2 \<noteq> m3")
-  apply(metis event.inject(1) hb.intros(1) hb_irrefl network.hb.intros(3) network_axioms
-        node_order_is_total hb_irrefl)
-  using hb_has_a_reason apply blast+
-done
-
+using assms proof(induction rule: hb.induct)
+  case (hb_broadcast m1 i m2) thus ?case
+    by(metis insertI1 local_order_carrier_closed network.broadcasts_unique network_axioms subsetCE)
+next
+  case (hb_deliver m1 i m2) thus ?case
+    by(metis broadcasts_unique insert_subset local_order_carrier_closed
+          network.broadcast_before_delivery network_axioms node_total_order_trans)
+next
+  case (hb_trans m1 m2 m3)
+  then show ?case
+  proof (cases "Broadcast m2 \<in> set (history i)")
+    case True thus ?thesis
+      using hb_trans node_total_order_trans by blast
+  next
+    case False hence "Deliver m2 \<in> set (history i)" "m1 \<noteq> m2" "m2 \<noteq> m3"
+      using hb_has_a_reason hb_trans by auto
+    thus ?thesis
+      by(metis hb_trans event.inject(1) hb.intros(1) hb_irrefl network.hb.intros(3) network_axioms node_order_is_total hb_irrefl)
+  qed
+qed
+  
 lemma (in causal_network) hb_antisym:
   assumes "hb x y"
       and "hb y x"
@@ -372,28 +373,29 @@ definition (in network) node_deliver_messages :: "'msg event list \<Rightarrow> 
 
 lemma (in network) node_deliver_messages_empty [simp]:
   shows "node_deliver_messages [] = []"
-by(auto simp add: node_deliver_messages_def List.map_filter_simps)
+  by(auto simp add: node_deliver_messages_def List.map_filter_simps)
 
+lemma (in network) node_deliver_messages_Cons:
+  shows "node_deliver_messages (x#xs) = (node_deliver_messages [x])@(node_deliver_messages xs)"
+  by(auto simp add: node_deliver_messages_def map_filter_def)
+    
 lemma (in network) node_deliver_messages_append:
   shows "node_deliver_messages (xs@ys) = (node_deliver_messages xs)@(node_deliver_messages ys)"
-by(auto simp add: node_deliver_messages_def map_filter_def)
+  by(auto simp add: node_deliver_messages_def map_filter_def)
 
 lemma (in network) node_deliver_messages_Broadcast [simp]:
   shows "node_deliver_messages [Broadcast m] = []"
-by(clarsimp simp: node_deliver_messages_def map_filter_def)
+  by(clarsimp simp: node_deliver_messages_def map_filter_def)
 
 lemma (in network) node_deliver_messages_Deliver [simp]:
   shows "node_deliver_messages [Deliver m] = [m]"
-by(clarsimp simp: node_deliver_messages_def map_filter_def)
+  by(clarsimp simp: node_deliver_messages_def map_filter_def)
 
 lemma (in network) prefix_msg_in_history:
   assumes "es prefix of i"
       and "m \<in> set (node_deliver_messages es)"
     shows "Deliver m \<in> set (history i)"
-using assms
-  apply(clarsimp simp: node_deliver_messages_def map_filter_def split: event.split_asm)
-  using prefix_to_carriers apply auto
-done
+using assms prefix_to_carriers by(fastforce simp: node_deliver_messages_def map_filter_def split: event.split_asm)
 
 lemma (in network) prefix_contains_msg:
   assumes "es prefix of i"
@@ -404,54 +406,42 @@ lemma (in network) prefix_contains_msg:
 lemma (in network) node_deliver_messages_distinct:
   assumes "xs prefix of i"
   shows "distinct (node_deliver_messages xs)"
-using assms
-  apply(induction xs rule: rev_induct, simp)
-  apply(clarsimp simp add: node_deliver_messages_append)
-  apply(safe, force)
-  apply(clarsimp simp: node_deliver_messages_def map_filter_def)
-  apply(frule prefix_distinct)
-  apply(clarsimp simp add: map_filter_def node_deliver_messages_def)
-  apply(rename_tac x xs y z)
-  apply(case_tac x; clarsimp)
-  apply(case_tac y; clarsimp)
-done
-
+using assms proof(induction xs rule: rev_induct)
+  case Nil thus ?case by simp
+next
+  case (snoc x xs)
+  { fix y assume *: "y \<in> set (node_deliver_messages xs)" "y \<in> set (node_deliver_messages [x])"
+    moreover have "distinct (xs @ [x])"
+      using assms snoc prefix_distinct by blast
+    ultimately have "False"
+      using assms apply(case_tac x; clarsimp simp add: map_filter_def node_deliver_messages_def)
+      using * prefix_contains_msg snoc.prems by blast
+  } thus ?case
+    using snoc by(fastforce simp add: node_deliver_messages_append node_deliver_messages_def map_filter_def)
+qed
+  
 lemma (in network) drop_last_message:
   assumes "evts prefix of i"
   and "node_deliver_messages evts = msgs @ [last_msg]"
   shows "\<exists>pre. pre prefix of i \<and> node_deliver_messages pre = msgs"
-using assms apply -
-  apply(subgoal_tac "\<exists>pre suf. evts = pre @ (Deliver last_msg) # suf \<and> node_deliver_messages suf = []")
-  apply(erule exE)+
-  apply(simp)
-  apply(rule_tac x=pre in exI)
-  apply(rule conjI)
-  using prefix_of_appendD apply blast
-  apply(subgoal_tac "node_deliver_messages ([Deliver last_msg] @ suf) = [last_msg]")
-  apply(simp add: node_deliver_messages_append)
-  apply(metis append_Nil2 node_deliver_messages_append node_deliver_messages_Deliver)
-  apply(subgoal_tac "Deliver last_msg \<in> set evts")
-  defer
-  apply(simp add: prefix_contains_msg)
-  apply(subgoal_tac "\<exists>idx. idx < length evts \<and> evts ! idx = Deliver last_msg")
-  apply(erule exE)
-  apply(subgoal_tac "\<exists>pre suf. evts = pre @ (evts ! idx) # suf")
-  defer
-  using list_nth_split_technical id_take_nth_drop apply blast
-  apply(simp add: set_elem_nth)
-  apply(erule exE)+
-  apply(rule_tac x=pre in exI, rule_tac x=suf in exI)
-  apply(rule conjI, simp, simp)
-  apply(subgoal_tac "node_deliver_messages (pre @ Deliver last_msg # suf) =
-         (node_deliver_messages pre) @ (node_deliver_messages (Deliver last_msg # suf))")
-  apply(subgoal_tac "node_deliver_messages ([Deliver last_msg] @ suf) = [last_msg] @ []")
-  apply(metis node_deliver_messages_Deliver node_deliver_messages_append self_append_conv)
-  apply(auto simp add: node_deliver_messages_append)
-  apply(subgoal_tac "node_deliver_messages ([Deliver last_msg] @ suf) = [last_msg] @ []")
-  apply(simp add: node_deliver_messages_append)
-  apply(metis append_Cons node_deliver_messages_Deliver node_deliver_messages_append
-    node_deliver_messages_distinct not_Cons_self2 pre_suf_eq_distinct_list self_append_conv2)
-done
+proof -
+  have "Deliver last_msg \<in> set evts"
+    using assms network.prefix_contains_msg network_axioms by force
+  then obtain idx where *: "idx < length evts" "evts ! idx = Deliver last_msg"
+    by (meson set_elem_nth)
+  then obtain pre suf where "evts = pre @ (evts ! idx) # suf"
+    using id_take_nth_drop by blast
+  hence **: "evts = pre @ (Deliver last_msg) # suf"
+    using assms * by auto
+  moreover hence "distinct (node_deliver_messages ([Deliver last_msg] @ suf))"
+    by (metis assms(1) assms(2) distinct_singleton node_deliver_messages_Cons node_deliver_messages_Deliver
+        node_deliver_messages_append node_deliver_messages_distinct not_Cons_self2 pre_suf_eq_distinct_list)
+  ultimately have "node_deliver_messages ([Deliver last_msg] @ suf) = [last_msg] @ []"
+    by (metis append_self_conv assms(1) assms(2) node_deliver_messages_Cons node_deliver_messages_Deliver
+        node_deliver_messages_append node_deliver_messages_distinct not_Cons_self2 pre_suf_eq_distinct_list)
+  thus ?thesis
+    using assms * ** by (metis append1_eq_conv append_Cons append_Nil node_deliver_messages_append prefix_of_appendD)
+qed
 
 locale network_with_ops = causal_network history fst
   for history :: "nat \<Rightarrow> ('msgid \<times> 'op) event list" +
@@ -489,121 +479,94 @@ definition (in network_with_ops) node_deliver_ops :: "('msgid \<times> 'op) even
 
 lemma (in network_with_ops) apply_operations_empty [simp]:
   shows "apply_operations [] = Some initial_state"
-by(auto simp add: apply_operations_def)
+  by(auto simp add: apply_operations_def)
 
 lemma (in network_with_ops) apply_operations_Broadcast [simp]:
   shows "apply_operations (xs @ [Broadcast m]) = apply_operations xs"
-by(auto simp add: apply_operations_def node_deliver_messages_def map_filter_def)
+  by(auto simp add: apply_operations_def node_deliver_messages_def map_filter_def)
 
 lemma (in network_with_ops) apply_operations_Deliver [simp]:
   shows "apply_operations (xs @ [Deliver m]) = (apply_operations xs \<bind> interp_msg m)"
-by(auto simp add: apply_operations_def node_deliver_messages_def map_filter_def kleisli_def)
+  by(auto simp add: apply_operations_def node_deliver_messages_def map_filter_def kleisli_def)
 
 lemma (in network_with_ops) hb_consistent_technical:
   assumes "\<And>m n. m < length cs \<Longrightarrow> n < m \<Longrightarrow> cs ! n \<sqsubset>\<^sup>i cs ! m"
   shows   "hb.hb_consistent (node_deliver_messages cs)"
-using assms
-  apply -
-  apply(induction cs rule: rev_induct)
-  apply(unfold node_deliver_messages_def)
-  apply(simp add: hb.hb_consistent.intros(1) map_filter_simps(2))
-  apply(case_tac x; clarify)
-  apply(simp add: List.map_filter_def)
-  apply(subgoal_tac "(\<And>m n. m < length xs \<Longrightarrow> n < m \<Longrightarrow> xs ! n \<sqsubset>\<^sup>i xs ! m)")
-  apply clarsimp
-  apply(erule_tac x=m in meta_allE, erule_tac x=n in meta_allE, clarsimp simp add: nth_append)
-  apply(subst map_filter_append)
-  apply(clarsimp simp add: map_filter_def)
-  apply(rule hb.hb_consistent.intros)
-  apply(subgoal_tac "(\<And>m n. m < length xs \<Longrightarrow> n < m \<Longrightarrow> xs ! n \<sqsubset>\<^sup>i xs ! m)")
-  apply clarsimp
-  apply(erule_tac x=m in meta_allE, erule_tac x=n in meta_allE, clarsimp simp add: nth_append)
-  apply clarsimp
-  apply(case_tac x; clarsimp)
-  apply(drule set_elem_nth, erule exE, erule conjE)
-  apply(erule_tac x="length xs" in meta_allE, erule_tac x=m in meta_allE)
-  apply clarsimp
-  apply(subst (asm) nth_append, simp)
-  apply(meson causal_network.causal_delivery causal_network_axioms insert_subset node_histories.local_order_carrier_closed node_histories_axioms node_total_order_irrefl node_total_order_trans)
-done
-
+using assms proof (induction cs rule: rev_induct)
+  case Nil thus ?case
+   by(simp add: node_deliver_messages_def hb.hb_consistent.intros(1) map_filter_simps(2))
+next
+  case (snoc x xs)
+  hence *: "(\<And>m n. m < length xs \<Longrightarrow> n < m \<Longrightarrow> xs ! n \<sqsubset>\<^sup>i xs ! m)"
+    by(-, erule_tac x=m in meta_allE, erule_tac x=n in meta_allE, clarsimp simp add: nth_append)
+  then show ?case
+  proof (cases x)
+    case (Broadcast x1) thus ?thesis
+      using snoc * by (simp add: node_deliver_messages_append)
+  next
+    case (Deliver x2) thus ?thesis
+      using snoc * [[simproc del: defined_all]]
+      apply (clarsimp simp add: node_deliver_messages_def map_filter_def map_filter_append)
+      apply (rename_tac m m1 m2)
+      apply (case_tac m; clarsimp)
+      apply (drule set_elem_nth, erule exE, erule conjE)
+      apply (erule_tac x="length xs" in meta_allE)
+      apply (clarsimp simp add: nth_append)
+      apply (metis causal_delivery insert_subset local_order_carrier_closed
+        node_total_order_antisym)
+      done
+ qed
+qed
+    
 corollary (in network_with_ops)
   shows "hb.hb_consistent (node_deliver_messages (history i))"
-  apply(subgoal_tac "history i = [] \<or> (\<exists>c. history i = [c]) \<or> (length (history i) \<ge> 2)")
-  apply(erule disjE, clarsimp simp add: node_deliver_messages_def map_filter_def)
-  apply(erule disjE, clarsimp simp add: node_deliver_messages_def map_filter_def)
-  apply blast
-  apply(cases "history i"; clarsimp; case_tac "list"; clarsimp)
-  apply(rule hb_consistent_technical[where i=i])                                         
-  apply(subst history_order_def, clarsimp)
-  apply(metis list_nth_split One_nat_def Suc_le_mono cancel_comm_monoid_add_class.diff_cancel
-          le_imp_less_Suc length_Cons less_Suc_eq_le less_imp_diff_less neq0_conv nth_Cons_pos)
-  apply(cases "history i"; clarsimp; case_tac "list"; clarsimp)
-done
+  by (metis hb_consistent_technical history_order_def less_one linorder_neqE_nat list_nth_split zero_order(3))
 
 lemma (in network_with_ops) hb_consistent_prefix:
   assumes "xs prefix of i"
-    shows "hb.hb_consistent (node_deliver_messages xs)"
-using assms
-  apply(clarsimp simp: prefix_of_node_history_def)
-  apply(rule_tac i=i in hb_consistent_technical)
-  apply(subst history_order_def)
-  apply(subgoal_tac "xs = [] \<or> (\<exists>c. xs = [c]) \<or> (length (xs) > 1)")
-  apply(erule disjE)
-  apply clarsimp
-  apply(erule disjE)
-  apply clarsimp
-  apply(drule list_nth_split)
-  apply assumption
-  apply clarsimp
-  apply clarsimp
-  apply(rule_tac x=xsa in exI)
-  apply(rule_tac x=ysa in exI)
-  apply(rule_tac x="zs@ys" in exI)
-  apply(metis Cons_eq_appendI append_assoc)
-  apply force
-  done
+  shows "hb.hb_consistent (node_deliver_messages xs)"
+using assms proof (clarsimp simp: prefix_of_node_history_def, rule_tac i=i in hb_consistent_technical)
+  fix m n ys assume *: "xs @ ys = history i" "m < length xs" "n < m"
+  consider (a) "xs = []" | (b) "\<exists>c. xs = [c]" | (c) "Suc 0 < length (xs)"
+    by (metis Suc_pred length_Suc_conv length_greater_0_conv zero_less_diff)
+  thus "xs ! n \<sqsubset>\<^sup>i xs ! m"
+  proof (cases)
+    case a thus ?thesis
+      using * by clarsimp
+  next
+    case b thus ?thesis
+      using assms * by clarsimp
+  next
+    case c thus ?thesis
+      using assms * apply clarsimp
+      apply(drule list_nth_split, assumption, clarsimp simp: c)
+      apply (metis append.assoc append.simps(2) history_order_def)
+      done
+  qed
+qed
 
-locale network_with_constrained_ops = network_with_ops history interp initial_state
-  for history :: "nat \<Rightarrow> ('msgid \<times> 'op) event list"
-  and interp :: "'op \<Rightarrow> 'state \<rightharpoonup> 'state"
-  and initial_state :: "'state" +
-  fixes valid_msgs :: "nat \<Rightarrow> 'state \<Rightarrow> ('msgid \<times> 'op) set"
-
+locale network_with_constrained_ops = network_with_ops +
+  fixes valid_msg :: "'c \<Rightarrow> ('a \<times> 'b) \<Rightarrow> bool"
   assumes broadcast_only_valid_msgs: "pre @ [Broadcast m] prefix of i \<Longrightarrow>
-             \<exists>state. apply_operations pre = Some state \<and> m \<in> valid_msgs i state"
+             \<exists>state. apply_operations pre = Some state \<and> valid_msg state m"
 
 lemma (in network_with_constrained_ops) broadcast_is_valid:
   assumes "Broadcast m \<in> set (history i)"
-  shows "\<exists>state. m \<in> valid_msgs i state"
-  using assms
-  apply(subgoal_tac "\<exists>pre. pre @ [Broadcast m] prefix of i")
-  using broadcast_only_valid_msgs apply blast
-  using events_before_exist apply blast
-done
+  shows "\<exists>state. valid_msg state m"
+  using assms broadcast_only_valid_msgs events_before_exist by blast
 
 lemma (in network_with_constrained_ops) deliver_is_valid:
   assumes "Deliver m \<in> set (history i)"
-  shows "\<exists>j pre state. pre @ [Broadcast m] prefix of j \<and> apply_operations pre = Some state \<and> m \<in> valid_msgs j state"
-  using assms apply -
-  apply(drule delivery_has_a_cause)
-  apply(erule exE)
-  apply(subgoal_tac "\<exists>pre. pre @ [Broadcast m] prefix of j")
-  using broadcast_only_valid_msgs apply blast
-  using events_before_exist apply blast
-done
+  shows "\<exists>j pre state. pre @ [Broadcast m] prefix of j \<and> apply_operations pre = Some state \<and> valid_msg state m"
+  using assms apply (clarsimp dest!: delivery_has_a_cause)
+  using broadcast_only_valid_msgs events_before_exist apply blast
+  done
 
 lemma (in network_with_constrained_ops) deliver_in_prefix_is_valid:
   assumes "xs prefix of i"
       and "Deliver m \<in> set xs"
-    shows "\<exists>i state. m \<in> valid_msgs i state"
-  using assms apply -
-  apply(subgoal_tac "Deliver m \<in> set (history i)")
-  apply(drule delivery_has_a_cause)
-  apply(erule exE, rule_tac x=j in exI)
-  apply(rule broadcast_is_valid, assumption)
-  apply(simp add: prefix_elem_to_carriers)
-done
+    shows "\<exists>state. valid_msg state m"
+  by (meson assms network_with_constrained_ops.deliver_is_valid network_with_constrained_ops_axioms prefix_elem_to_carriers)
 
 subsection\<open>Dummy network models\<close>
 
@@ -618,8 +581,8 @@ interpretation trivial_causal_network: causal_network "\<lambda>m. []" id
 
 interpretation trivial_network_with_ops: network_with_ops "\<lambda>m. []" "(\<lambda>x y. Some y)" 0
   by standard auto
-
-interpretation trivial_network_with_constrained_ops: network_with_constrained_ops "\<lambda>m. []" "(\<lambda>x y. Some y)" 0 "\<lambda>i x. {}"
+    
+interpretation trivial_network_with_constrained_ops: network_with_constrained_ops "\<lambda>m. []" "(\<lambda>x y. Some y)" 0 "\<lambda>x y. True"
   by standard (simp add: trivial_node_histories.prefix_of_node_history_def)
 
 end

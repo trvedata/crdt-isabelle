@@ -1,8 +1,9 @@
-session "CRDT" = "HOL" +
-  options [document = pdf, document_output = "output"]
-  theories [document = false]
-    "~~/src/Tools/Adhoc_Overloading"
-    "~~/src/HOL/Library/Monad_Syntax"
+chapter AFP
+
+session CRDT (AFP) = HOL +
+  options [timeout = 600]
+  sessions
+    "HOL-Library"
   theories
     Network
     RGA
